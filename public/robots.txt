@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Allow: /app.html
+Disallow: /admin.html

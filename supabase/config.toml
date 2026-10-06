@@ -1,0 +1,13 @@
+# Configuration minimale pour `supabase functions deploy`
+project_id = "smartcv"
+
+# CinetPay appelle ce webhook de serveur à serveur : il ne peut pas envoyer de JWT Supabase.
+# La sécurité vient de la re-vérification du paiement auprès de CinetPay + du montant enregistré en base.
+[functions.cinetpay-webhook]
+verify_jwt = false
+
+[functions.create-payment]
+verify_jwt = true
+
+[functions.ai-chat]
+verify_jwt = true

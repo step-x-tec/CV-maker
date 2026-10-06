@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SmartCV — Administration</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563EB'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' font-family='Georgia,serif' font-weight='bold' fill='white'%3EA%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F172A;--panel:#1E293B;--panel2:#334155;--ink:#F1F5F9;--ink2:#94A3B8;--accent:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--border:rgba(255,255,255,.08);
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13.5px}
+button,input,select{font-family:inherit}
+.app{display:flex;height:100vh}
+.side{width:220px;background:var(--panel);border-right:1px solid var(--border);padding:18px 12px;flex-shrink:0;overflow-y:auto}
+.side h1{font-size:15px;padding:0 8px 18px}
+.side button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 10px;border:none;background:none;color:var(--ink2);border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:2px}
+.side button.active{background:var(--accent);color:#fff}
+.main{flex:1;overflow-y:auto;padding:26px 30px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:26px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+.stat-card .v{font-size:24px;font-weight:800}
+.stat-card .l{font-size:11.5px;color:var(--ink2);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
+.badge{padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:700}
+.b-free{background:#334155}.b-starter{background:#1D4ED8}.b-premium{background:#7C3AED}.b-pro{background:#B45309}
+.btn{padding:7px 12px;border-radius:8px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;background:var(--panel2);color:var(--ink)}
+.btn-danger{background:#3F1D1D;color:#FCA5A5}
+.login-box{max-width:340px;margin:80px auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px}
+.login-box input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#0F172A;color:#fff;margin-bottom:10px}
+.login-box button{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:700}
+.err{color:var(--bad);font-size:12px;margin-bottom:10px}
+.stub{background:var(--panel);border:1px dashed var(--border);border-radius:14px;padding:30px;text-align:center;color:var(--ink2)}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2 style="margin:0 0 4px">Admin SmartCV</h2>
+  <p style="color:var(--ink2);font-size:12px;margin:0 0 18px">Réservé aux comptes administrateurs.</p>
+  <div id="loginErr" class="err" style="display:none"></div>
+  <input id="admEmail" type="email" placeholder="Email">
+  <input id="admPass" type="password" placeholder="Mot de passe">
+  <button onclick="adminLogin()">Se connecter</button>
+</div>
+
+<div id="adminApp" class="app" style="display:none">
+  <div class="side">
+    <h1>SmartCV <span style="color:var(--accent)">Admin</span></h1>
+    <button class="nav-item active" data-p="dashboard" onclick="goPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-item" data-p="users" onclick="goPage('users')">👥 Utilisateurs</button>
+    <button class="nav-item" data-p="cvs" onclick="goPage('cvs')">📄 CVs</button>
+    <button class="nav-item" data-p="payments" onclick="goPage('payments')">💰 Paiements</button>
+    <button class="nav-item" data-p="licenses" onclick="goPage('licenses')">🔑 Licences</button>
+    <button class="nav-item" data-p="support" onclick="goPage('support')">💬 Support</button>
+    <button class="nav-item" data-p="feedback" onclick="goPage('feedback')">⭐ Feedback</button>
+    <button class="nav-item" data-p="broadcast" onclick="goPage('broadcast')">📢 Broadcast</button>
+    <button class="nav-item" data-p="ailogs" onclick="goPage('ailogs')">🤖 Logs IA</button>
+    <button class="nav-item" data-p="settings" onclick="goPage('settings')">⚙️ Paramètres</button>
+    <button onclick="adminLogout()" style="margin-top:16px;color:var(--bad)">↪ Déconnexion</button>
+  </div>
+  <div class="main" id="mainArea"></div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   SÉCURITÉ : ce dashboard n'utilise QUE la clé anon, jamais la clé
+   service_role. L'accès admin repose sur :
+   1) une connexion normale (auth.signInWithPassword)
+   2) une vérification profiles.is_admin = true après connexion
+   3) des RPC Postgres (SECURITY DEFINER) côté Supabase qui, elles,
+      vérifient is_admin() en base avant de renvoyer des données
+      cross-utilisateurs (get_admin_stats, get_user_full_data...).
+   Si une opération n'a pas encore sa RPC dédiée, cette page affiche
+   un état "à connecter" plutôt que d'improviser un accès non sécurisé.
+------------------------------------------------------------------*/
+const CFG = window.__SC_CONFIG__ || {};
+const SUPABASE_URL = CFG.SUPABASE_URL || 'https://rqsnvevvzkjuoszxjnqu.supabase.co';
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxc252ZXZ2emtqdW9zenhqbnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNjQ5NDQsImV4cCI6MjEwMDg0MDk0NH0.6hSlK-KQFk4_dDj8y7K8Q7B7kGWMPVv6jPiLKtq3zZU';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let admin = null;
+
+async function enterAdmin(user){
+  const { data: profile, error: pErr } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if(pErr) throw pErr;
+  if(!profile.is_admin){ await sb.auth.signOut(); throw new Error('Ce compte n\'est pas administrateur.'); }
+  admin = profile;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminApp').style.display = 'flex';
+  goPage('dashboard');
+}
+async function adminLogin(){
+  const email = document.getElementById('admEmail').value.trim();
+  const password = document.getElementById('admPass').value;
+  const err = document.getElementById('loginErr');
+  err.style.display = 'none';
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    await enterAdmin(data.user);
+  }catch(e){ err.textContent = e.message; err.style.display = 'block'; }
+}
+// Session déjà ouverte (rechargement de la page)
+(async function adminInit(){
+  try{ const { data } = await sb.auth.getSession(); if(data && data.session) await enterAdmin(data.session.user); }catch(e){}
+})();
+
+async function adminLogout(){ await sb.auth.signOut(); location.reload(); }
+
+function goPage(p){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
+  const fns = { dashboard: pageDashboard, users: pageUsers, cvs: pageCvs, payments: pagePayments, licenses: pageLicenses, support: pageSupport, feedback: pageFeedback, broadcast: pageBroadcast, ailogs: pageAiLogs, settings: pageSettings };
+  (fns[p] || pageStub)(p);
+}
+
+function pageStub(p){
+  document.getElementById('mainArea').innerHTML = '<div class="stub">Page "'+p+'" — à connecter à sa RPC/table dédiée quand vous voulez l\'implémenter en détail.</div>';
+}
+
+/* ---------------- Dashboard ---------------- */
+async function pageDashboard(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Dashboard</h2><div class="stat-grid" id="statGrid"><div class="stub">Chargement…</div></div>';
+  try{
+    const { data, error } = await sb.rpc('get_admin_stats');
+    if(error) throw error;
+    if(data && data.error === 'FORBIDDEN') throw new Error('Ce compte n\'est pas reconnu comme admin par la fonction (is_admin=false côté base).');
+    const s = data || {};
+    const u = s.users||{}, c = s.cvs||{}, r = s.revenue||{}, a = s.ai||{}, sp = s.support||{};
+    const cards = [
+      ['Utilisateurs', u.total ?? '—'],
+      ['Actifs (24h)', u.active ?? '—'],
+      ['CVs créés', c.total ?? '—'],
+      ['Revenus (30j)', (r.month ?? 0).toLocaleString('fr-FR') + ' FCFA'],
+      ['Requêtes IA (jour)', a.today ?? '—'],
+      ['Tickets ouverts', sp.open ?? '—'],
+    ];
+    document.getElementById('statGrid').innerHTML = cards.map(c=>'<div class="stat-card"><div class="v">'+c[1]+'</div><div class="l">'+c[0]+'</div></div>').join('')
+      + '<div class="stat-card"><div class="v">'+(a.success_rate ?? '—')+'%</div><div class="l">Taux de succès IA</div></div>'
+      + '<div class="stat-card"><div class="v">'+(u.banned ?? 0)+'</div><div class="l">Comptes bannis</div></div>';
+  }catch(e){
+    document.getElementById('statGrid').innerHTML = '<div class="stub">get_admin_stats() indisponible : '+e.message+'</div>';
+  }
+}
+
+/* ---------------- Utilisateurs ---------------- */
+async function pageUsers(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Utilisateurs</h2><div id="usersTable">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('profiles').select('id,email,name,plan,is_banned,created_at').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('usersTable').innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Plan</th><th>Statut</th><th>Inscrit</th><th></th></tr></thead><tbody>'
+      + data.map(u=>'<tr><td>'+esc(u.name||'—')+'</td><td>'+esc(u.email)+'</td><td><span class="badge b-'+u.plan+'">'+u.plan+'</span></td>'
+        + '<td>'+(u.is_banned?'<span style="color:var(--bad)">Banni</span>':'Actif')+'</td>'
+        + '<td>'+new Date(u.created_at).toLocaleDateString('fr-FR')+'</td>'
+        + '<td><button class="btn '+(u.is_banned?'':'btn-danger')+'" onclick="toggleBan(\''+u.id+'\','+!u.is_banned+')">'+(u.is_banned?'Débannir':'Bannir')+'</button></td></tr>').join('')
+      + '</tbody></table>';
+  }catch(e){
+    document.getElementById('usersTable').innerHTML = '<div class="stub">Lecture de "profiles" refusée ou erreur : '+e.message+'<br><br>Ajoutez une politique RLS autorisant les admins (is_admin=true) à lire toutes les lignes de "profiles".</div>';
+  }
+}
+async function toggleBan(userId, banned){
+  try{ const { error } = await sb.from('profiles').update({ is_banned: banned, banned_at: banned ? new Date().toISOString() : null, banned_by: banned ? admin.id : null }).eq('id', userId); if(error) throw error; pageUsers(); }
+  catch(e){ alert('Erreur: '+e.message); }
+}
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- CVs ---------------- */
+async function pageCvs(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">CVs</h2><div id="cvsTable">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('cvs').select('id,title,model_id,ats_score,is_public,view_count,download_count,created_at').eq('is_deleted', false).order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('cvsTable').innerHTML = '<table><thead><tr><th>Titre</th><th>Modèle</th><th>ATS</th><th>Public</th><th>Vues</th><th>Téléch.</th><th>Créé</th></tr></thead><tbody>'
+      + data.map(c=>'<tr><td>'+esc(c.title)+'</td><td>'+esc(c.model_id)+'</td><td>'+(c.ats_score ?? '—')+'</td><td>'+(c.is_public?'Oui':'Non')+'</td><td>'+c.view_count+'</td><td>'+c.download_count+'</td><td>'+new Date(c.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
+      + '</tbody></table>';
+  }catch(e){
+    document.getElementById('cvsTable').innerHTML = '<div class="stub">Lecture de "cvs" refusée ou erreur : '+e.message+'<br><br>Ajoutez une policy RLS admin sur "cvs", ou une RPC dédiée (comme get_admin_stats) pour lister tous les CVs.</div>';
+  }
+}
+
+/* ---------------- Paiements ---------------- */
+async function pagePayments(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Paiements</h2><div id="payTable">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('payments').select('transaction_id,plan,amount,currency,status,provider,paid_at,created_at').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    const statusColor = { success:'b-premium', pending:'b-starter', failed:'b-pro', refunded:'b-free', disputed:'b-pro', processing:'b-starter' };
+    document.getElementById('payTable').innerHTML = '<table><thead><tr><th>Transaction</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Fournisseur</th><th>Date</th></tr></thead><tbody>'
+      + data.map(p=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(p.transaction_id)+'</td><td>'+esc(p.plan)+'</td><td>'+p.amount.toLocaleString('fr-FR')+' '+esc(p.currency)+'</td><td><span class="badge '+(statusColor[p.status]||'b-free')+'">'+esc(p.status)+'</span></td><td>'+esc(p.provider)+'</td><td>'+new Date(p.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
+      + '</tbody></table>';
+  }catch(e){
+    document.getElementById('payTable').innerHTML = '<div class="stub">Lecture de "payments" refusée ou erreur : '+e.message+'</div>';
+  }
+}
+
+/* ---------------- Feedback ---------------- */
+async function pageFeedback(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Feedback</h2><div id="fbTable">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('feedback').select('id,type,rating,title,message,status,created_at').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('fbTable').innerHTML = data.map(f=>'<div class="stat-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+'⭐'.repeat(f.rating)+' — '+esc(f.title||f.type)+'</b><span class="badge b-'+(f.status==='approved'?'premium':f.status==='rejected'?'pro':'free')+'">'+esc(f.status)+'</span></div>'
+      + '<p style="font-size:12px;color:var(--ink2);margin:8px 0">'+esc(f.message)+'</p>'
+      + (f.status==='pending' ? '<button class="btn" onclick="moderateFeedback(\''+f.id+'\',\'approved\')">Approuver</button> <button class="btn btn-danger" onclick="moderateFeedback(\''+f.id+'\',\'rejected\')">Rejeter</button>' : '')
+      + '</div>').join('') || '<div class="stub">Aucun feedback.</div>';
+  }catch(e){
+    document.getElementById('fbTable').innerHTML = '<div class="stub">Lecture de "feedback" refusée ou erreur : '+e.message+'</div>';
+  }
+}
+async function moderateFeedback(id, status){
+  try{ const { error } = await sb.from('feedback').update({ status }).eq('id', id); if(error) throw error; pageFeedback(); }
+  catch(e){ alert('Erreur: '+e.message); }
+}
+
+/* ---------------- Logs IA ---------------- */
+async function pageAiLogs(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Logs IA</h2><div id="aiTable">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('ai_logs').select('action,provider,model,total_tokens,duration_ms,success,error_message,created_at').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('aiTable').innerHTML = '<table><thead><tr><th>Action</th><th>Provider</th><th>Tokens</th><th>Durée</th><th>Statut</th><th>Date</th></tr></thead><tbody>'
+      + data.map(l=>'<tr><td>'+esc(l.action)+'</td><td>'+esc(l.provider)+'/'+esc(l.model||'—')+'</td><td>'+(l.total_tokens ?? '—')+'</td><td>'+(l.duration_ms ? l.duration_ms+'ms' : '—')+'</td><td>'+(l.success?'<span style="color:var(--ok)">OK</span>':'<span style="color:var(--bad)" title="'+esc(l.error_message||'')+'">Erreur</span>')+'</td><td>'+new Date(l.created_at).toLocaleString('fr-FR')+'</td></tr>').join('')
+      + '</tbody></table>';
+  }catch(e){
+    document.getElementById('aiTable').innerHTML = '<div class="stub">Lecture de "ai_logs" refusée ou erreur : '+e.message+'</div>';
+  }
+}
+
+/* ---------------- Paramètres ---------------- */
+async function pageSettings(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Paramètres — Administrateurs</h2><div id="admList">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('profiles').select('email,name,admin_role').eq('is_admin', true);
+    if(error) throw error;
+    document.getElementById('admList').innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th></tr></thead><tbody>'
+      + data.map(a=>'<tr><td>'+esc(a.name||'—')+'</td><td>'+esc(a.email)+'</td><td>'+esc(a.admin_role||'admin')+'</td></tr>').join('')
+      + '</tbody></table><p style="color:var(--ink2);font-size:11.5px;margin-top:14px">Pour ajouter un admin: <code>UPDATE profiles SET is_admin=true WHERE email=\'...\'</code> (via SQL editor Supabase, jamais depuis cette page côté client).</p>';
+  }catch(e){
+    document.getElementById('admList').innerHTML = '<div class="stub">Erreur: '+e.message+'</div>';
+  }
+}
+
+/* ---------------- Licences ---------------- */
+function pageLicenses(){
+  document.getElementById('mainArea').innerHTML = '<h2 style="margin:0 0 18px">Licences</h2>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    + '<select id="licPlan" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select>'
+    + '<input id="licCount" type="number" value="1" min="1" max="100" title="Nombre de clés" style="width:80px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
+    + '<input id="licDays" type="number" value="30" min="1" title="Durée (jours)" style="width:80px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
+    + '<input id="licNote" placeholder="Note (ex: revendeur Lomé)" style="flex:1;min-width:140px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
+    + '<button class="btn" onclick="genLicenses()">Générer et enregistrer</button></div>'
+    + '<div style="font-size:11px;color:var(--ink2);margin-bottom:10px">Nombre · durée en jours · note. Les clés sont enregistrées en base : copiez-les maintenant.</div>'
+    + '<div id="licOut" style="font-family:monospace;font-size:12px;color:var(--ok);white-space:pre-line;margin-bottom:22px"></div>'
+    + '<div id="licList">Chargement…</div>';
+  loadLicenses();
+}
+function randKey(plan){
+  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b=new Uint8Array(12); crypto.getRandomValues(b);
+  return 'SC-'+plan.toUpperCase()+'-'+Array.from(b,function(x){ return A[x%A.length]; }).join('');
+}
+async function genLicenses(){
+  const plan = document.getElementById('licPlan').value;
+  const n = Math.max(1, Math.min(100, parseInt(document.getElementById('licCount').value)||1));
+  const days = Math.max(1, parseInt(document.getElementById('licDays').value)||30);
+  const note = document.getElementById('licNote').value.trim() || null;
+  const rows = Array.from({length:n}, function(){ return { key: randKey(plan), plan: plan, duration_days: days, max_uses: 1, created_by: admin.id, note: note }; });
+  try{
+    const { error } = await sb.from('license_keys').insert(rows);
+    if(error) throw error;
+    document.getElementById('licOut').textContent = rows.map(function(r){ return r.key; }).join('\n');
+    loadLicenses();
+  }catch(e){ document.getElementById('licOut').style.color='var(--bad)'; document.getElementById('licOut').textContent = 'Erreur : '+e.message; }
+}
+async function loadLicenses(){
+  try{
+    const { data, error } = await sb.from('license_keys').select('key,plan,duration_days,status,used_at,note,created_at').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('licList').innerHTML = '<table><thead><tr><th>Clé</th><th>Plan</th><th>Durée</th><th>Statut</th><th>Note</th><th></th></tr></thead><tbody>'
+      + data.map(function(k){ return '<tr><td style="font-family:monospace;font-size:11px">'+esc(k.key)+'</td><td>'+esc(k.plan)+'</td><td>'+k.duration_days+' j</td><td>'+esc(k.status)+'</td><td>'+esc(k.note||'')+'</td><td>'+(k.status==='active'?'<button class="btn btn-danger" onclick="revokeLicense(\''+esc(k.key)+'\')">Révoquer</button>':'')+'</td></tr>'; }).join('')
+      + '</tbody></table>';
+  }catch(e){ document.getElementById('licList').innerHTML = '<div class="stub">Erreur : '+esc(e.message)+'</div>'; }
+}
+async function revokeLicense(key){
+  if(!confirm('Révoquer cette clé ?')) return;
+  const { error } = await sb.from('license_keys').update({ status:'revoked' }).eq('key', key);
+  if(error) alert('Erreur : '+error.message); else loadLicenses();
+}
+
+/* ---------------- Support (réutilise le même schéma realtime que l'app) ---------------- */
+async function pageSupport(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Support — Tickets</h2><div id="ticketsAdmin">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('support_tickets').select('*').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    document.getElementById('ticketsAdmin').innerHTML = '<table><thead><tr><th>Sujet</th><th>Statut</th><th>Créé</th></tr></thead><tbody>'
+      + data.map(t=>'<tr><td>'+esc(t.subject)+'</td><td><span class="badge b-starter">'+esc(t.status)+'</span></td><td>'+new Date(t.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
+      + '</tbody></table>';
+  }catch(e){
+    document.getElementById('ticketsAdmin').innerHTML = '<div class="stub">Erreur ou RLS bloquant la lecture admin de "support_tickets" : '+e.message+'</div>';
+  }
+}
+
+/* ---------------- Broadcast ---------------- */
+function pageBroadcast(){
+  const st='width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#0F172A;color:#fff;margin-bottom:10px';
+  document.getElementById('mainArea').innerHTML = '<h2 style="margin:0 0 18px">Broadcast</h2>'
+    + '<input id="bcTitle" placeholder="Titre" maxlength="80" style="'+st+'">'
+    + '<textarea id="bcMsg" placeholder="Message affiché à tous les utilisateurs connectés…" maxlength="400" style="'+st+';min-height:90px"></textarea>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    + '<select id="bcType" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="info">Information</option><option value="success">Bonne nouvelle</option><option value="warning">Avertissement</option><option value="maintenance">Maintenance</option></select>'
+    + '<select id="bcTarget" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="all">Tous</option><option value="free">Gratuit</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select>'
+    + '<button class="btn" onclick="sendBroadcast()">Publier</button></div><div id="bcMsgOut" style="font-size:12px;color:var(--ok);margin-bottom:20px"></div>'
+    + '<div id="bcList">Chargement…</div>';
+  loadBroadcastsAdmin();
+}
+async function sendBroadcast(){
+  const title = document.getElementById('bcTitle').value.trim();
+  const message = document.getElementById('bcMsg').value.trim();
+  const out = document.getElementById('bcMsgOut');
+  if(!title || !message){ out.style.color='var(--bad)'; out.textContent='Titre et message requis.'; return; }
+  try{
+    const { error } = await sb.from('admin_broadcasts').insert({ admin_id: admin.id, title: title, message: message, type: document.getElementById('bcType').value, target_plan: document.getElementById('bcTarget').value });
+    if(error) throw error;
+    out.style.color='var(--ok)'; out.textContent = '✓ Message publié.';
+    document.getElementById('bcTitle').value=''; document.getElementById('bcMsg').value='';
+    loadBroadcastsAdmin();
+  }catch(e){ out.style.color='var(--bad)'; out.textContent = 'Erreur : '+e.message; }
+}
+async function loadBroadcastsAdmin(){
+  try{
+    const { data, error } = await sb.from('admin_broadcasts').select('id,title,type,target_plan,is_active,created_at').order('created_at',{ascending:false}).limit(20);
+    if(error) throw error;
+    document.getElementById('bcList').innerHTML = '<table><thead><tr><th>Titre</th><th>Type</th><th>Cible</th><th>Statut</th><th></th></tr></thead><tbody>'
+      + data.map(function(b){ return '<tr><td>'+esc(b.title)+'</td><td>'+esc(b.type)+'</td><td>'+esc(b.target_plan||'all')+'</td><td>'+(b.is_active?'Actif':'Désactivé')+'</td><td><button class="btn" onclick="toggleBroadcast(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'Désactiver':'Réactiver')+'</button></td></tr>'; }).join('')
+      + '</tbody></table>';
+  }catch(e){ document.getElementById('bcList').innerHTML = '<div class="stub">Erreur : '+esc(e.message)+'</div>'; }
+}
+async function toggleBroadcast(id, active){
+  const { error } = await sb.from('admin_broadcasts').update({ is_active: active }).eq('id', id);
+  if(error) alert('Erreur : '+error.message); else loadBroadcastsAdmin();
+}
+</script>
+</body>
+</html>
