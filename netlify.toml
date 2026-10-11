@@ -11,6 +11,11 @@
   to = "/admin.html"
   status = 200
 
+[[redirects]]
+  from = "/cv/*"
+  to = "/app.html"
+  status = 200
+
 [[headers]]
   for = "/admin.html"
   [headers.values]

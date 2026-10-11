@@ -2,7 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/app/(.*)", "destination": "/app.html" },
-    { "source": "/admin/(.*)", "destination": "/admin.html" }
+    { "source": "/admin/(.*)", "destination": "/admin.html" },
+    { "source": "/cv/(.*)", "destination": "/app.html" }
   ],
   "headers": [
     { "source": "/admin.html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
