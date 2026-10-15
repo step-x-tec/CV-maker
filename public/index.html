@@ -1,13 +1,29 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" style="color-scheme:light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SmartCV Pro — Créez un CV professionnel en 5 minutes</title>
+<title>CVxMaker — Créez un CV professionnel en 5 minutes</title>
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<meta name="darkreader-lock">
+<meta name="theme-color" content="#1B1640">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CVxMaker">
+<meta name="application-name" content="CVxMaker">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<script src="config.js" onerror="void 0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#F6F4EF;--ink:#211D2C;--ink2:#736E7D;--nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;--ok:#127A5B;
+:root{color-scheme:light;--bg:#F6F4EF;--ink:#211D2C;--ink2:#736E7D;--nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;--ok:#127A5B;
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif}
@@ -51,6 +67,9 @@ section{padding:64px 0}
 
 /* features */
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+/* 6 fonctionnalités : 3 colonnes sur desktop forment 2 rangées pleines, au lieu de 4 colonnes qui
+   laissent la dernière rangée à moitié vide (4+2, avec un grand blanc inexpliqué à droite). */
+@media (min-width:950px){ .feat-grid{grid-template-columns:repeat(3,1fr)} }
 .feat-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:20px}
 .feat-card .ic{font-size:22px;margin-bottom:10px}
 .feat-card h3{font-size:14.5px;margin-bottom:6px}
@@ -65,6 +84,26 @@ section{padding:64px 0}
 .testi-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:20px;font-size:13px}
 .testi-card .who{font-weight:700;margin-top:12px;font-size:12.5px}
 .testi-card .role{color:var(--ink2);font-size:11.5px}
+
+/* formulaire "laisser un avis" : visible à tous, publié seulement après validation admin */
+.testi-form{max-width:520px;margin:36px auto 0;background:#fff;border:1.5px solid var(--border);border-radius:18px;padding:24px}
+.testi-form h3{font-size:16px;margin:0 0 4px}
+.testi-form .hint{font-size:12px;color:var(--ink2);margin:0 0 18px}
+.testi-form label{display:block;font-size:11.5px;font-weight:700;color:var(--ink2);margin:0 0 6px;letter-spacing:.2px}
+.testi-form input,.testi-form textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:13.5px;font-family:inherit;margin-bottom:14px;background:#FCFBF8;color:var(--ink)}
+.testi-form textarea{min-height:90px;resize:vertical}
+.testi-form input:focus,.testi-form textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(176,105,30,.13);background:#fff}
+.testi-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){ .testi-form .row2{grid-template-columns:1fr} }
+.testi-stars{display:flex;gap:4px;margin-bottom:16px}
+.testi-stars button{background:none;border:none;font-size:24px;color:#DDD6C8;cursor:pointer;line-height:1;padding:0}
+.testi-stars button.on{color:#E0A733}
+.testi-hp{position:absolute !important;left:-9999px !important;width:1px;height:1px;overflow:hidden}
+.testi-msg{display:none;font-size:12.5px;font-weight:600;margin:-6px 0 14px}
+.testi-msg.ok{display:block;color:var(--ok)}
+.testi-msg.err{display:block;color:#B23B3B}
+.testi-submit{width:100%}
+.testi-submit:disabled{opacity:.6;cursor:default}
 
 /* pricing (compact) */
 .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
@@ -86,12 +125,13 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr
 footer h4{color:#fff;font-size:13px;margin-bottom:10px}
 footer a{display:block;font-size:12.5px;color:#94A3B8;margin-bottom:7px}
 footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-size:11.5px;color:#64748B;text-align:center}
+.soon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:22px;max-width:420px;margin-left:auto;margin-right:auto}.soon-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:20px;text-align:left}.soon-card .ic{font-size:26px;margin-bottom:8px}.soon-card h3{font-size:15px;margin-bottom:4px}.soon-card p{margin:0;font-size:13px;color:var(--ink2);line-height:1.5}.soon-tag{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;background:var(--accent);padding:3px 9px;border-radius:99px;margin-bottom:10px}.soon-form{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.soon-form input{padding:12px 16px;border:1.5px solid var(--border);border-radius:99px;font-size:14px;min-width:240px;flex:1;max-width:340px}
 </style>
 </head>
 <body>
 
 <div class="nav"><div class="wrap">
-  <div class="logo"><span class="mark">S</span>SmartCV <span style="color:var(--accent)">Pro</span></div>
+  <div class="logo"><span class="mark">C</span>CVxMaker</div>
   <div class="nav-links"><a href="#features">Fonctionnalités</a><a href="#pricing">Tarifs</a><a href="#faq">FAQ</a></div>
   <a href="/app/" class="btn btn-primary" style="padding:9px 18px;font-size:13px">Créer mon CV</a>
 </div></div>
@@ -104,7 +144,7 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
     <a href="/app/" class="btn btn-primary">Créer mon CV gratuitement</a>
     <a href="#templates" class="btn btn-ghost">Voir les modèles</a>
   </div>
-  <div class="stat-live"><b id="statCount">14 382</b> CVs créés sur SmartCV Pro</div>
+  <div class="stat-live"><b id="statCount">14 382</b> CVs créés sur CVxMaker</div>
 </div></div>
 
 <section id="templates"><div class="wrap">
@@ -133,9 +173,10 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
   <h2 class="h2 center">Tout pour un CV qui se démarque</h2>
   <p class="sub center">&nbsp;</p>
   <div class="feat-grid">
-    <div class="feat-card"><div class="ic">🤖</div><h3>Assistant IA</h3><p>Améliore votre résumé, vos missions, et génère une lettre de motivation en un clic.</p></div>
+    <div class="feat-card"><div class="ic">🤖</div><h3>Assistant IA</h3><p>Améliore votre résumé et vos missions en un clic.</p></div>
     <div class="feat-card"><div class="ic">🎨</div><h3>50 modèles</h3><p>Des styles africains, européens et créatifs, tous personnalisables.</p></div>
     <div class="feat-card"><div class="ic">📊</div><h3>Score ATS</h3><p>Vérifiez en temps réel que votre CV passe les filtres de recrutement automatiques.</p></div>
+    <div class="feat-card"><div class="ic">✉️</div><h3>Lettres &amp; demandes</h3><p>Lettre de motivation, demande d'emploi ou de stage, composées à partir de votre CV. Export PDF et Word.</p></div>
     <div class="feat-card"><div class="ic">📱</div><h3>100% mobile</h3><p>Créez et modifiez votre CV aussi facilement sur téléphone que sur ordinateur.</p></div>
     <div class="feat-card"><div class="ic">📤</div><h3>Export PDF & Word</h3><p>Téléchargez votre CV dans le format dont vous avez besoin, prêt à envoyer.</p></div>
     <div class="feat-card"><div class="ic">☁️</div><h3>Sauvegarde cloud</h3><p>Retrouvez tous vos CVs, sur tous vos appareils, à tout moment.</p></div>
@@ -155,13 +196,29 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
 
 <section style="background:#fff"><div class="wrap">
   <div class="eyebrow center">Témoignages</div>
-  <h2 class="h2 center">Ils ont trouvé un emploi avec SmartCV</h2>
+  <h2 class="h2 center">Ils ont trouvé un emploi avec CVxMaker</h2>
   <p class="sub center">&nbsp;</p>
-  <div class="testi-grid">
+  <div class="testi-grid" id="testiGrid">
     <div class="testi-card">"J'ai créé mon CV en 10 minutes et j'ai eu un entretien la semaine suivante."<div class="who">Awa D.</div><div class="role">Comptable, Dakar</div></div>
     <div class="testi-card">"Les modèles sont vraiment professionnels, ça change des CV Word classiques."<div class="who">Kodjo M.</div><div class="role">Ingénieur, Lomé</div></div>
     <div class="testi-card">"L'assistant IA m'a aidé à mieux formuler mes expériences. Très utile."<div class="who">Fatou S.</div><div class="role">Chargée de projet, Abidjan</div></div>
-    <div class="testi-card">"Grâce à mon CV fait sur SmartCV Pro, j'ai décroché mon stage. Le résultat est clair et vraiment professionnel."<div class="who">Hubertine</div><div class="role">Stagiaire</div></div>
+    <div class="testi-card">"Grâce à mon CV fait sur CVxMaker, j'ai décroché mon stage. Le résultat est clair et vraiment professionnel."<div class="who">Hubertine A.</div><div class="role">Assistante gestion de projet</div></div>
+  </div>
+
+  <div class="testi-form">
+    <h3 class="display">Laisser un avis</h3>
+    <p class="hint">Partagez votre expérience avec CVxMaker — votre témoignage sera publié ici après validation par notre équipe.</p>
+    <div id="testiMsg" class="testi-msg"></div>
+    <div class="row2">
+      <div><label>Votre nom</label><input id="testiName" maxlength="80" placeholder="Ex. Awa D." autocomplete="name"></div>
+      <div><label>Votre poste (optionnel)</label><input id="testiRole" maxlength="100" placeholder="Ex. Comptable, Dakar" autocomplete="organization-title"></div>
+    </div>
+    <label>Votre note</label>
+    <div class="testi-stars" id="testiStars"></div>
+    <label>Votre témoignage</label>
+    <textarea id="testiMessage" maxlength="600" placeholder="Qu'avez-vous pensé de CVxMaker ?"></textarea>
+    <input class="testi-hp" id="testiWebsite" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn btn-primary testi-submit" id="testiSubmitBtn" onclick="submitTestimonial()">Envoyer mon avis</button>
   </div>
 </div></section>
 
@@ -177,6 +234,18 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
   </div>
 </div></section>
 
+<section id="bientot">
+  <div class="wrap center">
+    <div class="eyebrow">Prochaines mises à jour</div>
+    <h2 class="h2 center">Bientôt disponible</h2>
+    <div class="soon-grid">
+      <div class="soon-card"><span class="soon-tag">BIENTÔT</span><div class="ic">📥</div><h3>Import de votre CV existant</h3><p>Importez un PDF ou un Word, puis adaptez-le à un nouveau modèle ou à une offre.</p></div>
+    </div>
+    <div class="soon-form"><input id="soonEmail" type="email" placeholder="Votre email" autocomplete="email"><button class="btn btn-primary" id="soonBtn" onclick="submitInterest()">🔔 Me prévenir</button></div>
+    <div id="soonMsg" class="testi-msg" style="margin-top:12px"></div>
+  </div>
+</section>
+
 <section id="faq" style="background:#fff"><div class="wrap">
   <div class="eyebrow center">FAQ</div>
   <h2 class="h2 center">Questions fréquentes</h2>
@@ -186,11 +255,11 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
 
 <footer><div class="wrap">
   <div class="cols">
-    <div><h4>SmartCV Pro</h4><a href="mailto:contact@smartcv.example">Nous contacter</a></div>
+    <div><h4>CVxMaker</h4><a href="mailto:contact@cvxmaker.example">Nous contacter</a></div>
     <div><h4>Produit</h4><a href="#templates">Modèles</a><a href="#features">Fonctionnalités</a><a href="#pricing">Tarifs</a></div>
     <div><h4>Pays couverts</h4><span style="font-size:12.5px;color:#94A3B8">Togo · Sénégal · Côte d'Ivoire · Cameroun · RDC · Mali</span></div>
   </div>
-  <div class="bottom">© 2026 SmartCV Pro — Tous droits réservés</div>
+  <div class="bottom">© 2026 CVxMaker — Tous droits réservés</div>
 </div></footer>
 
 <script>
@@ -211,7 +280,7 @@ setInterval(()=>{
 }, 5000);
 
 const FAQ = [
-  { q:'SmartCV Pro est-il gratuit ?', a:'Oui, le plan Gratuit permet de créer un CV avec export PDF. Les plans payants débloquent l\'IA illimitée, l\'export Word et le partage.' },
+  { q:'CVxMaker est-il gratuit ?', a:'Oui, le plan Gratuit permet de créer un CV avec export PDF. Les plans payants débloquent l\'IA illimitée, l\'export Word et le partage.' },
   { q:'Puis-je créer plusieurs CVs ?', a:'Oui, sans limite, et vous pouvez tous les retrouver dans "Mes CVs".' },
   { q:'Mes données sont-elles sécurisées ?', a:'Oui, vos données sont chiffrées et protégées, jamais partagées avec des tiers.' },
   { q:'Puis-je annuler mon abonnement ?', a:'Oui, à tout moment, sans engagement ni frais cachés.' },
@@ -221,6 +290,85 @@ const FAQ = [
 document.getElementById('faqList').innerHTML = FAQ.map((f,i)=>
   '<div class="faq-item" id="faq'+i+'"><div class="faq-q" onclick="document.getElementById(\'faq'+i+'\').classList.toggle(\'open\')">'+f.q+'<span>+</span></div><div class="faq-a">'+f.a+'</div></div>'
 ).join('');
+
+/* ---------------- Témoignages : avis publics soumis par les visiteurs, affichés
+   seulement une fois validés par un admin (table "testimonials", voir admin.html). ---------------- */
+const CFG = window.__SC_CONFIG__ || {};
+const SUPABASE_URL = CFG.SUPABASE_URL || 'https://rqsnvevvzkjuoszxjnqu.supabase.co';
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxc252ZXZ2emtqdW9zenhqbnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNjQ5NDQsImV4cCI6MjEwMDg0MDk0NH0.6hSlK-KQFk4_dDj8y7K8Q7B7kGWMPVv6jPiLKtq3zZU';
+const sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function escH(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+let testiRating = 5;
+function renderTestiStars(){
+  const el = document.getElementById('testiStars'); if(!el) return;
+  el.innerHTML = [1,2,3,4,5].map(n=>'<button type="button" class="'+(n<=testiRating?'on':'')+'" onclick="setTestiRating('+n+')" aria-label="'+n+' étoile(s)">★</button>').join('');
+}
+function setTestiRating(n){ testiRating = n; renderTestiStars(); }
+renderTestiStars();
+
+// Les 4 témoignages ci-dessus restent affichés tels quels ; les avis approuvés en base
+// viennent s'ajouter à la suite, sans jamais remplacer les premiers si la table est vide.
+async function loadApprovedTestimonials(){
+  if(!sb) return;
+  try{
+    const { data, error } = await sb.from('testimonials').select('name,role,message').eq('status','approved').order('created_at',{ascending:false}).limit(12);
+    if(error || !data || !data.length) return;
+    const grid = document.getElementById('testiGrid');
+    if(!grid) return;
+    grid.insertAdjacentHTML('beforeend', data.map(t=>'<div class="testi-card">"'+escH(t.message)+'"<div class="who">'+escH(t.name)+'</div>'+(t.role?'<div class="role">'+escH(t.role)+'</div>':'')+'</div>').join(''));
+  }catch(e){}
+}
+loadApprovedTestimonials();
+
+async function submitTestimonial(){
+  const btn = document.getElementById('testiSubmitBtn');
+  const msgEl = document.getElementById('testiMsg');
+  msgEl.className = 'testi-msg';
+  // Honeypot : champ invisible pour les humains, que seuls les robots remplissent.
+  if(document.getElementById('testiWebsite').value.trim()) return;
+  const name = document.getElementById('testiName').value.trim();
+  const role = document.getElementById('testiRole').value.trim();
+  const message = document.getElementById('testiMessage').value.trim();
+  if(!name){ msgEl.textContent = 'Merci d\'indiquer votre nom.'; msgEl.className = 'testi-msg err'; return; }
+  if(message.length < 10){ msgEl.textContent = 'Votre témoignage doit faire au moins 10 caractères.'; msgEl.className = 'testi-msg err'; return; }
+  if(!sb){ msgEl.textContent = 'Service indisponible pour le moment, réessayez plus tard.'; msgEl.className = 'testi-msg err'; return; }
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const { data: sess } = await sb.auth.getSession();
+    const uid = (sess && sess.session) ? sess.session.user.id : null;
+    const { error } = await sb.from('testimonials').insert({ name: name, role: role || null, message: message, rating: testiRating, user_id: uid, status: 'pending' });
+    if(error) throw error;
+    msgEl.textContent = 'Merci ! Votre avis a bien été envoyé et sera publié après validation.';
+    msgEl.className = 'testi-msg ok';
+    document.getElementById('testiName').value = '';
+    document.getElementById('testiRole').value = '';
+    document.getElementById('testiMessage').value = '';
+    testiRating = 5; renderTestiStars();
+  }catch(e){
+    msgEl.textContent = 'Erreur : ' + e.message;
+    msgEl.className = 'testi-msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Envoyer mon avis';
+  }
+}
+
+async function submitInterest(){
+  const msg=document.getElementById('soonMsg'), btn=document.getElementById('soonBtn');
+  const email=document.getElementById('soonEmail').value.trim(); msg.className='testi-msg';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent='Indiquez un email valide.'; msg.className='testi-msg err'; return; }
+  if(!sb){ msg.textContent='Service indisponible pour le moment, réessayez plus tard.'; msg.className='testi-msg err'; return; }
+  btn.disabled=true;
+  try{
+    const rows=['import'].map(f=>({feature:f,email:email}));
+    const { error } = await sb.from('feature_interest').insert(rows);
+    if(error && error.code!=='23505') throw error;
+    msg.textContent='Merci ! Nous vous préviendrons dès leur sortie.'; msg.className='testi-msg ok';
+    document.getElementById('soonEmail').value='';
+  }catch(e){ msg.textContent='Erreur : '+e.message; msg.className='testi-msg err'; }
+  finally{ btn.disabled=false; }
+}
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# SmartCV Pro — Guide de déploiement
+# CVxMaker — Guide de déploiement
 
 Suivez les étapes dans l'ordre. Comptez 30 à 45 minutes la première fois.
 
@@ -24,6 +24,10 @@ Dans Supabase → SQL Editor, exécutez **dans l'ordre** :
 1. `20260101000000_base_schema.sql` — tables, RLS de base, triggers, fonctions (votre schéma d'origine, inchangé)
 2. `20260928000100_security_hardening.sql` — corrige 5 failles trouvées dans le schéma d'origine (voir le détail en tête du fichier : élévation de privilège possible, récursion RLS, fonctions qui faisaient confiance à l'ID envoyé par le client, tables sans RLS, messages de support usurpables)
 
+3. `20261015000000_testimonials.sql` — avis publics des visiteurs, validés par un admin avant publication
+4. `20261015000100_feature_interest.sql` — liste « Me prévenir » des prochaines fonctionnalités
+5. `20261015000200_documents.sql` — lettres de motivation et demandes d'emploi / de stage, synchronisées par compte (chaque utilisateur ne voit que les siens)
+
 Si vous aviez déjà exécuté l'ancien `SQL_STEP2_CREATE.sql` sur ce projet, exécutez seulement le fichier n°2 : il est conçu pour s'appliquer par-dessus (toutes les commandes utilisent `CREATE OR REPLACE` / `DROP POLICY IF EXISTS`).
 
 ## 3. Authentification (Supabase Dashboard → Authentication)
@@ -31,7 +35,7 @@ Si vous aviez déjà exécuté l'ancien `SQL_STEP2_CREATE.sql` sur ce projet, ex
 - **Providers → Email** : activé (déjà par défaut)
 - **Providers → Google** : activez-le, renseignez le Client ID / Secret Google, et ajoutez l'URL de redirection affichée par Supabase dans votre config Google Cloud Console
 - **Providers → Phone** : activez-le et configurez un fournisseur SMS (Twilio, Vonage…) si vous voulez garder la connexion par OTP. Sans ça, l'onglet "Téléphone" du formulaire échouera proprement (l'email/mot de passe et Google continueront de fonctionner).
-- **URL Configuration** : renseignez votre **Site URL** finale (ex. `https://smartcv.exemple.com`) et ajoutez-la aux **Redirect URLs**
+- **URL Configuration** : renseignez votre **Site URL** finale (ex. `https://cvxmaker.exemple.com`) et ajoutez-la aux **Redirect URLs**
 
 ## 4. Edge Functions (`supabase/functions/`)
 
@@ -111,7 +115,7 @@ Si vous utilisez un projet Supabase différent de celui par défaut, copiez `pub
 ## 8. Checklist avant l'ouverture au public
 
 - [ ] Étape 1 (clés) faite
-- [ ] Les deux migrations exécutées sans erreur
+- [ ] Les cinq migrations exécutées sans erreur, dans l'ordre
 - [ ] `SELECT tablename FROM pg_tables WHERE schemaname='public' AND NOT rowsecurity;` ne renvoie **aucune** ligne
 - [ ] Inscription + connexion email/mot de passe fonctionnent
 - [ ] Connexion Google fonctionne (si activée)

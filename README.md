@@ -1,4 +1,4 @@
-# SmartCV Pro — Package de déploiement
+# CVxMaker — Package de déploiement
 
 Tout ce qu'il faut pour mettre l'application en ligne. Démarrez par **DEPLOY.md**, dans l'ordre.
 

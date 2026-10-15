@@ -1,19 +1,34 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" style="color-scheme:light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SmartCV — Éditeur de CV</title>
+<title>CVxMaker — Éditeur de CV</title>
 <meta name="description" content="Créez votre CV professionnel en quelques minutes.">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<meta name="darkreader-lock">
 <meta name="theme-color" content="#1B1640">
 <meta name="robots" content="noindex">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23B0691E'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' font-family='Georgia,serif' font-weight='bold' fill='%231B1640'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CVxMaker">
+<meta name="application-name" content="CVxMaker">
+<meta name="msapplication-TileColor" content="#1B1640">
+<meta name="msapplication-TileImage" content="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Merriweather:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="config.js" onerror="void 0"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
+  color-scheme:light;
   --bg:#F6F4EF;--panel:#FFFFFF;--ink:#211D2C;--ink2:#736E7D;
   --nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;
   --ok:#127A5B;--warn:#B0691E;--bad:#B23B3B;
@@ -23,6 +38,7 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,background .15s ease}
 button:active{transform:scale(.97)}
+#supportFab:hover,#layoutFab:hover{transform:translateY(-2px) scale(1.04)}
 input,select,textarea{font-family:inherit;font-size:15px;transition:border-color .15s ease,box-shadow .15s ease}
 .display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em}
 
@@ -35,11 +51,30 @@ input,select,textarea{font-family:inherit;font-size:15px;transition:border-color
 .btn-export:hover{background:rgba(255,255,255,.16)}
 
 .app{display:flex;height:calc(100vh - 58px);overflow:hidden}
-.form-pane{width:44%;min-width:340px;overflow-y:auto;padding:26px 28px;background:var(--panel);border-right:1px solid var(--border)}
-.preview-pane{flex:1;overflow-y:auto;padding:36px;display:flex;justify-content:center;background:
+.form-pane{width:44%;min-width:340px;overflow-y:auto;padding:26px 28px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.preview-pane{flex:1;overflow-y:auto;padding:36px;display:flex;justify-content:center;align-items:flex-start;background:
     radial-gradient(circle at 1px 1px,#E4DFD3 1px,transparent 0) 0 0/22px 22px,
     var(--bg)}
 .bottom-nav{display:none}
+/* Sur grand écran, la colonne formulaire n'a pas besoin de s'étirer à 44% d'un écran large (ça
+   donnerait des champs à 800px de large, illisibles) : elle garde une largeur de lecture confortable
+   et fixe, et c'est la colonne d'aperçu qui récupère tout l'espace rendu disponible pour présenter
+   le CV en plus grand, bien centré, au lieu de le laisser flotter, minuscule, dans un vide. */
+@media (min-width:1200px){
+  .form-pane{width:460px;flex:0 0 460px}
+  .preview-pane{padding:48px 56px}
+  .form-pane.gallery-step{width:640px;flex:0 0 640px}
+  .form-pane.gallery-step .tpl-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr)) !important}
+}
+@media (min-width:1600px){
+  .form-pane{width:500px;flex:0 0 500px}
+  .form-pane.gallery-step{width:760px;flex:0 0 760px}
+  .form-pane.gallery-step .tpl-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr)) !important}
+}
+/* Permet aux boutons Précédent/Suivant de se poser en bas de la colonne formulaire quand le
+   contenu de l'étape est court (ex. l'étape « Photo & langue »), au lieu de laisser un grand vide
+   sous le formulaire : .form-pane est maintenant une colonne flex et .nav-btns utilise
+   margin-top:auto pour occuper l'espace restant (voir plus bas). */
 @media (max-width:860px){
   body{padding-bottom:calc(62px + env(safe-area-inset-bottom,0px) + 40px)}
   .form-pane{padding-bottom:40px}
@@ -88,11 +123,22 @@ h2.display{font-size:21px;margin:0 0 14px}
 .btn-add{width:100%;padding:11px;border:1.5px dashed #D8CFC0;border-radius:10px;background:#fff;color:var(--accent);font-weight:600;font-size:13px;margin-top:4px}
 .btn-add:hover{border-color:var(--accent);background:#FBF1E6}
 
-.nav-btns{display:flex;gap:10px;margin-top:22px;position:sticky;bottom:0;z-index:5;padding:14px 0 12px;background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0))}
+.nav-btns{display:flex;gap:10px;margin-top:auto;padding-top:22px;position:sticky;bottom:0;z-index:5;padding:14px 0 12px;background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0));flex-shrink:0}
 .btn-prev,.btn-next{flex:1;padding:13px;border-radius:99px;font-weight:600;font-size:14px;border:none}
 .btn-prev{background:#F1EEE7;color:var(--ink)}
 .btn-prev:hover{background:#E7E2D8}
 .btn-next{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;box-shadow:0 4px 14px rgba(176,105,30,.28)}
+
+/* ---------- avatar uploader (remplace le <input type=file> natif, non stylé) ---------- */
+.avatar-upload{display:flex;align-items:center;gap:16px;margin-bottom:4px}
+.avatar-upload input[type=file]{display:none}
+.avatar-circle{width:76px;height:76px;border-radius:50%;flex-shrink:0;background:#FCFBF8;border:1.5px dashed #D8CFC0;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#B6AE9C;font-size:26px}
+.avatar-circle img{width:100%;height:100%;object-fit:cover}
+.avatar-actions{display:flex;flex-direction:column;gap:6px}
+.avatar-btn{padding:9px 15px;border-radius:99px;font-weight:600;font-size:12.5px;border:1.5px solid var(--border);background:#fff;color:var(--ink);width:fit-content}
+.avatar-btn:hover{border-color:var(--accent);color:var(--accent);background:#FBF1E6}
+.avatar-remove{background:none;border:none;color:var(--bad);font-size:12px;font-weight:600;text-align:left;padding:0;width:fit-content}
+.avatar-hint{font-size:11px;color:var(--ink2);margin:0}
 .btn-next:hover{box-shadow:0 6px 18px rgba(176,105,30,.36);transform:translateY(-1px)}
 
 /* ---------- templates picker ---------- */
@@ -253,6 +299,7 @@ h2.display{font-size:21px;margin:0 0 14px}
 .sheet-opt small{font-size:12px;color:var(--ink2)}
 .sheet-ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex-shrink:0}
 .sheet-ic.pdf{background:#C2413B}.sheet-ic.word{background:#2B579A;font-size:17px}
+.sheet-note{margin:6px 4px 12px;font-size:11px;line-height:1.5;color:var(--ink2)}.sheet-note a{color:var(--accent);font-weight:700}
 .sheet-cancel{width:100%;padding:13px;border:none;background:#F1EEE7;border-radius:99px;font-weight:600;color:var(--ink)}
 .seg{display:flex;background:#F1EEE7;border-radius:99px;padding:3px;margin-bottom:10px}
 .seg button{flex:1;border:none;background:none;padding:8px;border-radius:99px;font-size:12px;font-weight:600;color:var(--ink2)}
@@ -265,6 +312,133 @@ h2.display{font-size:21px;margin:0 0 14px}
 .dlg-btns{display:flex;gap:10px}
 .dlg-btns button{flex:1;padding:11px;border-radius:99px;border:none;font-weight:600}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:#211D2C;color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;z-index:120;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .3s}
+@media (min-width:861px){ .toast{bottom:28px} } /* pas de bottom-nav à éviter sur desktop */
+
+/* Guide de démarrage (premier accès) */
+@keyframes obIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.ob-skip{background:none;border:none;color:var(--ink2);font-size:12.5px;font-weight:600;cursor:pointer;padding:10px 2px}
+
+
+
+/* ---------- Lettres & demandes ---------- */
+#docOverlay{position:fixed;inset:0;z-index:56;background:var(--bg);flex-direction:column}
+.dc-top{background:var(--nav);background-image:linear-gradient(135deg,#1B1640,#241C52);color:#fff;min-height:56px;padding:0 14px;padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.dc-top button{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:16px;width:36px;height:36px;border-radius:50%}
+.dc-top b{font-size:15px;flex:1}
+#dcSaved{font-size:11.5px;color:#E7D9C2}
+.dc-home{flex:1;overflow-y:auto}
+.dc-wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+.dc-h{margin:6px 0 4px;font-size:22px}
+.dc-sub{margin:0 0 18px;font-size:13px;color:var(--ink2);line-height:1.5}
+.dc-h2{margin:28px 0 10px;font-size:14px}
+.dc-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.dc-type{display:flex;gap:12px;align-items:center;text-align:left;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px;font-size:14px;color:var(--ink)}
+.dc-type:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(176,105,30,.12)}
+.dc-type small{display:block;font-size:11.5px;color:var(--ink2);font-weight:400;margin-top:2px}
+.dc-type-ic{font-size:26px}
+.dc-empty{background:#fff;border:1.5px dashed var(--border);border-radius:12px;padding:18px;text-align:center;font-size:13px;color:var(--ink2)}
+.dc-item{display:flex;gap:12px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;flex-wrap:wrap}
+.dc-item-ic{font-size:22px}
+.dc-item-body{flex:1;min-width:150px}
+.dc-item-body b{display:block;font-size:13.5px}
+.dc-item-body span{font-size:11.5px;color:var(--ink2)}
+.dc-item-act{display:flex;gap:6px;flex-wrap:wrap}
+.dc-btn{border:none;background:#F1EEE7;color:var(--ink);border-radius:99px;padding:7px 13px;font-size:12px;font-weight:600}
+.dc-btn.pri{background:var(--accent);color:#fff}
+.dc-btn.del{color:var(--bad)}
+.dc-edit{flex:1;min-height:0;flex-direction:column}
+.dc-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.dc-tabs{display:none;gap:4px;background:#F1EEE7;border-radius:99px;padding:3px}
+.dc-tab{border:none;background:none;border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.dc-tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(27,22,64,.15)}
+.dc-actions{display:flex;gap:6px;margin-left:auto}
+.dc-actions button{border:1.5px solid var(--border);background:#fff;border-radius:99px;padding:8px 14px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.dc-actions button:first-child{background:var(--accent);border-color:var(--accent);color:#fff}
+.dc-cols{flex:1;min-height:0;display:flex}
+.dc-form{width:min(460px,46%);overflow-y:auto;padding:14px 14px 80px;background:#fff;border-right:1px solid var(--border);flex-shrink:0}
+.dc-prev{flex:1;overflow:auto;padding:14px;background:var(--bg);background-image:radial-gradient(#D9D3C5 1px,transparent 1px);background-size:18px 18px}
+#dcPageInfo{font-size:11.5px;color:var(--ink2);margin-bottom:8px;text-align:center}
+#dcPageWrap{margin:0 auto}
+#dcPage{width:794px;box-shadow:0 1px 2px rgba(27,22,64,.06),0 18px 40px -12px rgba(27,22,64,.22);background:#fff}
+.dc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.dc-typebar{margin-bottom:12px}
+.dc-chip{border:1.5px solid var(--border);background:#fff;border-radius:99px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--ink)}
+.dc-chip.on{border-color:var(--accent);background:#FBF1E6;color:var(--accent)}
+.dc-dots{display:flex;gap:8px;flex-wrap:wrap}
+.dc-dot{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.dc-dot.on{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+.dc-sec{border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;background:#fff}
+.dc-sec summary{padding:12px 14px;font-size:13.5px;font-weight:700;cursor:pointer;list-style:none}
+.dc-sec summary::-webkit-details-marker{display:none}
+.dc-sec summary::after{content:'▾';float:right;color:var(--ink2)}
+.dc-sec[open] summary::after{content:'▴'}
+.dc-sec-body{padding:2px 14px 14px}
+.dc-f{margin-bottom:11px}
+.dc-f label{display:block;font-size:11.5px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.dc-f input,.dc-f select,.dc-f textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:#FCFBF8;font-size:14px;color:var(--ink);min-height:42px}
+.dc-f textarea{resize:vertical;line-height:1.5}
+.dc-f input:focus,.dc-f select:focus,.dc-f textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(176,105,30,.13);background:#fff}
+.dc-f small{display:block;font-size:11px;color:var(--ink2);margin-top:4px}
+.dc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dc-para{position:relative;margin-bottom:8px}
+.dc-para textarea{width:100%;padding:10px 40px 10px 12px;border:1.5px solid var(--border);border-radius:10px;background:#FCFBF8;font-size:13.5px;line-height:1.5;resize:vertical}
+.dc-para textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+.dc-para-act{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:3px}
+.dc-para-act button{width:26px;height:26px;border:none;background:#F1EEE7;border-radius:7px;font-size:10px;color:var(--ink2)}
+.dc-para-act button:disabled{opacity:.35}
+.dc-para-act button.del{color:var(--bad)}
+.dc-auto{font-size:11.5px;line-height:1.5;color:var(--ink2);background:#F6F4EF;border-radius:10px;padding:9px 11px;margin-bottom:12px}
+.dc-auto.ok{background:#EAF6F1;color:#0F5E46}
+.dc-link{background:none;border:none;color:var(--accent);font-weight:700;font-size:inherit;padding:0 0 0 4px;text-decoration:underline}
+.dc-check{display:flex;gap:8px;align-items:center;font-size:12.5px;margin-top:4px}
+.dc-check input{width:auto;min-height:0}
+.dc-checks{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:12px}
+.dc-checks-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dc-checks-h span{color:var(--ink2);font-size:11.5px}
+.dc-checks b.ok{color:var(--ok)} .dc-checks b.warn{color:var(--warn)}
+.dc-checks ul{margin:8px 0 0;padding-left:18px;color:var(--ink2);line-height:1.5}
+.dc-checks li.w{color:#8A4B10}
+.dc-namef{margin-top:14px}
+@media(max-width:900px){
+  .dc-tabs{display:flex}
+  .dc-form{width:100%;border-right:none;display:block}
+  .dc-prev{display:none}
+  #dcEdit[data-tab="preview"] .dc-form{display:none}
+  #dcEdit[data-tab="preview"] .dc-prev{display:block;flex:1}
+  .dc-actions{margin-left:auto}
+  .dc-row{grid-template-columns:1fr}
+}
+.dc-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#FBF1E6;border:1.5px solid #EAD8BF;border-radius:14px;padding:14px;margin:6px 0 18px;font-size:13px;color:var(--ink)}
+.dc-cta b{display:block;font-size:13.5px}
+.dc-cta small{color:var(--ink2);font-size:11.5px}
+@media(max-width:430px){ .dc-bar{padding:8px 8px;gap:6px} .dc-actions{gap:4px} .dc-actions button{padding:8px 10px;font-size:12px} .dc-tab{padding:7px 10px;font-size:12px} }
+
+/* Installation PWA (bannière iOS + confirmation) */
+#iosInstallOverlay{display:none;position:fixed;inset:0;background:rgba(27,22,64,.55);z-index:90;align-items:flex-end;justify-content:center;padding:0}
+#iosInstallOverlay.active{display:flex}
+.ios-sheet{background:#fff;width:100%;max-width:460px;border-radius:22px 22px 0 0;padding:26px 24px 28px;box-shadow:0 -20px 50px rgba(15,23,42,.3);animation:obIn .25s ease}
+.ios-sheet h3{margin:0 0 4px;font-size:17px}
+.ios-sheet p.sub{margin:0 0 18px;font-size:12.5px;color:var(--ink2)}
+.ios-step{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:13.5px;color:var(--ink)}
+.ios-step .ios-ic{width:32px;height:32px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ios-sheet .ob-skip{display:block;width:100%;text-align:center;margin-top:16px;border-top:1px solid var(--border);padding-top:16px}
+@media(max-width:600px){ .ins-lbl{display:none} #installBtn{padding-left:11px;padding-right:11px} }
+.install-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--nav);color:#fff;padding:11px 20px;border-radius:99px;font-size:12.5px;font-weight:600;z-index:96;box-shadow:0 10px 30px rgba(15,23,42,.3)}
+
+/* Guide interactif DISCRET : aucune fenêtre, aucun voile. Une fine ligne d'aide sous la barre du haut
+   (dans le flux de la page : elle pousse le contenu au lieu de le recouvrir) et un simple anneau
+   qui pulse autour du bouton à toucher. L'anneau ne bloque jamais les clics. */
+#tourStrip{display:none;position:sticky;top:58px;z-index:19;align-items:center;gap:9px;min-height:34px;padding:6px 12px;background:#FBF1E6;border-bottom:1px solid #EAD8BF;font-size:12.5px;line-height:1.35;color:var(--ink)}
+#tourStrip.active{display:flex}
+#tourStrip .ts-n{flex-shrink:0;font-size:10.5px;font-weight:800;color:#fff;background:var(--accent);padding:2px 8px;border-radius:99px}
+#tourStrip .ts-t{flex:1;min-width:0}
+#tourStrip .ts-x{flex-shrink:0;background:none;border:none;color:var(--ink2);font-size:14px;width:28px;height:28px;border-radius:50%;line-height:1}
+#tourStrip .ts-x:hover{background:rgba(0,0,0,.06);color:var(--ink)}
+@media(max-width:600px){ html,body{height:auto;min-height:100%} }
+@media(min-width:601px){ body.tour-on .app{height:calc(100vh - 58px - 34px)} }
+#tourRing{display:none;position:fixed;z-index:95;pointer-events:none;border-radius:14px;border:2px solid var(--accent);animation:tourPulse 1.6s ease-out infinite}
+#tourRing.active{display:block}
+@keyframes tourPulse{0%{box-shadow:0 0 0 0 rgba(176,105,30,.45)}70%{box-shadow:0 0 0 9px rgba(176,105,30,0)}100%{box-shadow:0 0 0 0 rgba(176,105,30,0)}}
 
 .bc-banner{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 16px;background:#FBF1E6;border-bottom:1px solid #E9D3B5;font-size:12.5px;color:var(--ink)}
 .bc-banner b{display:block;font-size:13px}.bc-banner span{color:var(--ink2)}
@@ -285,6 +459,7 @@ h2.display{font-size:21px;margin:0 0 14px}
 /* ---------- CV canvas ---------- */
 #cvP{width:794px;min-height:1123px;background:#fff;box-shadow:0 1px 2px rgba(27,22,64,.06),0 18px 40px -12px rgba(27,22,64,.22);flex-shrink:0;border-radius:2px}
 @media print{
+  :root{color-scheme:light}
   html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;background:#fff}
   body>*{display:none !important}
   #printArea{display:block !important;position:absolute;top:0;left:0}
@@ -338,7 +513,7 @@ h2.display{font-size:21px;margin:0 0 14px}
 <div id="publicView"></div>
 
 <div class="topbar">
-  <h1><span class="logo-mark">S</span>SmartCV</h1>
+  <h1><span class="logo-mark">C</span>CVxMaker</h1>
   <span class="step-pill" id="stepPill">Étape 1/7</span>
   <div style="display:flex;gap:8px;align-items:center">
     <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="toggleAI(true)">✨ IA</button>
@@ -348,9 +523,13 @@ h2.display{font-size:21px;margin:0 0 14px}
     <span id="planBadge" class="plan-badge plan-free">Gratuit</span>
     <button class="btn-export mob-hide" onclick="toggleTarifs(true)">Tarifs</button>
     <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="toggleMyCVs(true)">📄 Mes CVs</button>
+    <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="openDocs()">✉️ Lettres</button>
+    <button id="installBtn" class="btn-export" style="display:none;background:rgba(255,255,255,.12);color:#fff" onclick="triggerInstall()" aria-label="Installer l'application">⬇️<span class="ins-lbl"> Installer</span></button>
     <button id="authBtn" class="btn-export" style="background:rgba(255,255,255,.12);color:#fff" onclick="openAuth()">Se connecter</button>
   </div>
 </div>
+
+<div id="tourStrip"></div>
 
 <div id="myCvsOverlay" onclick="if(event.target===this)toggleMyCVs(false)" style="display:none;position:fixed;inset:0;background:#fff;z-index:55">
   <div style="background:var(--nav);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center">
@@ -358,7 +537,8 @@ h2.display{font-size:21px;margin:0 0 14px}
     <b style="font-size:14px">Mes CVs</b>
     <button onclick="toggleMyCVs(false)" style="background:none;border:none;color:#fff;font-size:20px">✕</button>
   </div>
-  <div id="myCvsList" style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-height:calc(100vh - 60px);overflow-y:auto"></div>
+  <div style="padding:12px 16px 0"><button class="dc-cta" onclick="toggleMyCVs(false);openDocs()" style="margin:0"><span style="font-size:24px">✉️</span><span><b>Lettres &amp; demandes</b><small>Lettre de motivation, demande d'emploi ou de stage</small></span></button></div>
+  <div id="myCvsList" style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-height:calc(100vh - 130px);overflow-y:auto"></div>
 </div>
 
 <div id="authOverlay" onclick="if(event.target===this)closeAuth()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:60;align-items:flex-end;justify-content:center">
@@ -436,6 +616,7 @@ h2.display{font-size:21px;margin:0 0 14px}
     <button class="sheet-opt" onclick="exportPDF();toggleExportMenu(false)"><span class="sheet-ic pdf">PDF</span><span><b>Document PDF</b><small>Idéal pour envoyer par email ou WhatsApp</small></span></button>
     <button class="sheet-opt" onclick="exportWord();toggleExportMenu(false)"><span class="sheet-ic word">W</span><span><b>Document Word</b><small>Pour continuer à le modifier dans Word</small></span></button>
     <button class="sheet-opt" onclick="toggleExportMenu(false);togglePublicLink(true)"><span class="sheet-ic" style="background:var(--ok)">🔗</span><span><b>Lien public</b><small>Partageable en un clic, sans compte pour le visiteur</small></span></button>
+    <p class="sheet-note">En exportant, vous acceptez que CVxMaker conserve les informations de votre CV pour gérer le service et ses statistiques. <a href="#" onclick="deleteGuestData();return false">Supprimer mes données</a></p>
     <button class="sheet-cancel" onclick="toggleExportMenu(false)">Fermer</button>
   </div>
 </div>
@@ -516,7 +697,7 @@ h2.display{font-size:21px;margin:0 0 14px}
 <div id="supportOverlay" onclick="if(event.target===this)toggleSupport(false)" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:56;align-items:flex-end;justify-content:flex-end">
   <div style="background:#fff;width:min(380px,100vw);height:min(560px,85vh);border-radius:20px 20px 0 0;display:flex;flex-direction:column;margin:0 16px 0 0;overflow:hidden">
     <div style="background:var(--nav);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
-      <div><b style="font-size:13.5px">Support SmartCV</b><div style="font-size:10.5px;color:#86EFAC">● En ligne</div></div>
+      <div><b style="font-size:13.5px">Support CVxMaker</b><div style="font-size:10.5px;color:#86EFAC">● En ligne</div></div>
       <button onclick="toggleSupport(false)" style="background:none;border:none;color:#fff;font-size:18px">✕</button>
     </div>
     <div style="display:flex;border-bottom:1px solid var(--border)">
@@ -526,6 +707,35 @@ h2.display{font-size:21px;margin:0 0 14px}
     </div>
     <div id="supportBody" style="flex:1;overflow-y:auto;padding:14px"></div>
   </div>
+</div>
+
+<div id="docOverlay" style="display:none">
+  <div class="dc-top"><button id="dcBack" onclick="dcBack()" aria-label="Retour">✕</button><b id="dcTitle">Lettres &amp; demandes</b><span id="dcSaved"></span></div>
+  <div id="dcHome" class="dc-home"></div>
+  <div id="dcEdit" class="dc-edit" data-tab="edit" style="display:none">
+    <div class="dc-bar">
+      <div class="dc-tabs"><button class="dc-tab on" data-t="edit" onclick="dcTab('edit')">Édition</button><button class="dc-tab" data-t="preview" onclick="dcTab('preview')">Aperçu</button></div>
+      <div class="dc-actions"><button onclick="dcExportPDF()">⬇ PDF</button><button onclick="dcExportWord()">Word</button><button onclick="dcCopy()">Copier</button></div>
+    </div>
+    <div class="dc-cols">
+      <div id="dcForm" class="dc-form"></div>
+      <div id="dcPrev" class="dc-prev"><div id="dcPageInfo"></div><div id="dcPageWrap"><div id="dcPage"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="iosInstallOverlay" onclick="if(event.target===this)closeIosInstallSheet()">
+  <div class="ios-sheet">
+    <h3>Installer CVxMaker</h3>
+    <p class="sub">Ajoutez l'app à votre écran d'accueil pour y accéder en un geste, comme une vraie application.</p>
+    <div class="ios-step"><span class="ios-ic">⬆️</span><span>Appuyez sur <b>Partager</b> en bas de Safari</span></div>
+    <div class="ios-step"><span class="ios-ic">➕</span><span>Choisissez <b>Sur l'écran d'accueil</b></span></div>
+    <div class="ios-step"><span class="ios-ic">✅</span><span>Appuyez sur <b>Ajouter</b>, c'est prêt !</span></div>
+    <button class="ob-skip" onclick="closeIosInstallSheet()">Compris</button>
+  </div>
+</div>
+
+<div id="tourRing"></div>
 </div>
 
 <div id="pickOverlay" onclick="if(event.target===this)closePick()">
@@ -826,12 +1036,13 @@ async function initPublicView(token){
   document.body.classList.add('public-view-mode');
   const root = document.getElementById('publicView');
   root.style.display = 'block';
-  root.innerHTML = '<div class="pv-top"><div class="pv-logo"><span class="logo-mark">S</span>SmartCV</div><a class="pv-cta" href="/">Créer mon CV gratuitement →</a></div>'
+  root.innerHTML = '<div class="pv-top"><div class="pv-logo"><span class="logo-mark">C</span>CVxMaker</div><a class="pv-cta" href="/">Créer mon CV gratuitement →</a></div>'
     + '<div class="pv-body" id="pvBody"><div class="pv-loading">Chargement du CV…</div></div>';
   if(!sb){ showPublicError('Service momentanément indisponible. Réessayez un peu plus tard.'); return; }
   try{
-    const { data, error } = await sb.from('cvs').select('model_id,accent_color,data,design,is_public,share_token').eq('share_token',token).eq('is_deleted',false).maybeSingle();
+    let { data, error } = await sb.from('cvs').select('model_id,accent_color,data,design,is_public,share_token').eq('share_token',token).eq('is_deleted',false).maybeSingle();
     if(error) throw error;
+    if(!data){ const g = await sb.rpc('get_guest_cv',{ p_token: token }); if(!g.error && g.data) data = Object.assign({ is_public:true }, g.data); }
     if(!data || !data.is_public){ showPublicError('Ce lien n\'existe pas ou n\'est plus actif.'); return; }
     sb.rpc('increment_cv_view', { p_token: token }).then(function(){},function(){});   // au mieux ; jamais bloquant pour l'affichage
     const b=blankCV(), d=data.data||{};
@@ -943,7 +1154,7 @@ function save(){
   localStorage.setItem('scv_data', JSON.stringify(cv)); localStorage.setItem('scv_model', S.modelId); localStorage.setItem('scv_accent', S.accent);
   localStorage.setItem('scv_ts', String(Date.now()));
   if(currentCvId) syncCurrentSaved();
-  if(currentUser) scheduleCloudPush();
+  if(currentUser) scheduleCloudPush(); else scheduleGuestPush();
 }
 let debTimer=null;
 function onChange(){ save(); clearTimeout(debTimer); debTimer=setTimeout(renderCV, 250); }
@@ -2600,15 +2811,21 @@ const FONT_STACKS = { inter:"'Inter',system-ui,sans-serif", merriweather:"'Merri
 let LAYOUT = Object.assign({ density:'normal', size:'normal', font:'auto', pages:'auto' }, (function(){ try{ return JSON.parse(localStorage.getItem('scv_layout')||'{}'); }catch(e){ return {}; } })());
 let FIT = { scale:1, pages:1 };
 
-function fitCSSText(){
+function fitCSSText(zoomScale){
   let css = '#cvP, #cvP *, #cvPprint, #cvPprint *{ line-height:'+LH_MAP[LAYOUT.density]+' !important; }';
   if(LAYOUT.font!=='auto') css += '#cvP, #cvP *, #cvPprint, #cvPprint *{ font-family:'+FONT_STACKS[LAYOUT.font]+' !important; }';
+  // Le zoom de densité/taille s'applique UNIQUEMENT au contenu interne (#cvZoom), jamais à #cvP
+  // lui-même : #cvP représente visuellement « la page » (fond blanc, ombre portée, largeur 794px
+  // fixe) et doit garder une taille constante à l'écran quels que soient les réglages de mise en
+  // page. Seul le contenu à l'intérieur doit rétrécir/grandir — sinon régler « Taille » donne
+  // l'impression que c'est la page elle-même qui s'élargit ou se rétrécit, au lieu du texte.
+  if(typeof zoomScale === 'number') css += '#cvZoom{ zoom:'+zoomScale+' !important; }';
   return css;
 }
-function applyFitStyle(){
+function applyFitStyle(zoomScale){
   let tag = document.getElementById('cvFitStyle');
   if(!tag){ tag = document.createElement('style'); tag.id = 'cvFitStyle'; document.head.appendChild(tag); }
-  tag.textContent = fitCSSText();
+  tag.textContent = fitCSSText(zoomScale);
 }
 // Mesure la hauteur naturelle du CV (le transform CSS ne modifie pas offsetHeight) et calcule
 // l'échelle nécessaire pour qu'il tienne ENTIÈREMENT sur le format A4 visé (1123px/page), quel que
@@ -2620,9 +2837,13 @@ function applyFitStyle(){
 // Le mode '2' explicite (choix volontaire de l'utilisateur) tient sur 2 pages avec le même principe.
 const FIT_MIN_SCALE = 0.55; // seuil de lisibilité minimal avant d'accepter une page supplémentaire
 function computeContentFit(){
-  applyFitStyle();
+  applyFitStyle(1); // mesure la hauteur NATURELLE du contenu, sans zoom appliqué
   const el = document.getElementById('cvP'); if(!el) return FIT;
-  const naturalH = el.offsetHeight || 1123;
+  // On mesure #cvZoom (le contenu) et non #cvP, qui a un min-height:1123px pour garder l'aspect
+  // « page » même quand le CV est court : mesurer #cvP directement plafonnerait artificiellement
+  // la hauteur naturelle à 1123px et empêcherait « Taille : Grand » de zoomer un CV peu rempli.
+  const zoomEl = document.getElementById('cvZoom');
+  const naturalH = (zoomEl ? zoomEl.offsetHeight : el.offsetHeight) || 1123;
   const desired = SIZE_SCALE[LAYOUT.size];
   function scaleFor(nPages){ return Math.max(FIT_MIN_SCALE, Math.min(desired, (1123*nPages)/naturalH)); }
   let scale;
@@ -2636,6 +2857,7 @@ function computeContentFit(){
   }
   const pages = Math.max(1, Math.ceil((naturalH*scale)/1123 - 1e-6));
   FIT = { scale:scale, pages:pages, naturalH:naturalH };
+  applyFitStyle(scale); // applique maintenant le zoom réel au contenu (#cvZoom), pas à la page (#cvP)
   return FIT;
 }
 function updateFitStatus(){
@@ -2697,20 +2919,36 @@ function renderCV(){
   const tpl = TEMPLATES.find(t=>t.id===S.modelId) || TEMPLATES[0];
   const compact = computeCompactFlags(tpl);
   const html = renderTpl(tpl, cv, compact);
-  document.getElementById('cvP').innerHTML = html;
+  // #cvZoom isole le contenu de #cvP : c'est ce bloc interne qui reçoit le zoom de densité/taille/
+  // pagination (voir fitCSSText), jamais #cvP lui-même, pour que « la page » (fond blanc 794px)
+  // garde une taille constante à l'écran pendant qu'on règle la mise en page.
+  document.getElementById('cvP').innerHTML = '<div id="cvZoom">'+html+'</div>';
   document.getElementById('printArea').innerHTML = '<div id="cvPprint" style="width:794px">'+html+'</div>';
   fitPreview();
 }
 function fitPreview(){
   const pane=document.querySelector('.preview-pane'), wrap=document.getElementById('cvWrap'), el=document.getElementById('cvP');
   if(!pane||!wrap||!el||pane.clientWidth===0) return;
-  computeContentFit();                       // applique interligne/police + calcule l'échelle de mise en page
+  computeContentFit();                       // applique interligne/police au contenu + calcule et applique le zoom de densité/taille/pagination sur #cvZoom
   const cs=getComputedStyle(pane);
-  const avail=Math.max(0, pane.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight));
-  const respK=avail>0 ? Math.min(1, avail/794) : 1; // échelle d'adaptation à la largeur de l'écran
-  const total=respK*FIT.scale;                // × l'échelle de mise en page (densité/taille/pagination)
-  el.style.transformOrigin='top left'; el.style.transform='scale('+total+')';
-  wrap.style.width=Math.round(794*total)+'px'; wrap.style.height=Math.round(el.offsetHeight*total)+'px';
+  const availW=Math.max(0, pane.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight));
+  const availH=Math.max(0, pane.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom));
+  // Sur un grand écran, l'espace libre autour de l'aperçu ne doit pas rester un vide décoratif :
+  // on autorise l'aperçu à dépasser légèrement 100% (jusqu'à 125%) quand la largeur le permet, pour
+  // qu'un CV se présente en plus grand et plus flatteur plutôt que de flotter, minuscule, dans la
+  // colonne. La hauteur disponible ne sert qu'à PLAFONNER ce dépassement (jamais à rétrécir en
+  // dessous de 100% : un CV un peu plus grand que la fenêtre peut toujours se parcourir avec le
+  // défilement existant de .preview-pane, exactement comme avant).
+  const naturalPageH = el.offsetHeight || 1123; // hauteur de #cvP au zoom de contenu déjà appliqué, avant le scale d'adaptation écran
+  const kW = availW>0 ? availW/794 : 1;
+  let respK = Math.min(1.25, kW);
+  if(respK > 1){
+    const kH = availH>0 ? availH/naturalPageH : 1;
+    respK = Math.min(respK, Math.max(1, kH));
+  }
+  respK = Math.max(0.1, respK);
+  el.style.transformOrigin='top left'; el.style.transform='scale('+respK+')';
+  wrap.style.width=Math.round(794*respK)+'px'; wrap.style.height=Math.round(naturalPageH*respK)+'px';
   updateFitStatus();
 }
 window.addEventListener('resize', fitPreview);
@@ -2731,6 +2969,9 @@ if(window.ResizeObserver){
 }
 
 function exportPDF(){
+  if(typeof TOUR!=='undefined' && TOUR.active) tourFinish();
+  trackGuest('exported');
+  if(window.__docPrintActive){ window.__docPrintActive = false; renderCV(); }
   computeContentFit();
   const pp = document.getElementById('cvPprint');
   // Important : on utilise 'zoom' et non 'transform:scale' pour la réduction à l'impression.
@@ -2746,9 +2987,12 @@ function toggleExportMenu(open){
   const el=document.getElementById('exportMenu');
   const show=(typeof open==='boolean')?open:el.style.display!=='flex';
   el.style.display=show?'flex':'none';
+  if(typeof TOUR!=='undefined' && TOUR.active && step===7){ TOUR.phase = show ? 'choose' : ''; syncTour(); }
 }
 
 function exportWord(){
+  if(typeof TOUR!=='undefined' && TOUR.active) tourFinish();
+  trackGuest('exported');
   const tpl = TEMPLATES.find(t=>t.id===S.modelId) || TEMPLATES[0];
   const bodyHtml = renderTpl(tpl, cv);
   const doc = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
@@ -2963,8 +3207,15 @@ function renderForm(){
     + '<div class="accent-next">Vous pouvez maintenant toucher « Suivant » pour continuer.</div></div>';
   } else if(step===2){
     body += H('Photo & langue')
-    + '<div class="field"><label>Photo de profil</label><input type="file" accept="image/*" onchange="onPhoto(event)"></div>'
-    + (S.photoData?'<img src="'+S.photoData+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;margin-bottom:10px">':'')
+    + '<div class="field"><label>Photo de profil</label>'
+    + '<div class="avatar-upload">'
+      + '<label class="avatar-circle" for="photoInp">'+(S.photoData?'<img src="'+S.photoData+'">':'👤')+'</label>'
+      + '<div class="avatar-actions">'
+        + '<label class="avatar-btn" for="photoInp">'+(S.photoData?'Changer la photo':'Choisir une photo')+'</label>'
+        + (S.photoData?'<button type="button" class="avatar-remove" onclick="S.photoData=\'\';onChange();renderForm()">Supprimer la photo</button>':'<p class="avatar-hint">JPG ou PNG, 12 Mo max.</p>')
+        + '<input id="photoInp" type="file" accept="image/*" onchange="onPhoto(event)">'
+      + '</div>'
+    + '</div></div>'
     + selectField('Langue du CV',S.lang,[{v:'fr',l:'Français'},{v:'en',l:'English'}],"S.lang=this.value;onChange()",'Choisir');
   } else if(step===3){
     body += H('Profil & contact')
@@ -3041,6 +3292,7 @@ function renderForm(){
       + (cv.sk.length<3?'<li>Ajoutez au moins 3 compétences</li>':'')
       + (!S.photoData?'<li>Ajoutez une photo de profil</li>':'')
     + '</ul></div>'
+    + '<button class="dc-cta" onclick="openDocs(\'lettre\')"><span style="font-size:24px">✉️</span><span><b>Étape suivante : votre lettre de motivation</b><small>Composée à partir de ce CV · ou demande d\'emploi / de stage</small></span></button>'
     + '<h2 class="display" style="margin:8px 0 12px;font-size:18px">Centres d\'intérêt</h2>'
     + chipsHTML(HOBBIES, cv.hobby.map(x=>x.name), 'addHobbyQuick')
     + cv.hobby.map((x,i)=>accCard('hobby',i, x.name||'Nouveau centre d\'intérêt', '',
@@ -3080,12 +3332,21 @@ function renderForm(){
     + (step<TOTAL_STEPS?'<button class="btn-next" onclick="goStep('+(step+1)+')">Suivant →</button>':'<button class="btn-next" onclick="toggleExportMenu(true)">Exporter le CV</button>')
     + '</div>';
 
-  document.getElementById('formPane').innerHTML = prog + nav + body + navBtns;
+  const fp = document.getElementById('formPane');
+  fp.innerHTML = prog + nav + '<div id="stepBody">'+body+'</div>' + navBtns;
+  // L'étape « Modèle » est une galerie de vignettes : elle profite d'une colonne plus large que les
+  // étapes de saisie de texte (plus de modèles visibles par ligne = moins de défilement pour
+  // comparer), donc on l'élargit spécifiquement sur desktop plutôt que de forcer toutes les étapes
+  // à la même largeur.
+  fp.classList.toggle('gallery-step', step===1);
   fitThumbs();
+  if(typeof TOUR!=='undefined' && TOUR.active) syncTour();
 }
 
 function goStep(n){
-  step=n; renderForm();
+  step=n;
+  if(typeof TOUR!=='undefined') TOUR.phase='';
+  renderForm();
   const fp=document.getElementById('formPane'); if(fp) fp.scrollTop=0;
   window.scrollTo(0,0);
 }
@@ -3095,13 +3356,17 @@ function pickTemplate(id){
   document.querySelectorAll('.tpl-card').forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-id')===id); });
   const t=TEMPLATES.find(function(x){ return x.id===id; });
   const nm=document.getElementById('accentTplName'); if(nm&&t) nm.textContent=t.name;
-  toast('Modèle « '+(t?t.name:id)+' » choisi. Choisissez la couleur, puis « Suivant ».');
+  // Pendant le guide interactif, la bulle du tour explique déjà quoi faire : on évite le
+  // doublon (et, sur mobile, le risque que ce toast recouvre le bouton « Suivant »).
+  const tourIsActive = typeof TOUR!=='undefined' && TOUR.active;
+  if(!tourIsActive) toast('Modèle « '+(t?t.name:id)+' » choisi. Choisissez la couleur, puis « Suivant ».');
   const box=document.getElementById('accentSection');
   if(box){
     if(box.scrollIntoView) box.scrollIntoView({behavior:'smooth',block:'center'});
     box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse');
   }
   const nb=document.querySelector('.btn-next'); if(nb){ nb.classList.remove('nudge'); void nb.offsetWidth; nb.classList.add('nudge'); }
+  if(typeof TOUR!=='undefined' && TOUR.active && step===1){ TOUR.phase='next'; syncTour(); }
 }
 function pickAccent(c){
   S.accent=c; onChange();
@@ -3164,7 +3429,9 @@ function switchSupportTab(tab){
 
 function renderSupportHome(){
   document.getElementById('supportBody').innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">'
+    '<button onclick="toggleSupport(false);openOnboarding()" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;font-weight:700;color:var(--ink)"><span style="font-size:17px">🧭</span><span>Revoir le guide de démarrage</span></button>'
+    + soonBlock()
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">'
     + SUPPORT_CATS.map(c=>'<div class="support-cat" onclick="switchSupportTab(\'chat\')">'+c+'</div>').join('')
     + '</div><div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:4px">QUESTIONS FRÉQUENTES</div>'
     + FAQ.map((f,i)=>'<div class="faq-item" id="faq'+i+'"><div class="faq-q" onclick="document.getElementById(\'faq'+i+'\').classList.toggle(\'open\')">'+esc(f.q)+'<span>+</span></div><div class="faq-a">'+esc(f.a)+'</div></div>').join('');
@@ -3629,6 +3896,200 @@ function aiSend(){
 }
 
 
+/* ---------------- Guide interactif (premier accès) ----------------
+   Au lieu d'un diaporama qui se contente d'expliquer, ce guide surligne en direct
+   l'élément réel de l'écran sur lequel agir (modèle, bouton Suivant, champ à
+   remplir, bouton d'export…) et avance tout seul quand l'action est vraiment
+   faite — jusqu'au téléchargement effectif du CV. */
+let TOUR = { active:false, phase:'' };
+
+function maybeShowOnboarding(){
+  try{ if(!localStorage.getItem('scv_onboarded')) startTour(); }catch(e){}
+}
+function openOnboarding(){ startTour(); }
+function startTour(){
+  try{ localStorage.setItem('scv_onboarded','1'); }catch(e){}
+  TOUR.active = true; TOUR.phase = '';
+  if(step!==1){ goStep(1); } else { syncTour(); }
+}
+
+/* Une phrase courte par étape + (si utile) le petit élément à entourer. Les zones larges
+   (formulaire, galerie) ne sont volontairement PAS entourées : on n'en limite pas l'usage. */
+function tourContent(){
+  if(step===1){
+    if(TOUR.phase==='next') return { sel:'.btn-next', text:'Modèle choisi ✓ Touchez « Suivant ».' };
+    return { sel:null, text:'Touchez un modèle pour le choisir.' };
+  }
+  if(step===2) return { sel:'.avatar-btn', text:'Photo facultative, puis « Suivant ».' };
+  if(step===3) return { sel:null, text:'Indiquez nom, poste et contact, puis « Suivant ».' };
+  if(step===4) return { sel:null, text:'Facultatif : remplissez ou passez à « Suivant ».' };
+  if(step===5) return { sel:'.btn-add', text:'Ajoutez une expérience, puis « Suivant ».' };
+  if(step===6) return { sel:'.btn-add', text:'Ajoutez votre formation, puis « Suivant ».' };
+  if(step===7){
+    if(TOUR.phase==='choose') return { sel:'#exportMenu .sheet-opt', text:'Choisissez PDF pour télécharger.' };
+    return { sel:'.btn-next', text:'Touchez « Exporter le CV ».' };
+  }
+  return null;
+}
+
+function syncTour(){
+  if(!TOUR.active) return hideTourSpotlight();
+  const c = tourContent();
+  if(!c) return hideTourSpotlight();
+  const strip = document.getElementById('tourStrip'), ring = document.getElementById('tourRing');
+  const tb = document.querySelector('.topbar');
+  strip.style.top = (tb ? tb.offsetHeight : 58)+'px';
+  strip.innerHTML = '<span class="ts-n">'+step+'/7</span><span class="ts-t">'+esc(c.text)+'</span><button class="ts-x" onclick="tourExit()" aria-label="Fermer le guide">✕</button>';
+  strip.classList.add('active'); document.body.classList.add('tour-on');
+  const el = c.sel ? document.querySelector(c.sel) : null;
+  if(!el){ ring.classList.remove('active'); return; }
+  const r = el.getBoundingClientRect();
+  if(r.width===0 && r.height===0){ ring.classList.remove('active'); return; }
+  const pad = 3;
+  ring.style.top = (r.top-pad)+'px'; ring.style.left = (r.left-pad)+'px';
+  ring.style.width = (r.width+pad*2)+'px'; ring.style.height = (r.height+pad*2)+'px';
+  ring.classList.add('active');
+}
+function hideTourSpotlight(){
+  const strip = document.getElementById('tourStrip'), ring = document.getElementById('tourRing');
+  if(strip) strip.classList.remove('active');
+  if(ring) ring.classList.remove('active');
+  document.body.classList.remove('tour-on');
+}
+function tourExit(){
+  TOUR.active = false; hideTourSpotlight();
+  try{ localStorage.setItem('scv_onboarded','1'); }catch(e){}
+}
+function tourFinish(){
+  if(!TOUR.active) return;
+  TOUR.active = false;
+  const ring = document.getElementById('tourRing'); if(ring) ring.classList.remove('active');
+  const strip = document.getElementById('tourStrip');
+  strip.innerHTML = '<span class="ts-t">🎉 Votre CV est téléchargé ! Vous pouvez continuer à l\'ajuster.</span><button class="ts-x" onclick="hideTourSpotlight()" aria-label="Fermer">✕</button>';
+  setTimeout(hideTourSpotlight, 6000);
+}
+window.addEventListener('resize', function(){ if(TOUR.active) syncTour(); });
+document.addEventListener('scroll', function(){ if(TOUR.active) syncTour(); }, true);
+
+
+
+/* ---------------- Suivi des visiteurs sans compte (avec consentement) ---------------- */
+const GUEST_KEY='scv_guest_id', GUEST_CONSENT='scv_guest_consent';
+function uuidv4(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ const r=Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); });
+}
+function guestId(){
+  try{ let g=localStorage.getItem(GUEST_KEY); if(!g){ g=uuidv4(); localStorage.setItem(GUEST_KEY,g); } return g; }catch(e){ return null; }
+}
+let guestTimer=null;
+function scheduleGuestPush(){
+  if(currentUser || !sb) return;
+  try{ if(localStorage.getItem(GUEST_CONSENT)!=='1') return; }catch(e){ return; }
+  clearTimeout(guestTimer); guestTimer=setTimeout(function(){ trackGuest('saved'); }, 20000);
+}
+async function trackGuest(ev){
+  try{
+    if(currentUser || !sb || !cv.p.name || !hasContent()) return;
+    if(ev==='exported'){ try{ localStorage.setItem(GUEST_CONSENT,'1'); }catch(e){} }
+    else if(localStorage.getItem(GUEST_CONSENT)!=='1') return;
+    const g=guestId(); if(!g) return;
+    const data={p:cv.p,ec:cv.ec,exp:cv.exp,edu:cv.edu,sk:cv.sk,lang:cv.lang,cert:cv.cert,hobby:cv.hobby,ref:cv.ref,award:cv.award,logiciel:cv.logiciel,quality:cv.quality,projects:cv.projects};
+    await sb.rpc('track_guest_cv',{ p_guest:g, p_cv_key:String(currentCvId||'default'), p_title:autoName(), p_model:S.modelId, p_accent:S.accent, p_data:data, p_event:ev, p_consent:true });
+  }catch(e){ console.warn('trackGuest',e); }
+}
+async function deleteGuestData(){
+  const g=guestId();
+  try{
+    if(sb && g) await sb.rpc('delete_guest_data',{ p_guest:g });
+    localStorage.removeItem(GUEST_CONSENT);
+    toast('Vos données ont été supprimées de nos serveurs.');
+  }catch(e){ toast('Suppression impossible pour le moment.'); }
+}
+
+/* ---------------- Bientôt disponible + « Me prévenir » ---------------- */
+const SOON_FEATURES = [
+  { k:'import',  ic:'📥', t:'Import de CV existant', d:'PDF ou Word, puis adaptation' }
+];
+function soonBlock(){
+  return '<div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;background:#fff">'
+    + '<div style="font-size:12.5px;font-weight:800;margin-bottom:8px">🚀 Bientôt disponible</div>'
+    + SOON_FEATURES.map(function(f){ return '<div style="display:flex;gap:9px;align-items:center;padding:5px 0;font-size:12.5px"><span style="font-size:16px">'+f.ic+'</span><span><b>'+f.t+'</b><br><span style="color:var(--ink2);font-size:11.5px">'+f.d+'</span></span></div>'; }).join('')
+    + (currentUser ? '' : '<input id="soonEmail" type="email" placeholder="Votre email" autocomplete="email" style="width:100%;margin-top:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px">')
+    + '<button id="soonBtn" onclick="submitInterest()" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:99px;background:var(--accent);color:#fff;font-weight:700;font-size:12.5px">🔔 Me prévenir</button>'
+    + '<div id="soonMsg" style="font-size:11.5px;margin-top:6px;min-height:14px"></div></div>';
+}
+async function submitInterest(){
+  const msg = document.getElementById('soonMsg'), btn = document.getElementById('soonBtn');
+  const email = (currentUser ? currentUser.email : (document.getElementById('soonEmail')||{}).value||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.style.color='var(--bad)'; msg.textContent='Indiquez un email valide.'; return; }
+  if(!sb){ msg.style.color='var(--bad)'; msg.textContent='Service indisponible pour le moment.'; return; }
+  btn.disabled = true;
+  try{
+    const rows = SOON_FEATURES.map(function(f){ return { feature:f.k, email:email, user_id: currentUser ? currentUser.id : null }; });
+    const { error } = await sb.from('feature_interest').insert(rows);
+    if(error && error.code!=='23505') throw error;
+    msg.style.color='var(--ok)'; msg.textContent='Merci ! Nous vous préviendrons dès leur sortie.';
+  }catch(e){ msg.style.color='var(--bad)'; msg.textContent='Erreur : '+e.message; }
+  finally{ btn.disabled=false; }
+}
+
+/* ---------------- PWA : installation sur tout appareil ---------------- */
+let deferredInstallPrompt = null;
+function isStandalone(){
+  return (!!window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+function isIos(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if(btn && !isStandalone()) btn.style.display = '';
+});
+window.addEventListener('appinstalled', function(){
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.style.display = 'none';
+  showInstallToast('CVxMaker est installé sur votre appareil 🎉');
+});
+async function triggerInstall(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    try{ await deferredInstallPrompt.userChoice; }catch(e){}
+    deferredInstallPrompt = null;
+    const btn = document.getElementById('installBtn');
+    if(btn) btn.style.display = 'none';
+    return;
+  }
+  if(isIos()){
+    document.getElementById('iosInstallOverlay').classList.add('active');
+    return;
+  }
+  showInstallToast("L'installation n'est pas proposée par votre navigateur pour le moment.");
+}
+function closeIosInstallSheet(){
+  document.getElementById('iosInstallOverlay').classList.remove('active');
+}
+function showInstallToast(msg){
+  const t = document.createElement('div');
+  t.className = 'install-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 3200);
+}
+(function initInstallButton(){
+  const btn = document.getElementById('installBtn');
+  if(!btn || isStandalone()) return;
+  if(isIos()) btn.style.display = ''; // pas de beforeinstallprompt sur iOS : on propose toujours le bouton
+})();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(){});
+  });
+}
+
 /* ---------------- init ---------------- */
 const __pubToken = getPublicToken();
 if(__pubToken){
@@ -3637,7 +4098,663 @@ if(__pubToken){
   renderForm();
   renderCV();
   restoreSession();
+  maybeShowOnboarding();
 }
+</script>
+<script>
+/* =========================================================================
+   LETTRES & DEMANDES — lettre de motivation, demande d'emploi, demande de
+   stage, candidature spontanée.
+   - Texte composé à partir du CV (aucune IA externe, rien n'est envoyé).
+   - 4 mises en page, mêmes couleurs que le CV, export PDF / Word / copie.
+   - Enregistrement local + synchronisation du compte (table « documents »).
+   ========================================================================= */
+const DOC_KEY = 'scv_docs';
+const DOC_TYPES = {
+  lettre:    { label:'Lettre de motivation',  ic:'✉️', hint:'Pour répondre à une offre précise' },
+  emploi:    { label:'Demande d\'emploi',     ic:'📝', hint:'Solliciter un emploi auprès d\'une structure' },
+  stage:     { label:'Demande de stage',      ic:'🎓', hint:'Pour étudiants et jeunes diplômés' },
+  spontanee: { label:'Candidature spontanée', ic:'🚀', hint:'Sans offre publiée' }
+};
+const DOC_TEMPLATES = [
+  { id:'classic', name:'Classique' }, { id:'modern', name:'Moderne' },
+  { id:'band', name:'Bandeau' },      { id:'minimal', name:'Épuré' }
+];
+const DOC_ACCENTS = ['#2563EB','#10B981','#F59E0B','#EF4444','#7C3AED','#16215C','#B0691E','#111827'];
+const DOC_SALUTATIONS = [
+  'Madame, Monsieur,', 'Monsieur le Directeur,', 'Madame la Directrice,',
+  'Monsieur le Directeur des Ressources Humaines,', 'Madame la Directrice des Ressources Humaines,',
+  'Monsieur le Responsable du recrutement,', 'Madame, Monsieur les membres du jury,'
+];
+const DOC_CLOSINGS = {
+  distinguees: { label:'Salutations distinguées', f:function(b){ return 'je vous prie d\'agréer, '+b+', l\'expression de mes salutations distinguées.'; } },
+  respectueuses: { label:'Salutations respectueuses', f:function(b){ return 'veuillez agréer, '+b+', l\'expression de mes salutations respectueuses.'; } },
+  considerations: { label:'Considération distinguée', f:function(b){ return 'je vous prie de croire, '+b+', à l\'assurance de ma considération distinguée.'; } }
+};
+const DOC_FONTS = { auto:'', inter:"'Inter',system-ui,sans-serif", merriweather:"'Merriweather',Georgia,serif", poppins:"'Poppins',sans-serif", georgia:"Georgia,'Times New Roman',serif" };
+const DOC_SIZES = { small:14, normal:15, large:16 };
+const NB = ' ';
+
+let DOCS = [];            // documents enregistrés (local + compte)
+let DOC = null;           // document en cours d'édition
+let docView = 'home';     // 'home' | 'edit'
+let docTab = 'edit';      // mobile : 'edit' | 'preview'
+let docSaveTimer = null, docCloudTimer = null;
+
+/* ---------------- Utilitaires de langue ---------------- */
+function dcGender(){
+  const g = (cv.ec && cv.ec.gender || '').toLowerCase();
+  return g.indexOf('fé')===0 || g.indexOf('fe')===0 ? 'F' : (g.indexOf('masc')===0 ? 'M' : '');
+}
+// accord : mot + terminaison féminine (« étudiant » + « e »), ou « (e) » si le genre est inconnu
+function dcAg(word, fem){ const g=dcGender(); fem = fem==null ? 'e' : fem; return g==='F' ? word+fem : (g==='M' ? word : word+'('+fem+')'); }
+function dcLowerFirst(s){ s=String(s||'').trim(); if(!s) return s; return (s.length>1 && s[1]===s[1].toLowerCase() && /[a-zà-ÿ]/i.test(s[1])) ? s.charAt(0).toLowerCase()+s.slice(1) : s; }
+function dcUpperFirst(s){ s=String(s||'').trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+function dcDe(word){ word=String(word||'').trim(); return /^[aeiouyàâäéèêëîïôöùûü]/i.test(word) ? 'd\''+word : 'de '+word; }
+function dcList(arr){ arr=arr.filter(Boolean); if(arr.length<=1) return arr.join(''); return arr.slice(0,-1).join(', ')+' et '+arr[arr.length-1]; }
+function dcSentence(s){ s=String(s||'').trim(); if(!s) return ''; s=dcUpperFirst(s); return /[.!?…]$/.test(s) ? s : s+'.'; }
+function dcFirstLine(t){ return String(t||'').split(/\r?\n/).map(function(x){ return x.replace(/^[\s•\-–*·]+/,'').trim(); }).filter(Boolean)[0] || ''; }
+function dcDateFR(iso, place){
+  let d = iso ? new Date(iso+'T12:00:00') : new Date();
+  if(isNaN(d)) d = new Date();
+  const day = d.getDate()===1 ? '1er' : String(d.getDate());
+  const txt = day+' '+d.toLocaleDateString('fr-FR',{month:'long'})+' '+d.getFullYear();
+  return (place ? place.trim()+', le ' : 'Le ')+txt.replace(/^Le /,'');
+}
+function dcToday(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dcNewId(){ return 'doc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ---------------- Modèle de document ---------------- */
+function dcBlank(type){
+  const p = cv.p || {};
+  const d = {
+    id: dcNewId(), cloudId:null, type: type||'lettre', name:'',
+    template:'classic', accent: S.accent || '#2563EB', font:'auto', size:'normal',
+    sender:{ name:p.name||'', role:p.role||'', address:p.address||'', phone:p.phone||'', email:p.email||'' },
+    place: (p.address||'').split(',')[0].trim(), date: dcToday(),
+    recipient:{ salutation:'Madame, Monsieur,', name:'', title:'', org:'', address:'' },
+    job:{ title:(type==='stage' ? '' : (p.role||'')), ref:'', source:'', why:'', duration:'', start:'', availability:'' },
+    tone:'formel', variant:0, closingId:'distinguees', attach:true,
+    object:'', body:[], signature:p.name||'',
+    auto:{ body:true, object:true }, savedAt:new Date().toISOString()
+  };
+  dcRegen(d, true);
+  return d;
+}
+
+/* ---------------- Composition du texte à partir du CV ---------------- */
+function dcContext(d){
+  const e0 = (cv.exp||[])[0] || null, ed0 = (cv.edu||[])[0] || null;
+  const skills = (cv.sk||[]).map(function(s){ return (s.name||'').trim(); }).filter(Boolean).slice(0,4);
+  return {
+    poste: (d.job.title||'').trim(), co: (d.recipient.org||'').trim(),
+    years: (typeof localYearsOfExperience==='function') ? localYearsOfExperience() : 0,
+    e0:e0, ed0:ed0, skills:skills, tone:d.tone, v:(d.variant||0)%3
+  };
+}
+function dcObject(d){
+  const poste = (d.job.title||'').trim(), ref = (d.job.ref||'').trim();
+  if(d.type==='lettre')    return 'Candidature au poste de '+(poste||'…')+(ref?' (réf.'+NB+ref+')':'');
+  if(d.type==='emploi')    return 'Demande d\'emploi'+(poste?' — '+poste:'');
+  if(d.type==='stage')     return 'Demande de stage'+(poste?' — '+poste:'');
+  return 'Candidature spontanée'+(poste?' — '+poste:'');
+}
+function dcCompose(d){
+  const c = dcContext(d), co = c.co, poste = c.poste, v = c.v, dyn = c.tone==='dynamique';
+  const atCo = co ? ' au sein '+dcDe(co) : '';
+  const src = (d.job.source||'').trim();
+  const posteL = dcLowerFirst(poste);
+  const yearsTxt = c.years>=1 ? c.years+' an'+(c.years>1?'s':'')+' d\'expérience' : '';
+  const degree = c.ed0 && c.ed0.degree ? '« '+c.ed0.degree.trim()+' »' : '';
+  const school = c.ed0 && c.ed0.school ? c.ed0.school.trim() : '';
+  const e0t = c.e0 && c.e0.title ? dcLowerFirst(c.e0.title) : '';
+  const e0co = c.e0 && c.e0.company ? c.e0.company.trim() : '';
+  const win = dcFirstLine(c.e0 && c.e0.desc).replace(/[.;]+$/,'');
+  const skillTxt = c.skills.length ? dcList(c.skills) : '';
+  const why = dcSentence(d.job.why);
+  const avail = (d.job.availability||'').trim();
+  const out = [];
+
+  // Qualités mises en avant (neutres en genre, pour éviter les erreurs d'accord)
+  const qualities = dyn
+    ? 'Mon énergie, mon sens de l\'initiative et ma capacité à apprendre vite sont les atouts que je mettrai à votre service.'
+    : 'Rigueur, sens de l\'organisation et goût du travail en équipe sont les qualités que je mettrai à votre service.';
+
+  if(d.type==='lettre' || d.type==='spontanee'){
+    // 1. Accroche
+    let a;
+    if(d.type==='spontanee'){
+      a = 'Même si aucune offre n\'est actuellement publiée'+(co?' par '+co:'')+', je me permets de vous adresser ma candidature spontanée'+(poste?' pour un poste de '+posteL:'')+'.';
+    } else if(v===1){
+      a = 'C\'est avec un vif intérêt que je me porte '+dcAg('candidat')+' au poste de '+(posteL||'…')+atCo+(src?', publié '+src:'')+'.';
+    } else if(v===2){
+      a = 'Votre '+(src?'annonce '+src:'offre')+' pour le poste de '+(posteL||'…')+atCo+' a immédiatement retenu mon attention, et je souhaite vous proposer ma candidature.';
+    } else {
+      a = (src?'Suite à votre annonce '+src+', j':'J')+'e vous adresse ma candidature pour le poste de '+(posteL||'…')+atCo+'.';
+    }
+    if(degree) a += ' Titulaire de la formation '+degree+(school?' ('+school+')':'')+', je souhaite mettre mes compétences au service '+(co?dcDe(co):'de votre équipe')+'.';
+    out.push(a);
+    // 2. Parcours
+    let b = '';
+    if(e0t){
+      b = (yearsTxt ? 'Avec '+yearsTxt+', j' : 'J')+'\'ai notamment occupé le poste de '+e0t+(e0co?' chez '+e0co:'')+'.';
+      if(win) b += ' Parmi mes réalisations : '+dcLowerFirst(win)+'.';
+    } else if(degree){
+      b = 'Ma formation '+degree+(school?' à '+school:'')+' m\'a permis d\'acquérir des bases solides que je suis prêt'+(dcGender()==='F'?'e':dcGender()==='M'?'':'(e)')+' à mettre en pratique.';
+    }
+    if(skillTxt) b += (b?' ':'')+'Mes compétences ('+skillTxt+') me permettent de répondre efficacement aux exigences du poste.';
+    if(b) out.push(b);
+    // 3. Motivation
+    let m = why ? why+' ' : (co ? 'Rejoindre '+co+' représente pour moi une réelle opportunité de contribuer à vos objectifs. ' : '');
+    m += qualities;
+    out.push(m);
+    // 4. Conclusion
+    out.push('Disponible '+(avail||'rapidement')+', je reste à votre entière disposition pour un entretien, afin de vous exposer plus en détail ma motivation et la valeur que je peux apporter à votre structure.');
+  }
+
+  else if(d.type==='emploi'){
+    out.push('J\'ai l\'honneur de solliciter auprès de vous un emploi '+(poste?'en qualité de '+posteL:'correspondant à mon profil')+atCo+'.');
+    let b = degree ? 'Titulaire de la formation '+degree+(school?' ('+school+')':'')+', ' : '';
+    b += yearsTxt ? (b?'je justifie':'Je justifie')+' de '+yearsTxt : (b?'je dispose':'Je dispose')+' d\'une solide formation';
+    b += e0t ? ', notamment en tant que '+e0t+(e0co?' chez '+e0co:'')+'.' : '.';
+    if(skillTxt) b += ' Mes compétences clés : '+skillTxt+'.';
+    out.push(b);
+    out.push((why?why+' ':'')+qualities);
+    out.push('Je suis disposé'+(dcGender()==='F'?'e':dcGender()==='M'?'':'(e)')+' à occuper ce poste '+(avail||'dans les meilleurs délais')+' et à me soumettre à tout test ou entretien que vous jugerez utile.');
+  }
+
+  else if(d.type==='stage'){
+    const who = degree ? 'Actuellement en formation '+degree+(school?' ('+school+')':'')+', j' : dcAg('Étudiant')+', j';
+    out.push(who+'\'ai l\'honneur de solliciter un stage'+(poste?' en lien avec « '+poste+' »':'')+(d.job.duration?' d\'une durée de '+d.job.duration:'')+(d.job.start?', à compter de '+d.job.start:'')+atCo+'.');
+    let b = 'Ce stage me permettrait de mettre en pratique mes acquis théoriques, de découvrir le monde professionnel et de renforcer mes compétences'+(skillTxt?' ('+skillTxt+')':'')+'.';
+    if(e0t) b += ' Mon expérience en tant que '+e0t+(e0co?' chez '+e0co:'')+' m\'a déjà permis de me familiariser avec les exigences du terrain.';
+    out.push(b);
+    out.push((why?why+' ':'')+(dyn ? 'Curiosité, énergie et envie d\'apprendre sont les atouts que je mettrai au service de votre équipe.' : 'Curiosité, rigueur et envie d\'apprendre sont les atouts que je mettrai au service de votre équipe.'));
+    out.push('Je me tiens à votre disposition pour un entretien'+(avail?' et suis disponible '+avail:'')+'.');
+  }
+  return out;
+}
+// Régénère l'objet et le texte tant que l'utilisateur ne les a pas modifiés à la main
+function dcRegen(d, force){
+  if(force || d.auto.object) d.object = dcObject(d);
+  if(force || d.auto.body)   d.body = dcCompose(d);
+}
+function dcClosingText(d){
+  const base = (d.recipient.salutation||'Madame, Monsieur,').replace(/[,\s]+$/,'');
+  const cl = DOC_CLOSINGS[d.closingId] || DOC_CLOSINGS.distinguees;
+  const lead = d.type==='lettre' || d.type==='spontanee' ? 'Dans l\'attente de votre réponse, ' : 'Dans l\'attente d\'une suite favorable à ma demande, ';
+  return dcUpperFirst(lead + cl.f(base));
+}
+
+/* ---------------- Rendu HTML (écran, impression, Word) ---------------- */
+function dcFontStack(d, tpl){
+  if(d.font && d.font!=='auto' && DOC_FONTS[d.font]) return DOC_FONTS[d.font];
+  return tpl==='classic' ? DOC_FONTS.georgia : DOC_FONTS.inter;
+}
+function dcLines(arr){ return arr.filter(function(x){ return x && String(x).trim(); }).map(function(x){ return esc(String(x).trim()); }).join('<br>'); }
+function dcContactLine(s, sep){ return [s.phone, s.email, s.address].filter(function(x){ return x && String(x).trim(); }).map(esc).join(sep||' &nbsp;·&nbsp; '); }
+
+function dcRecipientBlock(d, align){
+  const r = d.recipient;
+  const lines = [r.name, r.title, r.org, r.address];
+  const html = dcLines(lines);
+  return html ? '<div style="text-align:'+align+';line-height:1.5">'+html+'</div>' : '';
+}
+function dcHeader(d, ac){
+  const s = d.sender, tpl = d.template;
+  const contact = dcContactLine(s);
+  if(tpl==='band'){
+    return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:-56px -64px 26px -64px;width:calc(100% + 128px)"><tr><td bgcolor="'+ac+'" style="background:'+ac+';color:#fff;padding:34px 64px 26px 64px">'
+      + '<div style="font-size:26px;font-weight:700;letter-spacing:.2px;line-height:1.2;color:#fff">'+esc(s.name)+'</div>'
+      + (s.role ? '<div style="font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;margin-top:5px;color:#fff;opacity:.92">'+esc(s.role)+'</div>' : '')
+      + (contact ? '<div style="font-size:12.5px;margin-top:12px;color:#fff;opacity:.95">'+contact+'</div>' : '')
+      + '</td></tr></table>';
+  }
+  if(tpl==='modern'){
+    return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:26px"><tr>'
+      + '<td width="5" bgcolor="'+ac+'" style="background:'+ac+';width:5px"></td><td style="padding:2px 0 2px 16px">'
+      + '<div style="font-size:25px;font-weight:700;color:'+ac+';line-height:1.2">'+esc(s.name)+'</div>'
+      + (s.role ? '<div style="font-size:13px;color:#4B5563;margin-top:3px;letter-spacing:.4px">'+esc(s.role)+'</div>' : '')
+      + (contact ? '<div style="font-size:12.5px;color:#4B5563;margin-top:9px">'+contact+'</div>' : '')
+      + '</td></tr></table>';
+  }
+  if(tpl==='minimal'){
+    return '<div style="margin-bottom:26px;padding-bottom:14px;border-bottom:1px solid #D1D5DB">'
+      + '<div style="font-size:14px;letter-spacing:3.5px;text-transform:uppercase;font-weight:600;color:#111827">'+esc(s.name)+'</div>'
+      + (s.role ? '<div style="font-size:12.5px;color:#6B7280;margin-top:4px">'+esc(s.role)+'</div>' : '')
+      + (contact ? '<div style="font-size:12px;color:#6B7280;margin-top:8px">'+contact+'</div>' : '')
+      + '</div>';
+  }
+  // classic : bloc expéditeur simple en haut à gauche
+  return '<div style="margin-bottom:22px;line-height:1.5"><b style="font-size:1.05em">'+esc(s.name)+'</b>'
+    + (dcLines([s.role, s.address, s.phone, s.email]) ? '<br>'+dcLines([s.role, s.address, s.phone, s.email]) : '')
+    + '</div>';
+}
+
+// mode : 'screen' | 'print' | 'word'
+function dcRender(d, mode){
+  mode = mode || 'screen';
+  const tpl = d.template || 'classic', ac = d.accent || '#2563EB';
+  const fs = DOC_SIZES[d.size] || 15, ff = dcFontStack(d, tpl);
+  const dateStr = esc(dcDateFR(d.date, d.place));
+  const rec = dcRecipientBlock(d, tpl==='minimal' ? 'left' : 'right');
+  const recipientAndDate =
+      '<div style="text-align:'+(tpl==='minimal'?'left':'right')+';margin-bottom:'+(rec?'6':'22')+'px;color:#374151">'+dateStr+'</div>'
+    + (rec ? '<div style="margin-bottom:22px">'+rec+'</div>' : '');
+  const objectHtml = d.object ? '<div style="margin:0 0 18px 0"><b>Objet'+NB+':</b> <b>'+esc(d.object)+'</b></div>' : '';
+  const salut = '<div style="margin-bottom:14px">'+esc(d.recipient.salutation||'')+'</div>';
+  const paras = (d.body||[]).filter(function(x){ return x && x.trim(); }).map(function(p){
+    return '<p style="margin:0 0 12px 0;text-align:justify">'+esc(p.trim()).replace(/\n/g,'<br>')+'</p>';
+  }).join('');
+  const closing = '<p style="margin:16px 0 0 0;text-align:justify">'+esc(dcClosingText(d))+'</p>';
+  const sign = d.signature && d.signature.trim()
+    ? '<div style="margin-top:30px;text-align:right"><b style="color:'+((tpl==='minimal'||tpl==='classic')?'#111827':ac)+'">'+esc(d.signature.trim())+'</b></div>' : '';
+  const pj = d.attach ? '<div style="margin-top:28px;font-size:'+(fs-2)+'px;color:#4B5563"><b>P.'+NB+'J.'+NB+':</b> Curriculum vitae</div>' : '';
+  const content = dcHeader(d, ac) + recipientAndDate + objectHtml + salut + paras
+    + (mode==='word' ? closing + sign + pj : '<div style="break-inside:avoid;page-break-inside:avoid">' + closing + sign + pj + '</div>');
+  const base = 'font-family:'+ff+';font-size:'+fs+'px;line-height:1.55;color:#1F2937;';
+
+  if(mode==='word'){
+    return '<div class="Section1" style="'+base+'">'+content.replace(/margin:-56px -64px 26px -64px;width:calc\(100% \+ 128px\)/,'margin:0 0 22px 0;width:100%')+'</div>';
+  }
+  // écran et impression : même structure (en-tête/pied répétés = marges propres sur chaque page)
+  const spacer = '<div style="height:56px"></div>';
+  return '<table style="'+base+'width:794px;border-collapse:collapse;background:#fff;'+(mode==='screen'?'min-height:1123px;height:1123px;':'')+'" cellpadding="0" cellspacing="0">'
+    + '<thead><tr><td style="padding:0">'+spacer+'</td></tr></thead>'
+    + '<tbody><tr><td style="padding:0 64px;vertical-align:top">'+content+'</td></tr></tbody>'
+    + '<tfoot><tr><td style="padding:0">'+spacer+'</td></tr></tfoot></table>';
+}
+function dcPlainText(d){
+  const lines = [];
+  lines.push(dcDateFR(d.date, d.place));
+  const r = d.recipient; [r.name, r.title, r.org, r.address].forEach(function(x){ if(x && x.trim()) lines.push(x.trim()); });
+  lines.push('');
+  if(d.object) lines.push('Objet : '+d.object, '');
+  lines.push(d.recipient.salutation||'', '');
+  (d.body||[]).forEach(function(p){ if(p && p.trim()) lines.push(p.trim(), ''); });
+  lines.push(dcClosingText(d), '');
+  if(d.signature) lines.push(d.signature.trim());
+  const s = d.sender; const contact = [s.phone, s.email].filter(Boolean).join(' · ');
+  if(contact) lines.push(contact);
+  return lines.join('\n');
+}
+function dcWordCount(d){ return (d.body||[]).join(' ').trim().split(/\s+/).filter(Boolean).length; }
+
+/* ---------------- Enregistrement (local + compte) ---------------- */
+function dcLoadLocal(){
+  try{ const a = JSON.parse(localStorage.getItem(DOC_KEY)||'[]'); DOCS = Array.isArray(a) ? a.filter(function(x){ return x && x.id && x.type && DOC_TYPES[x.type]; }) : []; }
+  catch(e){ DOCS = []; }
+}
+function dcWriteLocal(){ try{ localStorage.setItem(DOC_KEY, JSON.stringify(DOCS)); }catch(e){} }
+function dcDocTitle(d){
+  if(d.name && d.name.trim()) return d.name.trim();
+  const who = (d.recipient.org||'').trim() || (d.job.title||'').trim();
+  return DOC_TYPES[d.type].label + (who ? ' — '+who : '');
+}
+function dcQueueSave(){
+  if(!DOC) return;
+  if(DOCS.indexOf(DOC)<0) DOCS.unshift(DOC);
+  const ind = document.getElementById('dcSaved'); if(ind) ind.textContent = 'Enregistrement…';
+  clearTimeout(docSaveTimer);
+  docSaveTimer = setTimeout(function(){
+    DOC.savedAt = new Date().toISOString(); dcWriteLocal();
+    const i = document.getElementById('dcSaved'); if(i) i.textContent = '✓ Enregistré';
+    clearTimeout(docCloudTimer); const snap = DOC; docCloudTimer = setTimeout(function(){ dcCloudSave(snap); }, 2500);
+  }, 500);
+}
+async function dcCloudSave(d){
+  if(typeof sb==='undefined' || !sb || !currentUser || !d) return;
+  const payload = { kind:d.type, title:dcDocTitle(d).slice(0,200), data:d };
+  try{
+    if(d.cloudId){ await sb.from('documents').update(payload).eq('id',d.cloudId).eq('user_id',currentUser.id); }
+    else {
+      const r = await sb.from('documents').insert(Object.assign({ user_id:currentUser.id }, payload)).select('id').single();
+      if(!r.error && r.data){ d.cloudId = r.data.id; dcWriteLocal(); }
+    }
+  }catch(e){}
+}
+async function dcCloudPull(){
+  if(typeof sb==='undefined' || !sb || !currentUser) return;
+  try{
+    const r = await sb.from('documents').select('id,data,updated_at').eq('user_id',currentUser.id).eq('is_deleted',false).order('updated_at',{ascending:false}).limit(100);
+    if(r.error || !r.data) return;
+    r.data.forEach(function(row){
+      if(!row.data || !row.data.type || !DOC_TYPES[row.data.type]) return;
+      const remote = Object.assign({}, row.data, { cloudId:row.id, savedAt:row.updated_at });
+      const local = DOCS.filter(function(x){ return x.cloudId===row.id; })[0];
+      if(!local) DOCS.push(remote);
+      else if(local!==DOC && new Date(row.updated_at) > new Date(local.savedAt||0)) Object.assign(local, remote);
+    });
+    dcWriteLocal(); if(docView==='home') dcRenderHome();
+  }catch(e){}
+}
+function dcDelete(id){
+  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
+  DOCS = DOCS.filter(function(x){ return x.id!==id; }); dcWriteLocal();
+  if(d.cloudId && typeof sb!=='undefined' && sb && currentUser){ try{ sb.from('documents').update({ is_deleted:true }).eq('id',d.cloudId).eq('user_id',currentUser.id).then(function(){}); }catch(e){} }
+  dcRenderHome();
+}
+function dcDuplicate(id){
+  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
+  const c = JSON.parse(JSON.stringify(d)); c.id = dcNewId(); c.cloudId = null; c.name = (dcDocTitle(d)+' (copie)').slice(0,120); c.savedAt = new Date().toISOString();
+  DOCS.unshift(c); dcWriteLocal(); dcRenderHome();
+}
+
+/* ---------------- Ouverture / navigation ---------------- */
+function openDocs(type){
+  if(!document.getElementById('docOverlay')) return;
+  if(!DOCS.length) dcLoadLocal();
+  document.getElementById('docOverlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  if(type && DOC_TYPES[type]) dcOpenNew(type); else { dcShow('home'); dcRenderHome(); }
+  dcCloudPull();
+}
+function closeDocs(){
+  clearTimeout(docSaveTimer);
+  if(DOC && DOCS.indexOf(DOC)>=0){ DOC.savedAt = new Date().toISOString(); dcWriteLocal(); dcCloudSave(DOC); }
+  document.getElementById('docOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+  DOC = null;
+}
+function dcShow(view){
+  docView = view;
+  document.getElementById('dcHome').style.display = view==='home' ? 'block' : 'none';
+  document.getElementById('dcEdit').style.display = view==='edit' ? 'flex' : 'none';
+  document.getElementById('dcBack').textContent = view==='edit' ? '←' : '✕';
+  document.getElementById('dcTitle').textContent = view==='edit' ? (DOC ? DOC_TYPES[DOC.type].label : '') : 'Lettres & demandes';
+  document.getElementById('dcSaved').textContent = '';
+}
+function dcBack(){
+  if(docView==='edit'){
+    clearTimeout(docSaveTimer);
+    if(DOC && DOCS.indexOf(DOC)>=0){ DOC.savedAt = new Date().toISOString(); dcWriteLocal(); dcCloudSave(DOC); }
+    DOC = null; dcShow('home'); dcRenderHome();
+  } else closeDocs();
+}
+function dcOpenNew(type){
+  DOC = dcBlank(type); docTab = 'edit';
+  dcShow('edit'); dcBuildForm(); dcPreview();
+  document.getElementById('dcForm').scrollTop = 0;
+}
+function dcOpenDoc(id){
+  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
+  DOC = d; docTab = 'edit';
+  if(!DOC.auto) DOC.auto = { body:false, object:false };
+  dcShow('edit'); dcBuildForm(); dcPreview();
+}
+
+/* ---------------- Accueil : types + documents enregistrés ---------------- */
+function dcRenderHome(){
+  const el = document.getElementById('dcHome');
+  const hasCV = !!(cv.p.name || cv.exp.length || cv.edu.length);
+  const cards = Object.keys(DOC_TYPES).map(function(k){
+    const t = DOC_TYPES[k];
+    return '<button class="dc-type" onclick="dcOpenNew(\''+k+'\')"><span class="dc-type-ic">'+t.ic+'</span><span><b>'+t.label+'</b><small>'+t.hint+'</small></span></button>';
+  }).join('');
+  const list = DOCS.slice().sort(function(a,b){ return new Date(b.savedAt||0)-new Date(a.savedAt||0); }).map(function(d){
+    const when = new Date(d.savedAt||Date.now()).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    return '<div class="dc-item"><div class="dc-item-ic">'+DOC_TYPES[d.type].ic+'</div>'
+      + '<div class="dc-item-body"><b>'+esc(dcDocTitle(d))+'</b><span>'+when+'</span></div>'
+      + '<div class="dc-item-act"><button class="dc-btn pri" onclick="dcOpenDoc(\''+d.id+'\')">Ouvrir</button>'
+      + '<button class="dc-btn" onclick="dcDuplicate(\''+d.id+'\')">Dupliquer</button>'
+      + '<button class="dc-btn del" onclick="appConfirm(\'Supprimer ce document ?\',function(){dcDelete(\''+d.id+'\')})">Suppr.</button></div></div>';
+  }).join('');
+  el.innerHTML = '<div class="dc-wrap">'
+    + '<h2 class="display dc-h">Que souhaitez-vous rédiger ?</h2>'
+    + '<p class="dc-sub">'+(hasCV ? 'Le texte est composé automatiquement à partir de votre CV ; vous gardez la main sur chaque phrase.' : 'Astuce : remplissez d\'abord votre CV, le texte sera alors pré-rempli à partir de vos informations.')+'</p>'
+    + '<div class="dc-types">'+cards+'</div>'
+    + '<h3 class="dc-h2">Mes documents</h3>'
+    + (list || '<div class="dc-empty">Aucun document pour l\'instant.</div>')
+    + '</div>';
+}
+
+/* ---------------- Formulaire ---------------- */
+function dcGet(path){ return path.split('.').reduce(function(o,k){ return o==null ? '' : o[k]; }, DOC); }
+function dcSetPath(path, val){
+  const ks = path.split('.'); let o = DOC;
+  for(let i=0;i<ks.length-1;i++) o = o[ks[i]];
+  o[ks[ks.length-1]] = val;
+}
+function dcInp(label, path, o){
+  o = o || {};
+  const val = dcGet(path)||'';
+  return '<div class="dc-f"><label>'+label+'</label>'
+    + (o.area ? '<textarea rows="'+(o.rows||2)+'" maxlength="'+(o.max||300)+'" placeholder="'+esc(o.ph||'')+'" oninput="dcOnInput(\''+path+'\',this.value)">'+esc(val)+'</textarea>'
+              : '<input type="'+(o.type||'text')+'" maxlength="'+(o.max||120)+'" value="'+esc(val)+'" placeholder="'+esc(o.ph||'')+'" oninput="dcOnInput(\''+path+'\',this.value)"'+(o.ac?' autocomplete="'+o.ac+'"':'')+'>')
+    + (o.note ? '<small>'+o.note+'</small>' : '') + '</div>';
+}
+function dcSel(label, path, opts, o){
+  const val = dcGet(path)||'';
+  let items = opts.slice(); if(val && !items.some(function(x){ return (x.v||x)===val; })) items.push(val);
+  return '<div class="dc-f"><label>'+label+'</label><select onchange="dcOnInput(\''+path+'\',this.value)">'
+    + items.map(function(x){ const v = x.v!=null ? x.v : x, t = x.t!=null ? x.t : x; return '<option value="'+esc(v)+'"'+(v===val?' selected':'')+'>'+esc(t)+'</option>'; }).join('')
+    + '</select></div>';
+}
+function dcSection(id, title, inner, open){
+  return '<details class="dc-sec" '+(open?'open':'')+'><summary>'+title+'</summary><div class="dc-sec-body" id="'+id+'">'+inner+'</div></details>';
+}
+function dcBuildForm(){
+  const d = DOC, t = d.type;
+  const typeChips = Object.keys(DOC_TYPES).map(function(k){
+    return '<button class="dc-chip'+(k===t?' on':'')+'" onclick="dcSetType(\''+k+'\')">'+DOC_TYPES[k].ic+' '+DOC_TYPES[k].label+'</button>';
+  }).join('');
+  const jobFields =
+      dcInp(t==='stage' ? 'Domaine ou poste visé' : 'Poste visé', 'job.title', { ph:'Ex. Chargé de projet' })
+    + dcInp('Entreprise / organisme', 'recipient.org', { ph:'Ex. Orange Digital Center', ac:'organization' })
+    + (t==='lettre' ? dcInp('Référence de l\'offre (facultatif)', 'job.ref', { ph:'Ex. RH-2026-14' }) + dcInp('Où avez-vous vu l\'offre ? (facultatif)', 'job.source', { ph:'Ex. sur LinkedIn, sur Emploi.tg' }) : '')
+    + (t==='stage' ? '<div class="dc-row">'+dcInp('Durée du stage', 'job.duration', { ph:'Ex. 3 mois' })+dcInp('À compter de', 'job.start', { ph:'Ex. janvier 2027' })+'</div>' : '')
+    + dcInp('Pourquoi eux ? (1 phrase, facultatif)', 'job.why', { area:true, rows:2, max:260, ph:'Ex. Votre engagement pour l\'inclusion numérique correspond à mes valeurs.', note:'Une phrase personnelle rend la lettre bien plus convaincante.' })
+    + '<div class="dc-row">'+dcInp('Disponibilité (facultatif)', 'job.availability', { ph:'Ex. immédiatement' })
+    + dcSel('Ton', 'tone', [{v:'formel',t:'Formel et sobre'},{v:'dynamique',t:'Dynamique'}])+'</div>';
+  const recFields =
+      dcSel('Formule d\'appel', 'recipient.salutation', DOC_SALUTATIONS)
+    + dcInp('Nom du destinataire (facultatif)', 'recipient.name', { ph:'Ex. Madame Kossi Ama' })
+    + dcInp('Fonction (facultatif)', 'recipient.title', { ph:'Ex. Directrice des Ressources Humaines' })
+    + dcInp('Adresse (facultatif)', 'recipient.address', { ph:'Ex. BP 1234, Lomé' });
+  const sendFields =
+      dcInp('Nom et prénom', 'sender.name', { ac:'name' }) + dcInp('Titre / fonction', 'sender.role', {})
+    + '<div class="dc-row">'+dcInp('Téléphone', 'sender.phone', { type:'tel', ac:'tel' })+dcInp('Email', 'sender.email', { type:'email', ac:'email' })+'</div>'
+    + dcInp('Adresse', 'sender.address', { ac:'street-address' })
+    + '<div class="dc-row">'+dcInp('Lieu (en-tête de date)', 'place', { ph:'Ex. Lomé' })+dcInp('Date', 'date', { type:'date' })+'</div>'
+    + '<button class="dc-link" onclick="dcResyncSender()">↻ Reprendre les infos de mon CV</button>';
+  const styleBox =
+      '<div class="dc-f"><label>Mise en page</label><div class="dc-chips" id="dcTplChips"></div></div>'
+    + '<div class="dc-f"><label>Couleur</label><div class="dc-dots" id="dcAccents"></div></div>'
+    + '<div class="dc-row">'+dcSel('Police', 'font', [{v:'auto',t:'Automatique'},{v:'inter',t:'Inter'},{v:'merriweather',t:'Merriweather'},{v:'poppins',t:'Poppins'},{v:'georgia',t:'Georgia'}])
+    + dcSel('Taille', 'size', [{v:'small',t:'Petite'},{v:'normal',t:'Normale'},{v:'large',t:'Grande'}])+'</div>'
+    + '<label class="dc-check"><input type="checkbox" '+(d.attach?'checked':'')+' onchange="dcOnInput(\'attach\',this.checked)"> Mentionner « P. J. : Curriculum vitae »</label>';
+  document.getElementById('dcForm').innerHTML =
+      '<div class="dc-chips dc-typebar" id="dcTypeChips">'+typeChips+'</div>'
+    + '<div id="dcChecks" class="dc-checks"></div>'
+    + dcSection('dcSecJob', '1 · '+(t==='stage'?'Le stage':'Le poste')+' visé', jobFields, true)
+    + dcSection('dcSecRec', '2 · Destinataire', recFields, true)
+    + dcSection('dcSecText', '3 · Texte', '<div id="dcBodyBox"></div>', true)
+    + dcSection('dcSecSend', '4 · Vos coordonnées', sendFields, false)
+    + dcSection('dcSecStyle', '5 · Style', styleBox, false)
+    + '<div class="dc-f dc-namef">'+'<label>Nom du document (pour le retrouver)</label><input maxlength="120" value="'+esc(d.name||'')+'" placeholder="'+esc(dcDocTitle(d))+'" oninput="dcOnInput(\'name\',this.value)"></div>';
+  dcRenderStyleBits(); dcRenderBody();
+}
+function dcRenderStyleBits(){
+  const d = DOC;
+  const tp = document.getElementById('dcTplChips');
+  if(tp) tp.innerHTML = DOC_TEMPLATES.map(function(t){ return '<button class="dc-chip'+(d.template===t.id?' on':'')+'" onclick="dcOnInput(\'template\',\''+t.id+'\');dcRenderStyleBits()">'+t.name+'</button>'; }).join('');
+  const ac = document.getElementById('dcAccents');
+  if(ac) ac.innerHTML = DOC_ACCENTS.map(function(c){ return '<span class="dc-dot'+(d.accent===c?' on':'')+'" style="background:'+c+'" onclick="dcOnInput(\'accent\',\''+c+'\');dcRenderStyleBits()"></span>'; }).join('');
+  const tc = document.getElementById('dcTypeChips');
+  if(tc) tc.innerHTML = Object.keys(DOC_TYPES).map(function(k){ return '<button class="dc-chip'+(k===d.type?' on':'')+'" onclick="dcSetType(\''+k+'\')">'+DOC_TYPES[k].ic+' '+DOC_TYPES[k].label+'</button>'; }).join('');
+}
+function dcRenderBody(){
+  const d = DOC, box = document.getElementById('dcBodyBox'); if(!box) return;
+  const note = d.auto.body
+    ? '<div class="dc-auto ok">✨ Texte composé depuis votre CV — il se met à jour quand vous changez le poste ou l\'entreprise. <button class="dc-link" onclick="dcNextVariant()">Autre formulation</button></div>'
+    : '<div class="dc-auto">✏️ Texte modifié par vous. <button class="dc-link" onclick="dcRegenConfirm()">↻ Recomposer depuis mon CV</button></div>';
+  const paras = d.body.map(function(p,i){
+    return '<div class="dc-para"><textarea rows="'+Math.max(3, Math.ceil(p.length/54))+'" maxlength="900" oninput="dcOnPara('+i+',this)">'+esc(p)+'</textarea>'
+      + '<div class="dc-para-act"><button title="Monter" onclick="dcMovePara('+i+',-1)"'+(i===0?' disabled':'')+'>▲</button><button title="Descendre" onclick="dcMovePara('+i+',1)"'+(i===d.body.length-1?' disabled':'')+'>▼</button><button title="Supprimer" class="del" onclick="dcDelPara('+i+')">✕</button></div></div>';
+  }).join('');
+  const objectF = '<div class="dc-f"><label>Objet</label><input maxlength="160" value="'+esc(d.object)+'" oninput="dcOnInput(\'object\',this.value)"></div>';
+  const closeF = dcSel('Formule de politesse', 'closingId', Object.keys(DOC_CLOSINGS).map(function(k){ return { v:k, t:DOC_CLOSINGS[k].label }; }));
+  box.innerHTML = note + objectF + paras
+    + '<button class="btn-add" onclick="dcAddPara()">+ Ajouter un paragraphe</button>'
+    + closeF + dcInp('Signature', 'signature', {});
+}
+
+/* ---------------- Événements du formulaire ---------------- */
+function dcOnInput(path, val){
+  dcSetPath(path, val);
+  if(path==='object') DOC.auto.object = false;
+  const genKeys = ['job.title','job.ref','job.source','job.why','job.duration','job.start','job.availability','recipient.org','tone'];
+  if(genKeys.indexOf(path)>=0){
+    const hadAutoBody = DOC.auto.body;
+    dcRegen(DOC);
+    if(hadAutoBody || DOC.auto.object) dcRenderBodyFieldsOnly();
+  }
+  if(path==='sender.name' && (!DOC.signature || DOC.signature===DOC._lastSenderName)) { DOC.signature = val; }
+  if(path==='sender.name') DOC._lastSenderName = val;
+  dcPreview(); dcQueueSave();
+}
+// Met à jour les champs de texte et l'objet sans reconstruire tout le formulaire (garde le focus)
+function dcRenderBodyFieldsOnly(){
+  const box = document.getElementById('dcBodyBox'); if(!box) return;
+  const active = document.activeElement; const keep = active && box.contains(active);
+  if(keep) return dcRenderBodyValuesOnly();
+  dcRenderBody();
+}
+function dcRenderBodyValuesOnly(){
+  const box = document.getElementById('dcBodyBox'); if(!box) return;
+  const tas = box.querySelectorAll('.dc-para textarea');
+  if(tas.length!==DOC.body.length){ dcRenderBody(); return; }
+  tas.forEach(function(t,i){ t.value = DOC.body[i]; });
+  const obj = box.querySelector('.dc-f input'); if(obj && DOC.auto.object) obj.value = DOC.object;
+}
+function dcOnPara(i, el){
+  DOC.body[i] = el.value; DOC.auto.body = false;
+  const note = document.querySelector('#dcBodyBox .dc-auto');
+  if(note && note.classList.contains('ok')){ dcRenderNoteOnly(); }
+  dcPreview(); dcQueueSave();
+}
+function dcRenderNoteOnly(){
+  const note = document.querySelector('#dcBodyBox .dc-auto'); if(!note) return;
+  note.className = 'dc-auto';
+  note.innerHTML = '✏️ Texte modifié par vous. <button class="dc-link" onclick="dcRegenConfirm()">↻ Recomposer depuis mon CV</button>';
+}
+function dcAddPara(){ DOC.body.push(''); DOC.auto.body = false; dcRenderBody(); dcPreview(); dcQueueSave(); }
+function dcDelPara(i){ DOC.body.splice(i,1); DOC.auto.body = false; dcRenderBody(); dcPreview(); dcQueueSave(); }
+function dcMovePara(i, dir){
+  const j = i+dir; if(j<0 || j>=DOC.body.length) return;
+  const t = DOC.body[i]; DOC.body[i] = DOC.body[j]; DOC.body[j] = t; DOC.auto.body = false;
+  dcRenderBody(); dcPreview(); dcQueueSave();
+}
+function dcRegenConfirm(){
+  appConfirm('Remplacer votre texte par une nouvelle version composée depuis votre CV ?', function(){
+    DOC.auto = { body:true, object:true }; dcRegen(DOC, true); dcRenderBody(); dcPreview(); dcQueueSave();
+  });
+}
+function dcNextVariant(){ DOC.variant = ((DOC.variant||0)+1)%3; dcRegen(DOC); dcRenderBody(); dcPreview(); dcQueueSave(); }
+function dcSetType(t){
+  if(t===DOC.type) return;
+  const apply = function(){
+    const prevType = DOC.type; DOC.type = t; DOC.variant = 0;
+    if(t==='stage' && DOC.job.title===(cv.p.role||'')) DOC.job.title = '';
+    else if(prevType==='stage' && !DOC.job.title.trim()) DOC.job.title = cv.p.role||'';
+    if(DOC.auto.body || DOC.auto.object){ /* textes automatiques : suivent le nouveau type */ }
+    DOC.auto = { body:true, object:true }; dcRegen(DOC, true);
+    dcBuildForm(); dcPreview(); dcQueueSave();
+    document.getElementById('dcTitle').textContent = DOC_TYPES[t].label;
+  };
+  if(!DOC.auto.body) appConfirm('Changer le type remplace votre texte modifié par une nouvelle version. Continuer ?', apply); else apply();
+}
+function dcResyncSender(){
+  const p = cv.p || {};
+  DOC.sender = { name:p.name||'', role:p.role||'', address:p.address||'', phone:p.phone||'', email:p.email||'' };
+  DOC.signature = p.name||''; DOC._lastSenderName = p.name||'';
+  dcBuildForm(); dcPreview(); dcQueueSave(); toast('Coordonnées reprises depuis votre CV.');
+  const sec = document.getElementById('dcSecSend'); if(sec && sec.parentElement) sec.parentElement.open = true;
+}
+
+/* ---------------- Aperçu + contrôle qualité ---------------- */
+function dcPreview(){
+  const page = document.getElementById('dcPage'); if(!page || !DOC) return;
+  page.innerHTML = dcRender(DOC, 'screen');
+  dcFitPreview(); dcRenderChecks();
+}
+function dcFitPreview(){
+  const pane = document.getElementById('dcPrev'), wrap = document.getElementById('dcPageWrap'), page = document.getElementById('dcPage');
+  if(!pane || !wrap || !page || pane.clientWidth===0) return;
+  const k = Math.max(0.3, Math.min(1.15, (pane.clientWidth-28)/794));
+  page.style.transformOrigin = 'top left'; page.style.transform = 'scale('+k+')';
+  wrap.style.width = Math.round(794*k)+'px'; wrap.style.height = Math.round(page.offsetHeight*k)+'px';
+}
+window.addEventListener('resize', function(){ if(DOC) dcFitPreview(); });
+function dcPages(){ const t = document.querySelector('#dcPage table'); return t ? Math.max(1, Math.ceil((t.offsetHeight-2)/1123)) : 1; }
+function dcRenderChecks(){
+  const el = document.getElementById('dcChecks'); if(!el) return;
+  const d = DOC, words = dcWordCount(d), pages = dcPages(), items = [];
+  const add = function(l, m){ items.push({ l:l, m:m }); };
+  if(!d.sender.name.trim()) add('w','Indiquez votre nom (coordonnées).');
+  if(!d.sender.phone.trim() && !d.sender.email.trim()) add('w','Ajoutez un téléphone ou un email pour être joignable.');
+  if(!d.job.title.trim() && d.type!=='spontanee') add('w','Précisez le poste visé : le texte sera bien plus pertinent.');
+  if(!d.recipient.org.trim()) add('t','Indiquez l\'entreprise : une lettre nominative marque davantage.');
+  if(!d.recipient.name.trim() && d.recipient.salutation==='Madame, Monsieur,') add('t','Si possible, adressez-la à une personne nommée (« Madame Koffi, »).');
+  const minW = (d.type==='lettre'||d.type==='spontanee') ? 120 : 90;
+  if(words<minW) add('w','Texte court ('+words+' mots) : visez '+(minW<100?'100':'150')+' à 300 mots.');
+  else if(words>330) add('w','Texte long ('+words+' mots) : visez 150 à 300 mots pour tenir sur une page.');
+  if(pages>1) add('w','Le document dépasse une page ('+pages+' pages) : raccourcissez ou réduisez la taille.');
+  if(!d.signature.trim()) add('w','Ajoutez votre signature (nom).');
+  const warn = items.filter(function(x){ return x.l==='w'; }).length;
+  const head = warn ? '<b class="warn">⚠ '+warn+' point'+(warn>1?'s':'')+' à revoir</b>' : '<b class="ok">✓ Prêt à envoyer</b>';
+  el.innerHTML = '<div class="dc-checks-h">'+head+'<span>'+words+' mots · '+pages+' page'+(pages>1?'s':'')+'</span></div>'
+    + (items.length ? '<ul>'+items.map(function(x){ return '<li class="'+x.l+'">'+esc(x.m)+'</li>'; }).join('')+'</ul>' : '');
+  const pg = document.getElementById('dcPageInfo'); if(pg) pg.textContent = pages+' page'+(pages>1?'s':'')+' · '+words+' mots';
+}
+function dcTab(tab){
+  docTab = tab;
+  const e = document.getElementById('dcEdit'); e.setAttribute('data-tab', tab);
+  document.querySelectorAll('.dc-tab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-t')===tab); });
+  if(tab==='preview') setTimeout(dcFitPreview, 30);
+}
+
+/* ---------------- Exports ---------------- */
+let dcPrintRestore = null;
+function dcFileBase(){ return (DOC_TYPES[DOC.type].label.split(' ')[0]+'_'+(DOC.sender.name||'CV').trim()).replace(/[^\w\-]+/g,'_'); }
+function dcExportPDF(){
+  if(!DOC) return;
+  const area = document.getElementById('printArea'); if(!area) return;
+  area.innerHTML = '<div id="cvPprint" style="width:794px">'+dcRender(DOC, 'print')+'</div>';
+  window.__docPrintActive = true;
+  const oldTitle = document.title; document.title = dcFileBase();
+  const restore = function(){
+    window.removeEventListener('afterprint', restore); document.title = oldTitle;
+    if(window.__docPrintActive){ window.__docPrintActive = false; try{ renderCV(); }catch(e){} }
+  };
+  window.addEventListener('afterprint', restore);
+  window.print();
+}
+function dcExportWord(){
+  if(!DOC) return;
+  const body = dcRender(DOC, 'word');
+  const doc = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>'+esc(dcFileBase())+'</title>'
+    + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+    + '<style>@page Section1{size:595.3pt 841.9pt;margin:56pt 54pt 56pt 54pt}div.Section1{page:Section1}body{margin:0}p{margin:0 0 9pt 0}</style></head><body>'+body+'</body></html>';
+  const blob = new Blob(['﻿', doc], { type:'application/msword;charset=utf-8' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = dcFileBase()+'.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+function dcCopy(){
+  if(!DOC) return;
+  const txt = dcPlainText(DOC);
+  const done = function(){ toast('Texte copié : collez-le dans votre email.'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){ dcCopyFallback(txt); done(); }); }
+  else { dcCopyFallback(txt); done(); }
+}
+function dcCopyFallback(txt){
+  const ta = document.createElement('textarea'); ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(ta);
+}
+
+dcLoadLocal();
 </script>
 <script type="module">
 /* =========================================================================

@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SmartCV — Administration</title>
+<title>CVxMaker — Administration</title>
 <meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563EB'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' font-family='Georgia,serif' font-weight='bold' fill='white'%3EA%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0F172A;--panel:#1E293B;--panel2:#334155;--ink:#F1F5F9;--ink2:#94A3B8;--accent:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--border:rgba(255,255,255,.08);
+:root{color-scheme:dark;--bg:#0F172A;--panel:#1E293B;--panel2:#334155;--ink:#F1F5F9;--ink2:#94A3B8;--accent:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--border:rgba(255,255,255,.08);
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13.5px}
@@ -20,12 +21,21 @@ button,input,select{font-family:inherit}
 .side h1{font-size:15px;padding:0 8px 18px}
 .side button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 10px;border:none;background:none;color:var(--ink2);border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:2px}
 .side button.active{background:var(--accent);color:#fff}
-.main{flex:1;overflow-y:auto;padding:26px 30px}
+/* Sans largeur plafond, la zone de contenu s'étire jusqu'au bord d'un écran large : les tableaux
+   (nom/email/plan/statut) se retrouvent avec des colonnes espacées de centaines de pixels, illisibles
+   d'un coup d'œil, et les cartes de stats s'étalent en une seule rangée au lieu de rester groupées en
+   un vrai tableau de bord. On garde donc une largeur de lecture confortable, alignée à gauche (pas
+   centrée : c'est un espace de travail, pas une page marketing). */
+.main{flex:1;overflow-y:auto;padding:26px 30px;max-width:1400px}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:26px}
+@media (min-width:900px){ .stat-grid{grid-template-columns:repeat(4,1fr)} }
 .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
 .stat-card .v{font-size:24px;font-weight:800}
 .stat-card .l{font-size:11.5px;color:var(--ink2);margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
+/* width:100% forçait chaque tableau à occuper toute la largeur de .main même quand son contenu
+   (quelques courtes colonnes) n'en a pas besoin, créant de grands vides entre les colonnes. Le
+   tableau se dimensionne maintenant à son contenu, avec un minimum raisonnable pour rester lisible. */
+table{width:auto;min-width:min(820px,100%);max-width:100%;border-collapse:collapse;font-size:12.5px}
 th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
 th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
 .badge{padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:700}
@@ -42,7 +52,7 @@ th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
 <body>
 
 <div id="loginScreen" class="login-box">
-  <h2 style="margin:0 0 4px">Admin SmartCV</h2>
+  <h2 style="margin:0 0 4px">Admin CVxMaker</h2>
   <p style="color:var(--ink2);font-size:12px;margin:0 0 18px">Réservé aux comptes administrateurs.</p>
   <div id="loginErr" class="err" style="display:none"></div>
   <input id="admEmail" type="email" placeholder="Email">
@@ -52,7 +62,7 @@ th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
 
 <div id="adminApp" class="app" style="display:none">
   <div class="side">
-    <h1>SmartCV <span style="color:var(--accent)">Admin</span></h1>
+    <h1>CVxMaker <span style="color:var(--accent)">Admin</span></h1>
     <button class="nav-item active" data-p="dashboard" onclick="goPage('dashboard')">📊 Dashboard</button>
     <button class="nav-item" data-p="users" onclick="goPage('users')">👥 Utilisateurs</button>
     <button class="nav-item" data-p="cvs" onclick="goPage('cvs')">📄 CVs</button>
@@ -60,6 +70,9 @@ th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
     <button class="nav-item" data-p="licenses" onclick="goPage('licenses')">🔑 Licences</button>
     <button class="nav-item" data-p="support" onclick="goPage('support')">💬 Support</button>
     <button class="nav-item" data-p="feedback" onclick="goPage('feedback')">⭐ Feedback</button>
+    <button class="nav-item" data-p="testimonials" onclick="goPage('testimonials')">🗣️ Témoignages</button>
+    <button class="nav-item" data-p="guests" onclick="goPage('guests')">🧑‍💻 Visiteurs</button>
+    <button class="nav-item" data-p="interest" onclick="goPage('interest')">🔔 Intérêt</button>
     <button class="nav-item" data-p="broadcast" onclick="goPage('broadcast')">📢 Broadcast</button>
     <button class="nav-item" data-p="ailogs" onclick="goPage('ailogs')">🤖 Logs IA</button>
     <button class="nav-item" data-p="settings" onclick="goPage('settings')">⚙️ Paramètres</button>
@@ -115,7 +128,7 @@ async function adminLogout(){ await sb.auth.signOut(); location.reload(); }
 
 function goPage(p){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
-  const fns = { dashboard: pageDashboard, users: pageUsers, cvs: pageCvs, payments: pagePayments, licenses: pageLicenses, support: pageSupport, feedback: pageFeedback, broadcast: pageBroadcast, ailogs: pageAiLogs, settings: pageSettings };
+  const fns = { dashboard: pageDashboard, users: pageUsers, cvs: pageCvs, payments: pagePayments, licenses: pageLicenses, support: pageSupport, feedback: pageFeedback, testimonials: pageTestimonials, interest: pageInterest, guests: pageGuests, broadcast: pageBroadcast, ailogs: pageAiLogs, settings: pageSettings };
   (fns[p] || pageStub)(p);
 }
 
@@ -220,6 +233,106 @@ async function pageFeedback(){
 }
 async function moderateFeedback(id, status){
   try{ const { error } = await sb.from('feedback').update({ status }).eq('id', id); if(error) throw error; pageFeedback(); }
+  catch(e){ alert('Erreur: '+e.message); }
+}
+
+/* ---------------- Témoignages (avis publics soumis depuis la landing page) ----------------
+   Table "testimonials" : n'importe qui peut en soumettre un (connecté ou non), mais seul un
+   avis status='approved' est visible sur la landing page (voir index.html / RLS "testi_public_read"). */
+let GUEST_ROWS = [];
+function guestRef(n){ return 'G-'+String(n).padStart(5,'0'); }
+async function pageGuests(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 6px">Visiteurs sans compte</h2><p style="color:var(--ink2);font-size:12px;margin:0 0 16px">Chaque visiteur qui exporte un CV (ou dont le CV est enregistré après son accord) reçoit un identifiant unique. Les liens fonctionnent pour vous (session admin) ; ils ne deviennent publics que si la personne partage son CV.</p><div id="guestBox">Chargement…</div>';
+  try{
+    const [pr, cr] = await Promise.all([
+      sb.from('guest_profiles').select('guest_id,ref_no,name,email,phone,address,first_seen,last_seen').order('last_seen',{ascending:false}).limit(500),
+      sb.from('guest_cvs').select('guest_id,token,title,model_id,saves,exports,is_public,updated_at').order('updated_at',{ascending:false}).limit(2000)
+    ]);
+    if(pr.error) throw pr.error; if(cr.error) throw cr.error;
+    const cvsBy = {}; (cr.data||[]).forEach(c=>{ (cvsBy[c.guest_id]=cvsBy[c.guest_id]||[]).push(c); });
+    GUEST_ROWS = (pr.data||[]).map(g=>Object.assign({}, g, { cvs: cvsBy[g.guest_id]||[] }));
+    renderGuests('');
+  }catch(e){
+    document.getElementById('guestBox').innerHTML = '<div class="stub">Lecture refusée ou erreur : '+esc(e.message)+'<br><br>Vérifiez que la migration 20261015000200_guest_tracking.sql a bien été appliquée.</div>';
+  }
+}
+function renderGuests(q){
+  q = (q||'').toLowerCase();
+  const rows = GUEST_ROWS.filter(g=>!q || [g.name,g.email,g.phone,guestRef(g.ref_no)].join(' ').toLowerCase().includes(q));
+  const totCv = GUEST_ROWS.reduce((n,g)=>n+g.cvs.length,0), totExp = GUEST_ROWS.reduce((n,g)=>n+g.cvs.reduce((m,c)=>m+c.exports,0),0), withMail = GUEST_ROWS.filter(g=>g.email).length;
+  const card=(t,v)=>'<div class="stat-card"><div style="font-size:11px;color:var(--ink2)">'+t+'</div><div style="font-size:26px;font-weight:800">'+v+'</div></div>';
+  document.getElementById('guestBox').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+card('Visiteurs',GUEST_ROWS.length)+card('CV conservés',totCv)+card('Exports',totExp)+card('Avec email',withMail)+'</div>'
+    + '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><input id="guestQ" placeholder="Rechercher nom, email, ID…" value="'+esc(q)+'" oninput="renderGuests(this.value)" style="flex:1;min-width:200px"><button class="btn" onclick="exportGuestsCSV()">⬇️ Export CSV</button></div>'
+    + (rows.map(g=>{
+        const links = g.cvs.map(c=>{ const url = location.origin+'/cv/'+c.token; return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:12px;flex-wrap:wrap"><span>'+esc(c.title||'CV')+' · '+c.exports+' export(s) · '+c.saves+' enreg. · '+(c.is_public?'public':'privé')+'</span><a href="'+url+'" target="_blank" rel="noopener" class="btn" style="text-decoration:none">Ouvrir le lien</a></div>'; }).join('');
+        return '<div class="stat-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+guestRef(g.ref_no)+' — '+esc(g.name||'Sans nom')+'</b><span style="color:var(--ink2);font-size:11px">vu le '+new Date(g.last_seen).toLocaleString('fr-FR')+'</span></div>'
+          + '<div style="font-size:12.5px;color:var(--ink2);margin:6px 0">'+esc(g.email||'—')+' · '+esc(g.phone||'—')+' · '+esc(g.address||'—')+'</div>'+links+'</div>';
+      }).join('') || '<div class="stub">Aucun visiteur pour l\'instant.</div>');
+  const inp = document.getElementById('guestQ'); if(inp && q){ inp.focus(); inp.setSelectionRange(q.length,q.length); }
+}
+function exportGuestsCSV(){
+  const cell = v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines = [['ID','Nom','Email','Téléphone','Adresse','Première visite','Dernière visite','CV','Exports','Liens'].map(cell).join(',')];
+  GUEST_ROWS.forEach(g=>lines.push([guestRef(g.ref_no),g.name,g.email,g.phone,g.address,g.first_seen,g.last_seen,g.cvs.length,g.cvs.reduce((m,c)=>m+c.exports,0),g.cvs.map(c=>location.origin+'/cv/'+c.token).join(' ')].map(cell).join(',')));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'})); a.download='visiteurs.csv'; a.click();
+}
+async function pageInterest(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Intérêt pour les nouveautés</h2><div id="interestBox">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('feature_interest').select('feature,email,created_at').order('created_at',{ascending:false}).limit(500);
+    if(error) throw error;
+    const names = { lettre:'✉️ Lettre de motivation', demande:'📝 Demande d\'emploi / stage', import:'📥 Import de CV' };
+    const counts = {}; (data||[]).forEach(r=>{ counts[r.feature]=(counts[r.feature]||0)+1; });
+    const emails = {}; (data||[]).forEach(r=>{ if(!emails[r.email]) emails[r.email]=r.created_at; });
+    document.getElementById('interestBox').innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px">'
+      + Object.keys(names).map(k=>'<div class="stat-card"><div style="font-size:11px;color:var(--ink2)">'+names[k]+'</div><div style="font-size:26px;font-weight:800">'+(counts[k]||0)+'</div></div>').join('')
+      + '</div><h3 style="margin:0 0 10px;font-size:14px">Personnes à prévenir ('+Object.keys(emails).length+')</h3>'
+      + (Object.keys(emails).map(m=>'<div class="stat-card" style="margin-bottom:6px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px"><span>'+esc(m)+'</span><span style="color:var(--ink2);font-size:11px">'+new Date(emails[m]).toLocaleDateString('fr-FR')+'</span></div>').join('') || '<div class="stub">Personne pour l\'instant.</div>');
+  }catch(e){
+    document.getElementById('interestBox').innerHTML = '<div class="stub">Lecture refusée ou erreur : '+e.message+'<br><br>Vérifiez que la migration 20261015000100_feature_interest.sql a bien été appliquée.</div>';
+  }
+}
+async function pageTestimonials(){
+  const el = document.getElementById('mainArea');
+  el.innerHTML = '<h2 style="margin:0 0 18px">Témoignages</h2><p style="color:var(--ink2);font-size:12px;margin:-10px 0 18px">Avis soumis depuis la landing page. Seuls les avis « Validé » apparaissent publiquement sur la page d\'accueil.</p><div id="testiAdmin">Chargement…</div>';
+  try{
+    const { data, error } = await sb.from('testimonials').select('id,name,role,message,rating,status,created_at').order('created_at',{ascending:false}).limit(100);
+    if(error) throw error;
+    const order = { pending: 0, approved: 1, rejected: 2 };
+    const sorted = (data||[]).slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9) || new Date(b.created_at)-new Date(a.created_at));
+    const statusLabel = { pending:'En attente', approved:'Validé', rejected:'Rejeté' };
+    const statusBadge = { pending:'b-starter', approved:'b-premium', rejected:'b-pro' };
+    document.getElementById('testiAdmin').innerHTML = sorted.map(t=>{
+      let actions = '';
+      if(t.status==='pending') actions = '<button class="btn" onclick="moderateTestimonial(\''+t.id+'\',\'approved\')">✓ Valider</button> <button class="btn btn-danger" onclick="moderateTestimonial(\''+t.id+'\',\'rejected\')">✕ Rejeter</button>';
+      else if(t.status==='approved') actions = '<button class="btn btn-danger" onclick="moderateTestimonial(\''+t.id+'\',\'rejected\')">Retirer de la page</button>';
+      else actions = '<button class="btn" onclick="moderateTestimonial(\''+t.id+'\',\'approved\')">Republier</button>';
+      actions += ' <button class="btn btn-danger" onclick="deleteTestimonial(\''+t.id+'\')" title="Supprimer définitivement">🗑</button>';
+      return '<div class="stat-card" style="margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<b>'+(t.rating?'⭐'.repeat(t.rating):'')+' '+esc(t.name)+(t.role?' <span style="color:var(--ink2);font-weight:400">— '+esc(t.role)+'</span>':'')+'</b>'
+        + '<span class="badge '+(statusBadge[t.status]||'b-free')+'">'+(statusLabel[t.status]||t.status)+'</span>'
+        + '</div>'
+        + '<p style="font-size:12.5px;color:var(--ink);margin:10px 0">"'+esc(t.message)+'"</p>'
+        + '<div style="font-size:10.5px;color:var(--ink2);margin-bottom:10px">'+new Date(t.created_at).toLocaleString('fr-FR')+'</div>'
+        + actions
+        + '</div>';
+    }).join('') || '<div class="stub">Aucun témoignage pour l\'instant.</div>';
+  }catch(e){
+    document.getElementById('testiAdmin').innerHTML = '<div class="stub">Lecture de "testimonials" refusée ou erreur : '+e.message+'<br><br>Vérifiez que la migration 20261015000000_testimonials.sql a bien été appliquée.</div>';
+  }
+}
+async function moderateTestimonial(id, status){
+  try{ const { error } = await sb.from('testimonials').update({ status: status, reviewed_at: new Date().toISOString(), reviewed_by: admin.id }).eq('id', id); if(error) throw error; pageTestimonials(); }
+  catch(e){ alert('Erreur: '+e.message); }
+}
+async function deleteTestimonial(id){
+  if(!confirm('Supprimer définitivement ce témoignage ?')) return;
+  try{ const { error } = await sb.from('testimonials').delete().eq('id', id); if(error) throw error; pageTestimonials(); }
   catch(e){ alert('Erreur: '+e.message); }
 }
 
