@@ -1,6 +1,12 @@
 [build]
   publish = "public"
 
+# L'URL et la clé "anon" Supabase sont PUBLIQUES par conception (elles doivent figurer dans
+# public/config.js). On les exclut du scan de secrets de Netlify. La clé service_role,
+# elle, reste surveillée : elle ne doit jamais apparaître dans le dépôt.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
+
 [[redirects]]
   from = "/app/*"
   to = "/app.html"
