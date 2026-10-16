@@ -757,11 +757,13 @@ h2.display{font-size:21px;margin:0 0 14px}
 <script>
 /* ---------------- Supabase / Auth ---------------- */
 const CFG = window.__SC_CONFIG__ || {};
-const SUPABASE_URL = CFG.SUPABASE_URL || 'https://rqsnvevvzkjuoszxjnqu.supabase.co';
-const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxc252ZXZ2emtqdW9zenhqbnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNjQ5NDQsImV4cCI6MjEwMDg0MDk0NH0.6hSlK-KQFk4_dDj8y7K8Q7B7kGWMPVv6jPiLKtq3zZU';
+const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
+const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) && /^(eyJ|sb_publishable_)/.test(SUPABASE_ANON_KEY);
+if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
 const PAYMENT_ENDPOINT = SUPABASE_URL + '/functions/v1/create-payment';
 let sb, currentUser = null, authTab = 'login';
-try{ sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }catch(e){ console.warn('Supabase non initialisé', e); }
+try{ if(CONFIG_OK) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }catch(e){ console.warn('Supabase non initialisé', e); }
 
 function openAuth(){ document.getElementById('authOverlay').style.display='flex'; }
 function closeAuth(){ document.getElementById('authOverlay').style.display='none'; document.getElementById('authError').style.display='none'; }
@@ -776,7 +778,7 @@ function switchAuthTab(t){
 }
 
 async function sendOtp(){
-  if(!sb) return showAuthError('Connexion à Supabase indisponible.');
+  if(!sb) return showAuthError(CONFIG_OK?'Connexion à Supabase indisponible.':'Configuration manquante : renseignez public/config.js (URL et clé du projet Supabase).');
   const phone = document.getElementById('authPhone').value.trim();
   if(!phone) return showAuthError('Entrez un numéro de téléphone.');
   try{
@@ -788,7 +790,7 @@ async function sendOtp(){
 }
 
 async function verifyOtp(){
-  if(!sb) return showAuthError('Connexion à Supabase indisponible.');
+  if(!sb) return showAuthError(CONFIG_OK?'Connexion à Supabase indisponible.':'Configuration manquante : renseignez public/config.js (URL et clé du projet Supabase).');
   const phone = document.getElementById('authPhone').value.trim();
   const token = document.getElementById('authOtp').value.trim();
   if(!token) return showAuthError('Entrez le code reçu par SMS.');
@@ -802,7 +804,7 @@ async function verifyOtp(){
 function showAuthError(msg){ const el=document.getElementById('authError'); el.textContent=msg; el.style.display='block'; }
 
 async function doAuthSubmit(){
-  if(!sb) return showAuthError('Connexion à Supabase indisponible.');
+  if(!sb) return showAuthError(CONFIG_OK?'Connexion à Supabase indisponible.':'Configuration manquante : renseignez public/config.js (URL et clé du projet Supabase).');
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPass').value;
   if(!email || !password) return showAuthError('Email et mot de passe requis.');
@@ -819,7 +821,7 @@ async function doAuthSubmit(){
 }
 
 async function doGoogleAuth(){
-  if(!sb) return showAuthError('Connexion à Supabase indisponible.');
+  if(!sb) return showAuthError(CONFIG_OK?'Connexion à Supabase indisponible.':'Configuration manquante : renseignez public/config.js (URL et clé du projet Supabase).');
   const authUrl = SUPABASE_URL + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.origin + window.location.pathname);
   window.location.href = authUrl;
 }
@@ -828,11 +830,11 @@ function frAuthError(m){
   m=String(m||'');
   const map=[['Invalid login credentials','Email ou mot de passe incorrect.'],['Email not confirmed','Confirmez d\'abord votre email (lien reçu par message).'],['User already registered','Un compte existe déjà avec cet email.'],['Password should be at least','Mot de passe trop court.'],['rate limit','Trop de tentatives. Réessayez dans quelques minutes.'],['expired or is invalid','Code invalide ou expiré.'],['Unable to validate email','Adresse email invalide.'],['Signups not allowed','Les inscriptions sont désactivées.'],['phone','Numéro invalide ou envoi de SMS non configuré.']];
   for(let i=0;i<map.length;i++){ if(m.toLowerCase().indexOf(map[i][0].toLowerCase())>=0) return map[i][1]; }
-  if(/failed to fetch|networkerror|load failed|network request failed/i.test(m)) return 'Impossible de joindre le serveur. Vérifiez votre connexion Internet et réessayez. Si cela continue, ouvrez CVxMaker depuis son adresse web officielle (pas depuis un fichier enregistré sur le téléphone).';
+  if(/failed to fetch|networkerror|load failed|network request failed/i.test(m)) return 'Impossible de joindre le serveur ('+SUPABASE_URL.replace('https://','')+'). Vérifiez votre connexion Internet et réessayez. Si cela continue, le projet Supabase est peut-être en pause ou mal configuré.';
   return m;
 }
 async function forgotPassword(){
-  if(!sb) return showAuthError('Connexion à Supabase indisponible.');
+  if(!sb) return showAuthError(CONFIG_OK?'Connexion à Supabase indisponible.':'Configuration manquante : renseignez public/config.js (URL et clé du projet Supabase).');
   const email=document.getElementById('authEmail').value.trim();
   if(!email) return showAuthError('Saisissez votre email ci-dessus, puis touchez « Mot de passe oublié ».');
   const { error } = await sb.auth.resetPasswordForEmail(email,{ redirectTo: window.location.origin+window.location.pathname });

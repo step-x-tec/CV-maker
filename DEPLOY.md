@@ -86,7 +86,6 @@ git branch -M main
 git push -u origin main
 ```
 
-*(Si `git status` affiche des fichiers non suivis parce que vous avez déjà créé `public/config.js` en local : c'est normal, il est volontairement ignoré par `.gitignore` pour ne jamais committer de configuration spécifique à un environnement.)*
 
 ### 7.2 Brancher l'hébergeur sur le dépôt (déploiement continu)
 
@@ -110,7 +109,7 @@ Si vous préférez ne pas utiliser Git : glissez le dossier `public/` sur app.ne
 
 ### 7.5 Configuration Supabase différente
 
-Si vous utilisez un projet Supabase différent de celui par défaut, copiez `public/config.example.js` en `public/config.js` et renseignez votre URL et votre clé anonyme (clé publique, sans danger à exposer — protégée par la RLS). Ce fichier est volontairement dans `.gitignore` : il ne sera pas versionné, donc chaque environnement (test/prod) peut avoir le sien sans conflit.
+**Configuration obligatoire :** ouvrez `public/config.js` et renseignez `SUPABASE_URL` et `SUPABASE_ANON_KEY` (Supabase → Project Settings → API ; clé *anon public* uniquement, jamais la `service_role`). Aucune valeur n'est codée en dur dans les pages. Les secrets serveur (CinetPay, service_role) se déclarent dans Supabase (`supabase secrets set`) et dans `.env` en local, jamais dans `public/`.
 
 ## 8. Checklist avant l'ouverture au public
 

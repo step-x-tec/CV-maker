@@ -3,7 +3,7 @@
 // pour l'éditeur déjà visité. Ne met jamais en cache les appels Supabase
 // (API externe, toujours en réseau) ni les requêtes non-GET.
 
-const SW_VERSION = 'cvxmaker-v3';
+const SW_VERSION = 'cvxmaker-v4';
 const SHELL_CACHE = SW_VERSION + '-shell';
 
 const SHELL_FILES = [
@@ -43,6 +43,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // ressources externes (CDN, Supabase) : réseau direct
   if (isSupabaseOrApi(url)) return;
+  if (url.pathname === '/config.js') return; // config toujours en direct
   if (url.pathname.startsWith('/admin')) return; // l'admin reste toujours en direct
 
   // Navigation (ouverture de page / de l'app) : réseau d'abord, repli sur le cache si hors-ligne

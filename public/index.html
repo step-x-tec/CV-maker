@@ -294,9 +294,11 @@ document.getElementById('faqList').innerHTML = FAQ.map((f,i)=>
 /* ---------------- Témoignages : avis publics soumis par les visiteurs, affichés
    seulement une fois validés par un admin (table "testimonials", voir admin.html). ---------------- */
 const CFG = window.__SC_CONFIG__ || {};
-const SUPABASE_URL = CFG.SUPABASE_URL || 'https://rqsnvevvzkjuoszxjnqu.supabase.co';
-const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxc252ZXZ2emtqdW9zenhqbnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNjQ5NDQsImV4cCI6MjEwMDg0MDk0NH0.6hSlK-KQFk4_dDj8y7K8Q7B7kGWMPVv6jPiLKtq3zZU';
-const sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
+const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) && /^(eyJ|sb_publishable_)/.test(SUPABASE_ANON_KEY);
+if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
+const sb = (CONFIG_OK && window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 function escH(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 

@@ -94,8 +94,11 @@ th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
    un état "à connecter" plutôt que d'improviser un accès non sécurisé.
 ------------------------------------------------------------------*/
 const CFG = window.__SC_CONFIG__ || {};
-const SUPABASE_URL = CFG.SUPABASE_URL || 'https://rqsnvevvzkjuoszxjnqu.supabase.co';
-const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxc252ZXZ2emtqdW9zenhqbnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNjQ5NDQsImV4cCI6MjEwMDg0MDk0NH0.6hSlK-KQFk4_dDj8y7K8Q7B7kGWMPVv6jPiLKtq3zZU';
+const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
+const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) && /^(eyJ|sb_publishable_)/.test(SUPABASE_ANON_KEY);
+if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
+if(!CONFIG_OK){ document.addEventListener('DOMContentLoaded',function(){ document.body.innerHTML='<div style="font-family:sans-serif;color:#fff;padding:40px;max-width:560px;margin:auto"><h2>Configuration manquante</h2><p>Renseignez <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans <code>/config.js</code>, puis redéployez.</p></div>'; }); throw new Error('config.js non renseigné'); }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let admin = null;
 

@@ -7,7 +7,7 @@ public/                                  → les 3 pages du site (aucun build n�
   index.html                             → landing page
   app.html                               → éditeur de CV
   admin.html                             → dashboard admin
-  config.example.js                      → à copier en config.js si besoin d'un autre projet Supabase
+  config.js                              → ⚙️ SEUL fichier à remplir : URL + clé anon de votre projet Supabase
 
 supabase/
   migrations/
