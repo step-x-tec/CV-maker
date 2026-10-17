@@ -765,6 +765,22 @@ const PAYMENT_ENDPOINT = SUPABASE_URL + '/functions/v1/create-payment';
 let sb, currentUser = null, authTab = 'login';
 try{ if(CONFIG_OK) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }catch(e){ console.warn('Supabase non initialisé', e); }
 
+/* Bandeau d'annonce / mode maintenance, pilotés depuis Admin → Réglages & équipe */
+(async function siteNotice(){
+  try{
+    if(!sb) return;
+    const r = await sb.rpc('get_public_settings'), s = (r && r.data) || {}, m = s.maintenance || {}, b = s.banner || {};
+    let txt = '', kind = '';
+    if(m.enabled){ txt = '🚧 ' + (m.message || 'Maintenance en cours.'); kind = 'warning'; }
+    else if(b.enabled && b.text){ txt = b.text; kind = b.type || 'info'; }
+    if(!txt) return;
+    const d = document.createElement('div'); d.id = 'siteNotice'; d.setAttribute('role','status');
+    d.style.cssText = 'position:relative;z-index:2147483000;padding:8px 14px;text-align:center;font:600 13px/1.35 system-ui,sans-serif;color:#fff;background:' + ({warning:'#B45309',success:'#047857',info:'#1D4ED8'}[kind] || '#1D4ED8');
+    d.textContent = txt; document.body.insertBefore(d, document.body.firstChild);
+  }catch(e){}
+})();
+
+
 function openAuth(){ document.getElementById('authOverlay').style.display='flex'; }
 function closeAuth(){ document.getElementById('authOverlay').style.display='none'; document.getElementById('authError').style.display='none'; }
 function switchAuthTab(t){
@@ -895,50 +911,109 @@ async function restoreSession(){
 }
 
 /* ---------------- Sauvegarde cloud du CV en cours (table cvs) ---------------- */
-let cloudTimer=null, cloudErrShown=false;
+let cloudTimer=null, cloudErrShown=false, cloudBusy=false;
 function hasContent(){ return !!(cv.p.name || cv.exp.length || cv.edu.length); }
 function scheduleCloudPush(){ clearTimeout(cloudTimer); cloudTimer=setTimeout(pushCloud, 3000); }
+function cloudFail(e,where){
+  if(!cloudErrShown){ cloudErrShown=true; toast('Sauvegarde cloud impossible pour le moment (vos CV restent enregistrés sur cet appareil).'); }
+  console.warn(where,e);
+}
+function entryPayload(it){
+  const c=it.cv||{};
+  return { title:(it.name||'CV sans titre').slice(0,200), model_id:it.modelId||'t01', accent_color:it.accent||'#2563EB', language:S.lang, is_draft:false,
+    data:{p:c.p,ec:c.ec,exp:c.exp,edu:c.edu,sk:c.sk,lang:c.lang,cert:c.cert,hobby:c.hobby,ref:c.ref,award:c.award,logiciel:c.logiciel,quality:c.quality,projects:c.projects},
+    design:{ photo:it.photoData||'' } };
+}
+/* Envoie UNE fiche de « Mes CVs » vers le cloud (création ou mise à jour). */
+async function pushEntry(id){
+  if(!sb || !currentUser) return false;
+  const uid=currentUser.id;
+  let list=getSaved(), it=list.find(function(x){ return x.id===id; });
+  if(!it || !it.cv || !(it.cv.p && (it.cv.p.name || (it.cv.exp||[]).length || (it.cv.edu||[]).length))) return false;
+  const payload=entryPayload(it);
+  try{
+    let row=null;
+    if(!it.cloudId && id===currentCvId){ const old=localStorage.getItem('sc_cv_id_'+uid); if(old && !list.some(function(x){ return x.cloudId===old; })) it.cloudId=old; }   // reprend l'ancienne ligne unique (une seule fois)
+    if(it.cloudId){
+      const r=await sb.from('cvs').update(payload).eq('id',it.cloudId).eq('user_id',uid).select('id,updated_at');
+      if(r.error) throw r.error;
+      row=r.data && r.data[0];
+    }
+    if(!row){
+      const r=await sb.from('cvs').insert(Object.assign({user_id:uid},payload)).select('id,updated_at').single();
+      if(r.error) throw r.error;
+      row=r.data;
+    }
+    list=getSaved(); it=list.find(function(x){ return x.id===id; });     // relit : l'utilisateur a pu modifier entre-temps
+    if(it){ it.cloudId=row.id; it.cloudTs=Date.parse(row.updated_at)||Date.now(); setSaved(list); }
+    if(id===currentCvId) localStorage.setItem('sc_cv_id_'+uid,row.id);
+    cloudErrShown=false; return true;
+  }catch(e){ cloudFail(e,'pushEntry'); return false; }
+}
 async function pushCloud(){
   if(!sb || !currentUser || !hasContent()) return;
-  const uid=currentUser.id, key='sc_cv_id_'+uid;
-  const payload={ title:autoName(), model_id:S.modelId, accent_color:S.accent, language:S.lang, ats_score:atsScore(), is_draft:false,
-    data:{p:cv.p,ec:cv.ec,exp:cv.exp,edu:cv.edu,sk:cv.sk,lang:cv.lang,cert:cv.cert,hobby:cv.hobby,ref:cv.ref,award:cv.award,logiciel:cv.logiciel,quality:cv.quality,projects:cv.projects},
-    design:{ photo:S.photoData||'' } };
-  try{
-    let id=localStorage.getItem(key);
-    if(id){
-      const { data, error } = await sb.from('cvs').update(payload).eq('id',id).eq('user_id',uid).select('id');
-      if(error) throw error;
-      if(!data || !data.length) id=null;            // ligne supprimée côté serveur → on recrée
-    }
-    if(!id){
-      const { data, error } = await sb.from('cvs').insert(Object.assign({user_id:uid},payload)).select('id').single();
-      if(error) throw error;
-      localStorage.setItem(key,data.id);
-    }
-    cloudErrShown=false;
-  }catch(e){
-    if(!cloudErrShown){ cloudErrShown=true; toast('Sauvegarde cloud impossible pour le moment (votre CV reste enregistré sur cet appareil).'); }
-    console.warn('pushCloud',e);
-  }
+  if(!currentCvId || !getSaved().some(function(x){ return x.id===currentCvId; })) createEntryFromCurrent();   // connecté : le CV en cours rejoint « Mes CVs »
+  else syncCurrentSaved();
+  await pushEntry(currentCvId);
 }
+async function deleteEntryCloud(cloudId){
+  if(!sb || !currentUser || !cloudId) return;
+  try{ await sb.from('cvs').update({ is_deleted:true, deleted_at:new Date().toISOString() }).eq('id',cloudId).eq('user_id',currentUser.id); }
+  catch(e){ console.warn('deleteEntryCloud',e); }
+}
+function entryFromRow(row, keepId){
+  const b=blankCV(), d=row.data||{};
+  return { id:keepId||newId(), cloudId:row.id, cloudTs:Date.parse(row.updated_at)||0, name:row.title||'CV sans titre', customName:true, modelId:row.model_id||'t01', accent:row.accent_color||'#2563EB',
+    photoData:(row.design&&row.design.photo)||'', savedAt:row.updated_at||new Date().toISOString(),
+    cv:normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] }) };
+}
+function loadEntryIntoEditor(it){
+  cv=normalizeCV(JSON.parse(JSON.stringify(it.cv))); S.modelId=it.modelId; S.accent=it.accent; S.photoData=it.photoData||''; setCurrentId(it.id);
+  localStorage.setItem('scv_data',JSON.stringify(cv)); localStorage.setItem('scv_model',S.modelId); localStorage.setItem('scv_accent',S.accent); localStorage.setItem('scv_ts',String(Date.now()));
+  openState={}; renderForm(); renderCV();
+}
+/* Synchronise TOUS les CV du compte avec « Mes CVs » de cet appareil (dans les deux sens). */
 async function syncFromCloud(){
-  if(!sb || !currentUser) return;
+  if(!sb || !currentUser || cloudBusy) return;
+  cloudBusy=true;
   try{
-    const { data, error } = await sb.from('cvs').select('id,model_id,accent_color,data,design,updated_at').eq('user_id',currentUser.id).eq('is_deleted',false).order('updated_at',{ascending:false}).limit(1);
-    if(error) throw error;
-    const row=data && data[0];
-    if(!row){ if(hasContent()) pushCloud(); return; }
-    localStorage.setItem('sc_cv_id_'+currentUser.id,row.id);
-    const localTs=+(localStorage.getItem('scv_ts')||0), cloudTs=Date.parse(row.updated_at)||0;
-    if(hasContent() && cloudTs<=localTs){ pushCloud(); return; }      // le local est plus récent
-    if(hasContent() && !currentCvId) createEntryFromCurrent();          // filet de sécurité : on garde une copie locale avant de remplacer
-    const b=blankCV(), d=row.data||{};
-    cv=normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] });
-    S.modelId=row.model_id||S.modelId; S.accent=row.accent_color||S.accent; S.photoData=(row.design&&row.design.photo)||'';
-    localStorage.setItem('scv_data',JSON.stringify(cv)); localStorage.setItem('scv_model',S.modelId); localStorage.setItem('scv_accent',S.accent); localStorage.setItem('scv_ts',String(cloudTs));
-    openState={}; renderForm(); renderCV(); toast('Votre CV a été chargé depuis votre compte.');
-  }catch(e){ console.warn('syncFromCloud', e); }
+    const r=await sb.from('cvs').select('id,title,model_id,accent_color,data,design,updated_at,is_deleted').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(100);
+    if(r.error) throw r.error;
+    const rows=r.data||[], byId={}; rows.forEach(function(x){ byId[x.id]=x; });
+    // CV en cours non enregistré (créé avant connexion) : on le garde comme fiche, il sera envoyé plus bas
+    if(hasContent() && (!currentCvId || !getSaved().some(function(x){ return x.id===currentCvId; }))) createEntryFromCurrent();
+    let list=getSaved(), changed=false, loaded=false, toPush=[];
+    // 1) fiches locales déjà liées au cloud
+    list=list.filter(function(it){
+      if(!it.cloudId) return true;
+      const row=byId[it.cloudId];
+      if(!row){ delete it.cloudId; delete it.cloudTs; return true; }                        // ligne disparue côté serveur : on la renverra
+      if(row.is_deleted){ changed=true; if(it.id===currentCvId) setCurrentId(null); return false; }   // supprimée depuis un autre appareil
+      const cloudTs=Date.parse(row.updated_at)||0, localMod=(Date.parse(it.savedAt)||0) > (it.cloudTs||0)+2000;
+      if(cloudTs > (it.cloudTs||0)+500){
+        if(!localMod || cloudTs > (Date.parse(it.savedAt)||0)){                              // le cloud est plus récent
+          const upd=entryFromRow(row,it.id); upd.customName=it.customName||false; Object.assign(it,upd); changed=true;
+          if(it.id===currentCvId) loaded=true;
+        } else toPush.push(it.id);
+      } else if(localMod) toPush.push(it.id);
+      return true;
+    });
+    // 2) CV du cloud absents de cet appareil
+    const known={}; list.forEach(function(it){ if(it.cloudId) known[it.cloudId]=1; });
+    rows.forEach(function(row){ if(!row.is_deleted && !known[row.id]){ list.push(entryFromRow(row)); changed=true; } });
+    // 3) fiches locales jamais envoyées
+    list.forEach(function(it){ if(!it.cloudId && it.cv && it.cv.p && (it.cv.p.name || (it.cv.exp||[]).length)) toPush.push(it.id); });
+    list.sort(function(a,b){ return (Date.parse(b.savedAt)||0)-(Date.parse(a.savedAt)||0); });
+    if(changed || toPush.length) setSaved(list);
+    // 4) éditeur : si aucun CV ouvert (nouvel appareil), on ouvre le plus récent
+    const cur=list.find(function(x){ return x.id===currentCvId; });
+    if(cur && loaded){ loadEntryIntoEditor(cur); toast('Vos CV ont été mis à jour depuis votre compte.'); }
+    else if(!cur && list.length){ loadEntryIntoEditor(list[0]); toast('Vos CV ont été chargés depuis votre compte.'); }
+    else if(changed && document.getElementById('myCvsOverlay').style.display==='block') renderMyCVs();
+    for(const id of toPush) await pushEntry(id);
+    if(document.getElementById('myCvsOverlay').style.display==='block') renderMyCVs();
+  }catch(e){ console.warn('syncFromCloud', e); cloudFail(e,'syncFromCloud'); }
+  finally{ cloudBusy=false; }
 }
 
 /* ---------------- Lien public (partage en lecture seule, sans compte pour le visiteur) ----------------
@@ -947,7 +1022,7 @@ async function syncFromCloud(){
    lignes is_public=TRUE. Le lien reflète toujours le CV actuellement ouvert dans l'éditeur (celui
    synchronisé par pushCloud/syncFromCloud ci-dessus) — pas les autres CVs de la liste « Mes CVs »,
    qui ne sont aujourd'hui enregistrés qu'en local. */
-function cloudCvId(){ return currentUser ? localStorage.getItem('sc_cv_id_'+currentUser.id) : null; }
+function cloudCvId(){ if(!currentUser) return null; const it=getSaved().find(function(x){ return x.id===currentCvId; }); return (it&&it.cloudId) || localStorage.getItem('sc_cv_id_'+currentUser.id); }
 function randomToken(){
   const bytes = new Uint8Array(16);
   (window.crypto||window.msCrypto).getRandomValues(bytes);
@@ -3689,19 +3764,21 @@ function renameSavedCV(id){
   const list=getSaved(); const item=list.find(function(x){ return x.id===id; }); if(!item) return;
   appPrompt('Nom du CV :', item.name, function(v){
     v=(v||'').trim(); if(!v) return;
-    item.name=v; item.customName=true; setSaved(list); renderMyCVs();
+    item.name=v; item.customName=true; item.savedAt=new Date().toISOString(); setSaved(list); renderMyCVs(); if(currentUser) pushEntry(item.id);
   });
 }
 
 function duplicateSavedCV(id){
   const list=getSaved(); const item=list.find(function(x){ return x.id===id; }); if(!item) return;
   const copy=JSON.parse(JSON.stringify(item));
-  copy.id=newId(); copy.name=item.name+' (copie)'; copy.customName=true; copy.savedAt=new Date().toISOString();
-  list.unshift(copy); setSaved(list); renderMyCVs(); toast('CV dupliqué.');
+  copy.id=newId(); delete copy.cloudId; delete copy.cloudTs; copy.name=item.name+' (copie)'; copy.customName=true; copy.savedAt=new Date().toISOString();
+  list.unshift(copy); setSaved(list); renderMyCVs(); toast('CV dupliqué.'); if(currentUser) pushEntry(copy.id);
 }
 
 function deleteSavedCV(id){
+  const gone=getSaved().find(function(x){ return x.id===id; });
   setSaved(getSaved().filter(function(x){ return x.id!==id; }));
+  if(gone && gone.cloudId) deleteEntryCloud(gone.cloudId);
   if(id===currentCvId) setCurrentId(null);
   renderMyCVs(); toast('CV supprimé.');
 }

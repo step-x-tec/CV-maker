@@ -26,7 +26,10 @@ Dans Supabase → SQL Editor, exécutez **dans l'ordre** :
 
 3. `20261015000000_testimonials.sql` — avis publics des visiteurs, validés par un admin avant publication
 4. `20261015000100_feature_interest.sql` — liste « Me prévenir » des prochaines fonctionnalités
-5. `20261015000200_documents.sql` — lettres de motivation et demandes d'emploi / de stage, synchronisées par compte (chaque utilisateur ne voit que les siens)
+5. `20261009000000_public_cv_view_counter.sql` — compteur de vues des liens publics de CV
+6. `20261015000200_documents.sql` — lettres de motivation et demandes d'emploi / de stage, synchronisées par compte (chaque utilisateur ne voit que les siens)
+7. `20261015000200_guest_tracking.sql` — suivi des visiteurs sans compte (avec leur accord) visible dans l'admin
+8. `20261017000000_admin_suite.sql` — **espace admin complet** : rôles (lecture seule / modérateur / admin / super-admin), statistiques, gestion des utilisateurs, CV, paiements, support, notes internes, journal d'audit, mode maintenance et bandeau d'annonce. Toutes les fonctions vérifient le rôle en base ; relançable sans risque.
 
 Si vous aviez déjà exécuté l'ancien `SQL_STEP2_CREATE.sql` sur ce projet, exécutez seulement le fichier n°2 : il est conçu pour s'appliquer par-dessus (toutes les commandes utilisent `CREATE OR REPLACE` / `DROP POLICY IF EXISTS`).
 

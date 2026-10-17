@@ -7,93 +7,190 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0F172A">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563EB'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' font-family='Georgia,serif' font-weight='bold' fill='white'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="icons/favicon-32.png" type="image/png">
 <script src="config.js" onerror="void 0"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:dark;--bg:#0F172A;--panel:#1E293B;--panel2:#334155;--ink:#F1F5F9;--ink2:#94A3B8;--accent:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--border:rgba(255,255,255,.08);
-padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{color-scheme:dark;--bg:#0B1220;--panel:#131C2E;--panel2:#1C2740;--panel3:#26334F;--ink:#F1F5F9;--ink2:#94A3B8;--ink3:#64748B;--accent:#3B82F6;--accent2:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--vio:#8B5CF6;--border:rgba(255,255,255,.08);--r:12px}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13.5px}
-button,input,select{font-family:inherit}
-.app{display:flex;height:100vh}
-.side{width:220px;background:var(--panel);border-right:1px solid var(--border);padding:18px 12px;flex-shrink:0;overflow-y:auto}
-.side h1{font-size:15px;padding:0 8px 18px}
-.side button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 10px;border:none;background:none;color:var(--ink2);border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:2px}
-.side button.active{background:var(--accent);color:#fff}
-/* Sans largeur plafond, la zone de contenu s'étire jusqu'au bord d'un écran large : les tableaux
-   (nom/email/plan/statut) se retrouvent avec des colonnes espacées de centaines de pixels, illisibles
-   d'un coup d'œil, et les cartes de stats s'étalent en une seule rangée au lieu de rester groupées en
-   un vrai tableau de bord. On garde donc une largeur de lecture confortable, alignée à gauche (pas
-   centrée : c'est un espace de travail, pas une page marketing). */
-.main{flex:1;overflow-y:auto;padding:26px 30px;max-width:1400px}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:26px}
-@media (min-width:900px){ .stat-grid{grid-template-columns:repeat(4,1fr)} }
-.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
-.stat-card .v{font-size:24px;font-weight:800}
-.stat-card .l{font-size:11.5px;color:var(--ink2);margin-top:4px}
-/* width:100% forçait chaque tableau à occuper toute la largeur de .main même quand son contenu
-   (quelques courtes colonnes) n'en a pas besoin, créant de grands vides entre les colonnes. Le
-   tableau se dimensionne maintenant à son contenu, avec un minimum raisonnable pour rester lisible. */
-table{width:auto;min-width:min(820px,100%);max-width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
-th{color:var(--ink2);font-weight:600;font-size:11px;text-transform:uppercase}
-.badge{padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:700}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13.5px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--accent)}
+code{background:var(--panel2);padding:1px 6px;border-radius:6px;font-size:11.5px}
+.app{display:flex;height:100vh;height:100dvh}
+/* ── Menu latéral ── */
+.side{width:232px;background:var(--panel);border-right:1px solid var(--border);padding:14px 10px;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;transition:transform .2s}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 8px 14px;font-weight:800;font-size:15px}
+.brand img{width:26px;height:26px;border-radius:7px}
+.brand em{font-style:normal;color:var(--accent)}
+.nav-sec{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:12px 10px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border:none;background:none;color:var(--ink2);border-radius:9px;font-size:12.5px;font-weight:600;margin-bottom:1px;cursor:pointer}
+.nav-item:hover{background:var(--panel2);color:var(--ink)}
+.nav-item.active{background:var(--accent2);color:#fff}
+.nav-item .ic{width:18px;text-align:center}
+.nav-item .cnt{margin-left:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:1px 7px;min-width:18px;text-align:center}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:11.5px;color:var(--ink2)}
+.side-foot b{color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── Zone principale ── */
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:10px 22px;border-bottom:1px solid var(--border);background:var(--panel);position:relative}
+.top .burger{display:none;background:var(--panel2);border:none;border-radius:8px;padding:7px 10px;cursor:pointer}
+.search{flex:1;max-width:520px;position:relative}
+.search input{width:100%;padding:9px 12px 9px 34px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+.search:before{content:"🔍";position:absolute;left:11px;top:8px;font-size:13px;opacity:.6}
+.search kbd{position:absolute;right:9px;top:8px;font-size:10px;color:var(--ink3);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+.sres{position:absolute;top:42px;left:0;right:0;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.5);max-height:70vh;overflow:auto;z-index:50;display:none}
+.sres h5{margin:0;padding:9px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3)}
+.sres a{display:block;padding:8px 12px;color:var(--ink);text-decoration:none;cursor:pointer;font-size:12.5px}
+.sres a:hover{background:var(--panel2)}
+.sres a small{color:var(--ink2);margin-left:6px}
+.main{flex:1;overflow-y:auto;padding:22px 26px 60px}
+.main>.wrap{max-width:1500px}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.ph h2{margin:0;font-size:21px;font-weight:800}
+.ph p{margin:3px 0 0;color:var(--ink2);font-size:12px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* ── Composants ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.card h3{margin:0 0 12px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 small{color:var(--ink2);font-weight:500;font-size:11px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-kpi{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g-21{grid-template-columns:2fr 1fr}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;cursor:default}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--accent)}
+.kpi .l{font-size:11px;color:var(--ink2);font-weight:600}
+.kpi .v{font-size:24px;font-weight:800;margin-top:3px;letter-spacing:-.02em}
+.kpi .d{font-size:11px;margin-top:2px;font-weight:600}
+.up{color:var(--ok)}.down{color:var(--bad)}.flat{color:var(--ink3)}
+.kpi svg{position:absolute;right:8px;bottom:6px;opacity:.55}
+.btn{padding:7px 12px;border-radius:9px;border:1px solid transparent;font-size:12px;font-weight:600;cursor:pointer;background:var(--panel2);color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--panel3)}
+.btn.pri{background:var(--accent2);color:#fff}.btn.pri:hover{background:var(--accent)}
+.btn.danger{background:#3B1A1F;color:#FCA5A5}.btn.danger:hover{background:#5A1F27}
+.btn.ok{background:#0F3A2C;color:#6EE7B7}
+.btn.sm{padding:4px 9px;font-size:11px;border-radius:7px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+input.f,select.f,textarea.f{padding:8px 11px;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--ink);min-width:0}
+input.f:focus,select.f:focus,textarea.f:focus,.search input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+textarea.f{width:100%;min-height:90px;resize:vertical}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700;background:var(--panel3);color:var(--ink)}
 .b-free{background:#334155}.b-starter{background:#1D4ED8}.b-premium{background:#7C3AED}.b-pro{background:#B45309}
-.btn{padding:7px 12px;border-radius:8px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;background:var(--panel2);color:var(--ink)}
-.btn-danger{background:#3F1D1D;color:#FCA5A5}
-.login-box{max-width:340px;margin:80px auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px}
-.login-box input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#0F172A;color:#fff;margin-bottom:10px}
-.login-box button{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:700}
-.err{color:var(--bad);font-size:12px;margin-bottom:10px}
-.stub{background:var(--panel);border:1px dashed var(--border);border-radius:14px;padding:30px;text-align:center;color:var(--ink2)}
+.b-ok{background:#064E3B;color:#6EE7B7}.b-bad{background:#4C1D1D;color:#FCA5A5}.b-warn{background:#4A3410;color:#FCD34D}.b-info{background:#1E3A5F;color:#93C5FD}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{color:var(--ink2);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;background:var(--panel)}
+th.s{cursor:pointer}th.s:hover{color:var(--ink)}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody tr.clk{cursor:pointer}
+tr:last-child td{border-bottom:none}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.muted{color:var(--ink2)}.small{font-size:11.5px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px;color:var(--ink2);font-size:12px;flex-wrap:wrap}
+.stub{background:var(--panel);border:1px dashed var(--border);border-radius:var(--r);padding:26px;text-align:center;color:var(--ink2)}
+.err{color:var(--bad)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}
+.tabs button{background:none;border:none;color:var(--ink2);padding:9px 14px;font-weight:600;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:5px 11px;border-radius:99px;background:var(--panel2);border:1px solid var(--border);font-size:11.5px;font-weight:600;cursor:pointer;color:var(--ink2)}
+.chip.on{background:var(--accent2);color:#fff;border-color:transparent}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:12.5px}
+.kv dt{color:var(--ink2)}.kv dd{margin:0;word-break:break-word}
+.list-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+.list-item:last-child{border-bottom:none}
+.bar{height:7px;background:var(--panel3);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.alert{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;font-size:12.5px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border);background:var(--panel2)}
+.alert:hover{border-color:var(--accent)}
+.alert.bad{background:#2E1519;border-color:#5A1F27}.alert.warn{background:#2C2410;border-color:#4A3A12}.alert.ok{background:#0F2A22;border-color:#14503C;cursor:default}
+.skel{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--panel2),var(--panel3),var(--panel2));background-size:200% 100%;animation:sk 1.2s infinite;margin:8px 0}
+@keyframes sk{to{background-position:-200% 0}}
+/* ── Tiroir / modale / toasts ── */
+.ov{position:fixed;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(2px);z-index:80;display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100vw);background:var(--panel);border-left:1px solid var(--border);z-index:81;transform:translateX(100%);transition:transform .22s;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer .dh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.drawer .dh h3{margin:0;font-size:15px}
+.drawer .db{flex:1;overflow-y:auto;padding:16px 18px 40px}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;z-index:90;padding:20px;display:none;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.modal.wide{width:min(900px,96vw)}
+.modal h3{margin:0 0 12px;font-size:16px}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+#toasts{position:fixed;bottom:18px;right:18px;z-index:99;display:flex;flex-direction:column;gap:8px;max-width:min(380px,92vw)}
+.toast{background:var(--panel3);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,.45);animation:tin .2s}
+.toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+/* ── Connexion ── */
+.login-box{max-width:360px;margin:9vh auto;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:28px}
+.login-box img{width:46px;height:46px;border-radius:12px}
+.login-box input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);margin-bottom:10px}
+.login-box .go{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent2);color:#fff;font-weight:700;cursor:pointer}
+/* ── Graphiques ── */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--ink3);font-size:10px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.bubble{padding:9px 12px;border-radius:12px;max-width:85%;font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.b-user{background:var(--panel2);align-self:flex-start;border-bottom-left-radius:4px}
+.b-admin{background:var(--accent2);align-self:flex-end;border-bottom-right-radius:4px}
+.cv-prev{background:#fff;color:#111;border-radius:10px;padding:22px;font-size:12px;line-height:1.5}
+.cv-prev h1{font-size:20px;margin:0}.cv-prev h4{margin:14px 0 4px;border-bottom:2px solid #ddd;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+@media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g-21,.g3{grid-template-columns:1fr}}
+@media (max-width:860px){
+  .side{position:fixed;z-index:70;top:0;bottom:0;left:0;transform:translateX(-100%)}
+  .side.open{transform:none;box-shadow:20px 0 60px rgba(0,0,0,.5)}
+  .top .burger{display:block}.top{padding:10px 14px}.search kbd{display:none}.search{max-width:none}
+  .main{padding:16px 14px 70px}.g2,.g3,.g4{grid-template-columns:1fr}
+  .kv{grid-template-columns:100px 1fr}
+}
 </style>
 </head>
 <body>
 
 <div id="loginScreen" class="login-box">
-  <h2 style="margin:0 0 4px">Admin CVxMaker</h2>
-  <p style="color:var(--ink2);font-size:12px;margin:0 0 18px">Réservé aux comptes administrateurs.</p>
-  <div id="loginErr" class="err" style="display:none"></div>
-  <input id="admEmail" type="email" placeholder="Email">
-  <input id="admPass" type="password" placeholder="Mot de passe">
-  <button onclick="adminLogin()">Se connecter</button>
+  <div class="row" style="margin-bottom:6px"><img src="icons/logo-96.png" alt=""><div><h2 style="margin:0;font-size:19px">Admin CVxMaker</h2><div class="muted small">Espace réservé aux administrateurs</div></div></div>
+  <div id="loginErr" class="err small" style="display:none;margin:12px 0 0"></div>
+  <div style="height:14px"></div>
+  <input id="admEmail" type="email" placeholder="Email" autocomplete="username">
+  <input id="admPass" type="password" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()">
+  <button class="go" onclick="adminLogin()">Se connecter</button>
+  <div style="text-align:center;margin-top:12px"><a href="#" class="small" onclick="adminForgot();return false">Mot de passe oublié ?</a></div>
 </div>
 
 <div id="adminApp" class="app" style="display:none">
-  <div class="side">
-    <h1>CVxMaker <span style="color:var(--accent)">Admin</span></h1>
-    <button class="nav-item active" data-p="dashboard" onclick="goPage('dashboard')">📊 Dashboard</button>
-    <button class="nav-item" data-p="users" onclick="goPage('users')">👥 Utilisateurs</button>
-    <button class="nav-item" data-p="cvs" onclick="goPage('cvs')">📄 CVs</button>
-    <button class="nav-item" data-p="payments" onclick="goPage('payments')">💰 Paiements</button>
-    <button class="nav-item" data-p="licenses" onclick="goPage('licenses')">🔑 Licences</button>
-    <button class="nav-item" data-p="support" onclick="goPage('support')">💬 Support</button>
-    <button class="nav-item" data-p="feedback" onclick="goPage('feedback')">⭐ Feedback</button>
-    <button class="nav-item" data-p="testimonials" onclick="goPage('testimonials')">🗣️ Témoignages</button>
-    <button class="nav-item" data-p="guests" onclick="goPage('guests')">🧑‍💻 Visiteurs</button>
-    <button class="nav-item" data-p="interest" onclick="goPage('interest')">🔔 Intérêt</button>
-    <button class="nav-item" data-p="broadcast" onclick="goPage('broadcast')">📢 Broadcast</button>
-    <button class="nav-item" data-p="ailogs" onclick="goPage('ailogs')">🤖 Logs IA</button>
-    <button class="nav-item" data-p="settings" onclick="goPage('settings')">⚙️ Paramètres</button>
-    <button onclick="adminLogout()" style="margin-top:16px;color:var(--bad)">↪ Déconnexion</button>
+  <aside class="side" id="side">
+    <div class="brand"><img src="icons/logo-96.png" alt=""><span>CVx<em>Maker</em> Admin</span></div>
+    <div id="nav"></div>
+    <div class="side-foot"><b id="meName">—</b><span id="meRole" class="small"></span><div style="margin-top:8px"><button class="btn sm" onclick="adminLogout()">↪ Déconnexion</button></div></div>
+  </aside>
+  <div class="col">
+    <div class="top">
+      <button class="burger" onclick="document.getElementById('side').classList.toggle('open')">☰</button>
+      <div class="search"><input id="gq" placeholder="Rechercher un utilisateur, un CV, une transaction, un ticket…" oninput="globalSearch(this.value)" onfocus="globalSearch(this.value)" autocomplete="off"><kbd>Ctrl K</kbd><div class="sres" id="sres"></div></div>
+      <div style="flex:1"></div>
+      <span id="sessInfo" class="muted small"></span>
+      <button class="btn sm" onclick="refreshPage()" title="Actualiser">⟳</button>
+    </div>
+    <div class="main" id="main"><div class="wrap" id="mainArea"></div></div>
   </div>
-  <div class="main" id="mainArea"></div>
 </div>
 
+<div class="ov" id="ov" onclick="closeAll()"></div>
+<aside class="drawer" id="drawer"><div class="dh"><h3 id="drawerTitle"></h3><button class="btn sm" onclick="closeAll()">✕</button></div><div class="db" id="drawerBody"></div></aside>
+<div class="modal" id="modal"></div>
+<div id="toasts"></div>
 <script>
-/* ---------------------------------------------------------------
-   SÉCURITÉ : ce dashboard n'utilise QUE la clé anon, jamais la clé
-   service_role. L'accès admin repose sur :
-   1) une connexion normale (auth.signInWithPassword)
-   2) une vérification profiles.is_admin = true après connexion
-   3) des RPC Postgres (SECURITY DEFINER) côté Supabase qui, elles,
-      vérifient is_admin() en base avant de renvoyer des données
-      cross-utilisateurs (get_admin_stats, get_user_full_data...).
-   Si une opération n'a pas encore sa RPC dédiée, cette page affiche
-   un état "à connecter" plutôt que d'improviser un accès non sécurisé.
-------------------------------------------------------------------*/
+/* ═══════════════════════════════════════════════════════════════════════
+   SÉCURITÉ : ce tableau de bord n'utilise QUE la clé anon (jamais service_role).
+   Chaque action sensible passe par une fonction Postgres SECURITY DEFINER qui
+   vérifie le RÔLE de l'appelant en base (viewer < moderator < admin < superadmin).
+   Les boutons masqués côté navigateur ne sont qu'un confort : le vrai contrôle
+   est dans la base (voir supabase/migrations/20261017000000_admin_suite.sql).
+   ═══════════════════════════════════════════════════════════════════════ */
 const CFG = window.__SC_CONFIG__ || {};
 const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
 const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
@@ -101,374 +198,709 @@ const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) &
 if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
 if(!CONFIG_OK){ document.addEventListener('DOMContentLoaded',function(){ document.body.innerHTML='<div style="font-family:sans-serif;color:#fff;padding:40px;max-width:560px;margin:auto"><h2>Configuration manquante</h2><p>Renseignez <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans <code>/config.js</code>, puis redéployez.</p></div>'; }); throw new Error('config.js non renseigné'); }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let admin = null;
+let admin = null;           // profil de l'admin connecté
+const RANK = { viewer:1, moderator:2, admin:3, superadmin:4 };
+const ROLE_FR = { viewer:'Lecture seule', moderator:'Modérateur', admin:'Administrateur', superadmin:'Super-admin' };
+function myRank(){ return admin && admin.is_admin ? (RANK[admin.admin_role||'admin']||3) : 0; }
+function can(min){ return myRank() >= min; }
 
+/* ── utilitaires ── */
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const $ = id => document.getElementById(id);
+const nf = n => (n==null||isNaN(n)) ? '—' : Number(n).toLocaleString('fr-FR');
+const money = n => nf(n) + ' FCFA';
+const fdate = d => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+const fdt = d => d ? new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+function ago(d){ if(!d) return '—'; const s=(Date.now()-new Date(d))/1000; if(s<60) return 'à l\'instant'; if(s<3600) return Math.floor(s/60)+' min'; if(s<86400) return Math.floor(s/3600)+' h'; if(s<86400*30) return Math.floor(s/86400)+' j'; return fdate(d); }
+function delta(cur, prev){ if(!prev) return cur ? '<span class="d up">▲ nouveau</span>' : '<span class="d flat">—</span>'; const p=Math.round((cur-prev)/prev*100); return '<span class="d '+(p>0?'up':p<0?'down':'flat')+'">'+(p>0?'▲ +':p<0?'▼ ':'= ')+p+'% vs période préc.</span>'; }
+function bytes(n){ if(n==null) return '—'; const u=['o','Ko','Mo','Go']; let i=0; while(n>=1024&&i<3){ n/=1024; i++; } return n.toFixed(i?1:0)+' '+u[i]; }
+function planBadge(p){ return '<span class="badge b-'+esc(p||'free')+'">'+esc(p||'free')+'</span>'; }
+function statusBadge(s){ const m={success:'b-ok',approved:'b-ok',resolved:'b-ok',active:'b-ok',pending:'b-warn',processing:'b-info',open:'b-warn',in_progress:'b-info',waiting_user:'b-info',failed:'b-bad',rejected:'b-bad',revoked:'b-bad',refunded:'b-bad',disputed:'b-bad',used:'b-info',closed:''}; return '<span class="badge '+(m[s]||'')+'">'+esc(s)+'</span>'; }
+function toast(msg, type){ const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; $('toasts').appendChild(t); setTimeout(()=>t.remove(), type==='bad'?6000:3200); }
+function csvDownload(name, head, rows){
+  const cell = v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const txt = '\ufeff'+[head].concat(rows).map(r=>r.map(cell).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'})); a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function debounce(fn, ms){ let t; return function(){ const a=arguments; clearTimeout(t); t=setTimeout(()=>fn.apply(null,a), ms); }; }
+function loading(){ return '<div class="skel" style="width:60%"></div><div class="skel"></div><div class="skel" style="width:80%"></div>'; }
+function errBox(e){ return '<div class="stub"><b class="err">Erreur</b><br>'+esc(e && e.message || e)+'<br><br><span class="small">Si le message parle d\'une fonction ou d\'une table introuvable, exécutez la migration <code>20261017000000_admin_suite.sql</code> (et les précédentes) dans l\'éditeur SQL de Supabase.</span></div>'; }
+
+/* ── appel RPC ── */
+async function rpc(name, args){
+  const { data, error } = await sb.rpc(name, args||{});
+  if(error) throw error;
+  if(data && data.error === 'FORBIDDEN') throw new Error('Droits insuffisants');
+  return data;
+}
+async function act(fn, okMsg){          // exécute une action, affiche un toast, renvoie true/false
+  try{ const r = await fn(); if(okMsg) toast(okMsg,'ok'); return r===undefined?true:r; }
+  catch(e){ toast(e.message || 'Erreur', 'bad'); return false; }
+}
+
+/* ── tiroir / modale ── */
+function closeAll(){ $('ov').style.display='none'; $('drawer').classList.remove('open'); $('modal').style.display='none'; $('modal').className='modal'; $('side').classList.remove('open'); $('sres').style.display='none'; }
+function openDrawer(title, html){ $('drawerTitle').textContent=title; $('drawerBody').innerHTML=html; $('ov').style.display='block'; $('drawer').classList.add('open'); }
+function openModal(html, wide){ const m=$('modal'); m.className='modal'+(wide?' wide':''); m.innerHTML=html; m.style.display='block'; $('ov').style.display='block'; }
+function ask(title, bodyHtml, okLabel, onOk, danger){
+  openModal('<h3>'+esc(title)+'</h3><div>'+bodyHtml+'</div><div class="acts"><button class="btn" onclick="closeAll()">Annuler</button><button class="btn '+(danger?'danger':'pri')+'" id="askOk">'+esc(okLabel||'Confirmer')+'</button></div>');
+  $('askOk').onclick = async function(){ this.disabled=true; const keep = await onOk(); if(keep!==false) closeAll(); else this.disabled=false; };
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeAll();
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k' && admin){ e.preventDefault(); $('gq').focus(); $('gq').select(); }
+});
+
+/* ── navigation ── */
+const SECTIONS = [
+  ['Pilotage', [['dashboard','📊','Tableau de bord'],['activity','⚡','Activité & santé']]],
+  ['Gestion',  [['users','👥','Utilisateurs'],['cvs','📄','CV'],['payments','💰','Paiements'],['licenses','🔑','Licences'],['support','💬','Support']]],
+  ['Communauté',[['moderation','⭐','Avis & témoignages'],['guests','🧑‍💻','Visiteurs sans compte'],['interest','🔔','Intérêt nouveautés'],['broadcast','📢','Annonces']]],
+  ['Données',  [['ai','🤖','Intelligence artificielle'],['exports','📤','Exports'],['audit','🧾','Journal d\'audit']]],
+  ['Système',  [['settings','⚙️','Réglages & équipe']]]
+];
+let CURRENT = 'dashboard', CNT = {};
+function buildNav(){
+  $('nav').innerHTML = SECTIONS.map(s=>'<div class="nav-sec">'+s[0]+'</div>'+s[1].map(i=>'<button class="nav-item" data-p="'+i[0]+'" onclick="goPage(\''+i[0]+'\')"><span class="ic">'+i[1]+'</span>'+i[2]+'<span class="cnt" id="cnt-'+i[0]+'" style="display:none"></span></button>').join('')).join('');
+}
+function setCount(page, n){ const e=$('cnt-'+page); if(!e) return; e.textContent=n; e.style.display = n>0 ? '' : 'none'; }
+async function refreshCounts(){
+  try{
+    const d = await rpc('admin_dashboard',{p_days:7}); const k=d.kpi||{}; CNT=k;
+    setCount('support', (k.tickets_open||0)); setCount('moderation', (k.testimonials_pending||0)+(k.feedback_pending||0)); setCount('payments', k.payments_pending||0);
+  }catch(e){}
+}
+const PAGEFN = {};     // rempli par les modules de pages : PAGEFN.users = pageUsers …
+function goPage(p, arg){
+  closeAll(); CURRENT = p; PAGE_ARG = arg || null;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
+  clearInterval(AUTO); AUTO = null;
+  const fn = PAGEFN[p]; $('main').scrollTop = 0;
+  if(!fn){ $('mainArea').innerHTML='<div class="stub">Page inconnue.</div>'; return; }
+  try{ fn(arg); }catch(e){ $('mainArea').innerHTML = errBox(e); }
+  try{ history.replaceState(null,'','#'+p); }catch(e){}
+}
+let AUTO = null, PAGE_ARG = null;
+function refreshPage(){ goPage(CURRENT, PAGE_ARG); refreshCounts(); }
+function pageHead(title, sub, toolsHtml){ return '<div class="ph"><div><h2>'+title+'</h2>'+(sub?'<p>'+sub+'</p>':'')+'</div><div class="tools">'+(toolsHtml||'')+'</div></div>'; }
+function pager(total, page, size, fnName){
+  const pages = Math.max(1, Math.ceil(total/size));
+  return '<div class="pager"><span>'+nf(total)+' résultat'+(total>1?'s':'')+' · page '+(page+1)+'/'+pages+'</span><span class="row"><button class="btn sm" '+(page<=0?'disabled':'')+' onclick="'+fnName+'('+(page-1)+')">← Préc.</button><button class="btn sm" '+(page>=pages-1?'disabled':'')+' onclick="'+fnName+'('+(page+1)+')">Suiv. →</button></span></div>';
+}
+
+/* ── recherche globale ── */
+const globalSearch = debounce(async function(q){
+  const box=$('sres'); q=(q||'').trim();
+  if(q.length<2){ box.style.display='none'; return; }
+  try{
+    const r = await rpc('admin_search',{p_q:q});
+    let h='';
+    if((r.users||[]).length) h+='<h5>Utilisateurs</h5>'+r.users.map(u=>'<a onclick="openUser(\''+u.id+'\')">'+esc(u.email)+'<small>'+esc(u.name||'')+' · '+esc(u.plan)+'</small></a>').join('');
+    if((r.cvs||[]).length) h+='<h5>CV</h5>'+r.cvs.map(c=>'<a onclick="openCv(\''+c.id+'\')">'+esc(c.title)+'<small>'+esc(c.owner_email||'')+'</small></a>').join('');
+    if((r.payments||[]).length) h+='<h5>Paiements</h5>'+r.payments.map(p=>'<a onclick="goPage(\'payments\',{q:\''+esc(p.transaction_id)+'\'})">'+esc(p.transaction_id)+'<small>'+nf(p.amount)+' · '+esc(p.status)+'</small></a>').join('');
+    if((r.tickets||[]).length) h+='<h5>Tickets</h5>'+r.tickets.map(t=>'<a onclick="openTicket(\''+t.id+'\')">'+esc(t.ticket_no)+' — '+esc(t.subject)+'<small>'+esc(t.status)+'</small></a>').join('');
+    box.innerHTML = h || '<a class="muted">Aucun résultat</a>'; box.style.display='block';
+  }catch(e){ box.innerHTML='<a class="err">'+esc(e.message)+'</a>'; box.style.display='block'; }
+}, 250);
+document.addEventListener('click', e=>{ if(!e.target.closest('.search')) $('sres').style.display='none'; });
+
+/* ── connexion ── */
 async function enterAdmin(user){
-  const { data: profile, error: pErr } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  const { data: profile, error: pErr } = await sb.from('profiles').select('id,email,name,is_admin,admin_role').eq('id', user.id).single();
   if(pErr) throw pErr;
   if(!profile.is_admin){ await sb.auth.signOut(); throw new Error('Ce compte n\'est pas administrateur.'); }
   admin = profile;
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('adminApp').style.display = 'flex';
-  goPage('dashboard');
+  $('loginScreen').style.display = 'none'; $('adminApp').style.display = 'flex';
+  $('meName').textContent = profile.name || profile.email; $('meRole').textContent = ROLE_FR[profile.admin_role||'admin'] + ' · ' + profile.email;
+  buildNav(); refreshCounts(); setInterval(refreshCounts, 90000); idleWatch();
+  const start = (location.hash||'').replace('#','');
+  goPage(PAGEFN[start] ? start : 'dashboard');
 }
 async function adminLogin(){
-  const email = document.getElementById('admEmail').value.trim();
-  const password = document.getElementById('admPass').value;
-  const err = document.getElementById('loginErr');
-  err.style.display = 'none';
+  const err = $('loginErr'); err.style.display='none';
   try{
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    const { data, error } = await sb.auth.signInWithPassword({ email:$('admEmail').value.trim(), password:$('admPass').value });
     if(error) throw error;
     await enterAdmin(data.user);
-  }catch(e){ err.textContent = e.message; err.style.display = 'block'; }
+  }catch(e){ err.textContent = /failed to fetch|network/i.test(e.message) ? 'Impossible de joindre le serveur Supabase. Vérifiez config.js et votre connexion.' : (e.message==='Invalid login credentials'?'Email ou mot de passe incorrect.':e.message); err.style.display='block'; }
 }
-// Session déjà ouverte (rechargement de la page)
+async function adminForgot(){
+  const email = $('admEmail').value.trim(); const err = $('loginErr');
+  if(!email){ err.textContent='Saisissez votre email ci-dessus.'; err.style.display='block'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/app' });
+  err.style.color = error ? 'var(--bad)' : 'var(--ok)'; err.textContent = error ? error.message : 'Email de réinitialisation envoyé (si le compte existe).'; err.style.display='block';
+}
 (async function adminInit(){
   try{ const { data } = await sb.auth.getSession(); if(data && data.session) await enterAdmin(data.session.user); }catch(e){}
 })();
-
 async function adminLogout(){ await sb.auth.signOut(); location.reload(); }
-
-function goPage(p){
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
-  const fns = { dashboard: pageDashboard, users: pageUsers, cvs: pageCvs, payments: pagePayments, licenses: pageLicenses, support: pageSupport, feedback: pageFeedback, testimonials: pageTestimonials, interest: pageInterest, guests: pageGuests, broadcast: pageBroadcast, ailogs: pageAiLogs, settings: pageSettings };
-  (fns[p] || pageStub)(p);
+/* déconnexion automatique après 30 min d'inactivité */
+function idleWatch(){
+  let last = Date.now(); ['click','keydown','mousemove','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ last=Date.now(); },{passive:true}));
+  setInterval(()=>{ const m=Math.floor((Date.now()-last)/60000); if(m>=30){ adminLogout(); } else if(m>=25){ $('sessInfo').textContent='Déconnexion dans '+(30-m)+' min'; } else $('sessInfo').textContent=''; }, 30000);
+}
+/* ── graphiques SVG (sans dépendance) ── */
+const PAL = ['#3B82F6','#10B981','#F59E0B','#8B5CF6','#EF4444','#06B6D4','#EC4899','#84CC16'];
+function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))); const f=v/p; return (f<=1?1:f<=2?2:f<=5?5:10)*p; }
+function lineChart(series, opts){
+  opts = opts||{}; const color = opts.color||PAL[0], H = opts.h||150, W = 560, padL=34, padB=18, padT=8;
+  if(!series || !series.length) return '<div class="stub small">Pas de données.</div>';
+  const vals = series.map(s=>+s.v||0), mx = niceMax(Math.max.apply(null, vals)), n = series.length;
+  const x = i => padL + (n===1?0:(i*(W-padL-6)/(n-1))), y = v => padT + (H-padT-padB) * (1 - v/mx);
+  const pts = vals.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1));
+  const area = 'M'+x(0)+','+y(0)+' L'+pts.join(' L')+' L'+x(n-1)+','+y(0)+' Z';
+  let grid=''; for(let g=0; g<=3; g++){ const v=mx*g/3, yy=y(v); grid+='<line x1="'+padL+'" x2="'+(W-6)+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.07)"/><text x="'+(padL-5)+'" y="'+(yy+3)+'" text-anchor="end">'+(opts.money?nf(Math.round(v/1000))+'k':nf(Math.round(v)))+'</text>'; }
+  const step = Math.max(1, Math.ceil(n/6)); let xl=''; for(let i=0;i<n;i+=step){ xl+='<text x="'+x(i)+'" y="'+(H-4)+'" text-anchor="middle">'+series[i].d.slice(8,10)+'/'+series[i].d.slice(5,7)+'</text>'; }
+  const id='g'+Math.random().toString(36).slice(2,7);
+  const hit = vals.map((v,i)=>'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="'+(n>45?2:3)+'" fill="'+color+'"><title>'+series[i].d+' : '+(opts.money?money(v):nf(v))+'</title></circle>').join('');
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+color+'" stop-opacity=".35"/><stop offset="1" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs>'+grid+xl+'<path d="'+area+'" fill="url(#'+id+')"/><polyline points="'+pts.join(' ')+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>'+hit+'</svg>';
+}
+function spark(series, color){
+  if(!series || series.length<2) return ''; const W=70,H=26, vals=series.map(s=>+s.v||0), mx=Math.max.apply(null,vals)||1;
+  const pts = vals.map((v,i)=>(i*W/(vals.length-1)).toFixed(1)+','+(H-2-(H-4)*v/mx).toFixed(1)).join(' ');
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><polyline points="'+pts+'" fill="none" stroke="'+(color||PAL[0])+'" stroke-width="1.6"/></svg>';
+}
+function donut(items){          // items: [{id,n}]
+  const tot = items.reduce((a,b)=>a+b.n,0); if(!tot) return '<div class="stub small">Aucune donnée.</div>';
+  let acc=0; const R=42, C=2*Math.PI*R;
+  const arcs = items.map((it,i)=>{ const f=it.n/tot, len=f*C, o=-acc*C; acc+=f; return '<circle cx="60" cy="60" r="'+R+'" fill="none" stroke="'+PAL[i%PAL.length]+'" stroke-width="16" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+o+'" transform="rotate(-90 60 60)"><title>'+esc(it.id)+' : '+it.n+'</title></circle>'; }).join('');
+  return '<div class="row" style="gap:18px;align-items:center"><svg width="120" height="120" viewBox="0 0 120 120">'+arcs+'<text x="60" y="58" text-anchor="middle" style="fill:var(--ink);font-size:18px;font-weight:800">'+nf(tot)+'</text><text x="60" y="73" text-anchor="middle" style="font-size:9px">total</text></svg><div class="legend" style="flex-direction:column;gap:5px;margin:0">'+items.map((it,i)=>'<span><i style="background:'+PAL[i%PAL.length]+'"></i>'+esc(it.id)+' · <b style="color:var(--ink)">'+nf(it.n)+'</b> ('+Math.round(it.n/tot*100)+'%)</span>').join('')+'</div></div>';
+}
+function bars(items, opts){     // items: [{id,n}]
+  opts=opts||{}; if(!items || !items.length) return '<div class="stub small">Aucune donnée.</div>';
+  const mx = Math.max.apply(null, items.map(i=>i.n))||1;
+  return items.map((it,i)=>'<div style="margin-bottom:9px"><div class="row" style="justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+esc(opts.label?opts.label(it):it.id)+'</span><b>'+nf(it.n)+'</b></div><div class="bar"><i style="width:'+Math.max(3,it.n/mx*100)+'%;background:'+PAL[(opts.color!=null?opts.color:i)%PAL.length]+'"></i></div></div>').join('');
 }
 
-function pageStub(p){
-  document.getElementById('mainArea').innerHTML = '<div class="stub">Page "'+p+'" — à connecter à sa RPC/table dédiée quand vous voulez l\'implémenter en détail.</div>';
-}
-
-/* ---------------- Dashboard ---------------- */
-async function pageDashboard(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Dashboard</h2><div class="stat-grid" id="statGrid"><div class="stub">Chargement…</div></div>';
+/* ═════════════ TABLEAU DE BORD ═════════════ */
+let DASH_DAYS = 30;
+PAGEFN.dashboard = async function pageDashboard(){
+  const el = $('mainArea');
+  el.innerHTML = pageHead('Tableau de bord','Vue d\'ensemble de la plateforme',
+    '<div class="chips">'+[7,30,90].map(d=>'<span class="chip '+(d===DASH_DAYS?'on':'')+'" onclick="DASH_DAYS='+d+';goPage(\'dashboard\')">'+d+' j</span>').join('')+'</div><label class="small muted row"><input type="checkbox" id="autoRef" onchange="toggleAuto(this.checked)"> Auto-actualiser</label>')
+    + '<div id="dashBody">'+loading()+'</div>';
   try{
-    const { data, error } = await sb.rpc('get_admin_stats');
-    if(error) throw error;
-    if(data && data.error === 'FORBIDDEN') throw new Error('Ce compte n\'est pas reconnu comme admin par la fonction (is_admin=false côté base).');
-    const s = data || {};
-    const u = s.users||{}, c = s.cvs||{}, r = s.revenue||{}, a = s.ai||{}, sp = s.support||{};
-    const cards = [
-      ['Utilisateurs', u.total ?? '—'],
-      ['Actifs (24h)', u.active ?? '—'],
-      ['CVs créés', c.total ?? '—'],
-      ['Revenus (30j)', (r.month ?? 0).toLocaleString('fr-FR') + ' FCFA'],
-      ['Requêtes IA (jour)', a.today ?? '—'],
-      ['Tickets ouverts', sp.open ?? '—'],
-    ];
-    document.getElementById('statGrid').innerHTML = cards.map(c=>'<div class="stat-card"><div class="v">'+c[1]+'</div><div class="l">'+c[0]+'</div></div>').join('')
-      + '<div class="stat-card"><div class="v">'+(a.success_rate ?? '—')+'%</div><div class="l">Taux de succès IA</div></div>'
-      + '<div class="stat-card"><div class="v">'+(u.banned ?? 0)+'</div><div class="l">Comptes bannis</div></div>';
-  }catch(e){
-    document.getElementById('statGrid').innerHTML = '<div class="stub">get_admin_stats() indisponible : '+e.message+'</div>';
-  }
+    const d = await rpc('admin_dashboard',{p_days:DASH_DAYS}); const k=d.kpi, s=d.series;
+    const conv = k.users_total ? Math.round(k.paying/k.users_total*1000)/10 : 0;
+    const kpi = (label,val,dl,go,sp,col)=>'<div class="kpi '+(go?'click':'')+'" '+(go?'onclick="'+go+'"':'')+'><div class="l">'+label+'</div><div class="v">'+val+'</div>'+(dl||'')+(sp?spark(sp,col):'')+'</div>';
+    // alertes
+    const al=[];
+    if(k.tickets_urgent) al.push(['bad','🔥 '+k.tickets_urgent+' ticket(s) urgent(s) ou prioritaire(s) ouvert(s)',"goPage('support')"]);
+    if(k.tickets_unread) al.push(['warn','💬 '+k.tickets_unread+' message(s) de support non lu(s)',"goPage('support')"]);
+    if(k.payments_pending) al.push(['warn','⏳ '+k.payments_pending+' paiement(s) en attente depuis plus d\'1 h — à vérifier',"goPage('payments',{status:'pending'})"]);
+    if(k.testimonials_pending) al.push(['warn','🗣️ '+k.testimonials_pending+' témoignage(s) à modérer',"goPage('moderation')"]);
+    if(k.feedback_pending) al.push(['warn','⭐ '+k.feedback_pending+' feedback(s) à modérer',"goPage('moderation',{tab:'feedback'})"]);
+    if(k.expiring7) al.push(['warn','📅 '+k.expiring7+' abonnement(s) expirent dans 7 jours',"goPage('users',{status:'expiring'})"]);
+    if(k.ai && k.ai_err/k.ai>0.15) al.push(['bad','🤖 Taux d\'erreur IA élevé : '+Math.round(k.ai_err/k.ai*100)+'%',"goPage('ai')"]);
+    $('dashBody').innerHTML =
+      '<div class="grid g-kpi" style="margin-bottom:14px">'
+      + kpi('Utilisateurs',nf(k.users_total),delta(k.users_new,k.users_prev).replace('vs période préc.','')+'<span class="d flat"> +'+nf(k.users_new)+' sur '+d.days+' j</span>',"goPage('users')",s.signups,PAL[0])
+      + kpi('Actifs 24 h / 7 j',nf(k.users_active24)+' <span class="muted" style="font-size:14px">/ '+nf(k.users_active7)+'</span>','<div class="d flat">connexions récentes</div>')
+      + kpi('Abonnés payants',nf(k.paying),'<div class="d flat">conversion '+conv+'%</div>',"goPage('users',{status:'paying'})")
+      + kpi('Revenus ('+d.days+' j)',money(k.revenue),delta(k.revenue,k.revenue_prev),"goPage('payments')",s.revenue,PAL[1])
+      + kpi('CV créés ('+d.days+' j)',nf(k.cvs_new),delta(k.cvs_new,k.cvs_prev),"goPage('cvs')",s.cvs,PAL[3])
+      + kpi('Exports ('+d.days+' j)',nf(k.exports),delta(k.exports,k.exports_prev),"goPage('exports')",s.exports,PAL[2])
+      + kpi('Requêtes IA ('+d.days+' j)',nf(k.ai),'<div class="d '+(k.ai_err?'down':'flat')+'">'+nf(k.ai_err)+' erreur(s)</div>',"goPage('ai')",s.ai,PAL[5])
+      + kpi('Visiteurs sans compte',nf(k.guests),'<div class="d flat">+'+nf(k.guests_new)+' sur '+d.days+' j</div>',"goPage('guests')",s.guests,PAL[6])
+      + '</div>'
+      + '<div class="grid g-21" style="margin-bottom:14px"><div class="card"><h3>Inscriptions <small>'+nf(k.users_new)+' sur '+d.days+' jours</small></h3>'+lineChart(s.signups,{color:PAL[0]})+'</div>'
+      + '<div class="card"><h3>À traiter</h3>'+(al.length?al.map(a=>'<div class="alert '+a[0]+'" onclick="'+a[2]+'">'+a[1]+'</div>').join(''):'<div class="alert ok">✅ Rien d\'urgent. Tout est à jour.</div>')+'</div></div>'
+      + '<div class="grid g2" style="margin-bottom:14px"><div class="card"><h3>Revenus <small>'+money(k.revenue)+' · total '+money(k.revenue_total)+'</small></h3>'+lineChart(s.revenue,{color:PAL[1],money:true})+'</div>'
+      + '<div class="card"><h3>CV créés &amp; exports</h3>'+lineChart(s.cvs,{color:PAL[3]})+'<div style="height:8px"></div>'+lineChart(s.exports,{color:PAL[2],h:100})+'<div class="legend"><span><i style="background:'+PAL[3]+'"></i>CV créés</span><span><i style="background:'+PAL[2]+'"></i>Exports</span></div></div></div>'
+      + '<div class="grid g3" style="margin-bottom:14px"><div class="card"><h3>Répartition des plans</h3>'+donut(Object.keys(d.plans||{}).map(p=>({id:p,n:d.plans[p]})))+'</div>'
+      + '<div class="card"><h3>Modèles de CV les plus utilisés</h3>'+bars(d.templates||[])+'</div>'
+      + '<div class="card"><h3>Pays</h3>'+bars(d.countries||[],{color:1})+'</div></div>'
+      + '<div class="grid g3">'
+      + '<div class="card"><h3>Derniers inscrits <button class="btn sm" onclick="goPage(\'users\')">Tout voir</button></h3>'+(d.recent_users||[]).map(u=>'<div class="list-item"><a style="cursor:pointer" onclick="openUser(\''+u.id+'\')">'+esc(u.email)+'</a><span class="muted small">'+planBadge(u.plan)+' '+ago(u.created_at)+'</span></div>').join('')+'</div>'
+      + '<div class="card"><h3>Derniers paiements <button class="btn sm" onclick="goPage(\'payments\')">Tout voir</button></h3>'+((d.recent_payments||[]).map(p=>'<div class="list-item"><span>'+esc(p.email||'—')+'<br><span class="muted small">'+esc(p.plan)+' · '+nf(p.amount)+'</span></span><span>'+statusBadge(p.status)+'<br><span class="muted small">'+ago(p.created_at)+'</span></span></div>').join('')||'<div class="muted small">Aucun paiement.</div>')+'</div>'
+      + '<div class="card"><h3>Tickets ouverts <button class="btn sm" onclick="goPage(\'support\')">Tout voir</button></h3>'+((d.recent_tickets||[]).map(t=>'<div class="list-item"><a style="cursor:pointer" onclick="openTicket(\''+t.id+'\')">'+esc(t.subject)+'</a><span class="muted small">'+statusBadge(t.priority==='normal'?t.status:t.priority)+' '+ago(t.created_at)+'</span></div>').join('')||'<div class="muted small">Aucun ticket ouvert.</div>')+'</div></div>';
+  }catch(e){ $('dashBody').innerHTML = errBox(e); }
+};
+function toggleAuto(on){ clearInterval(AUTO); AUTO = on ? setInterval(()=>{ if(CURRENT==='dashboard'){ const c=$('autoRef'); goPage('dashboard'); setTimeout(()=>{ const n=$('autoRef'); if(n){ n.checked=true; } },0); } }, 60000) : null; }
+
+/* ═════════════ ACTIVITÉ & SANTÉ ═════════════ */
+PAGEFN.activity = async function pageActivity(){
+  $('mainArea').innerHTML = pageHead('Activité & santé du système','État des tables, anomalies à surveiller','<button class="btn" onclick="goPage(\'activity\')">⟳ Actualiser</button>')+'<div id="hBody">'+loading()+'</div>';
+  try{
+    const h = await rpc('admin_system_health'); const t=h.tables||{};
+    const chk = (ok,label,detail)=>'<div class="list-item"><span>'+(ok?'✅':'⚠️')+' '+label+'</span><span class="muted small">'+detail+'</span></div>';
+    const need = ['profiles','cvs','payments','license_keys','ai_logs','export_logs','support_tickets','support_messages','admin_broadcasts','audit_logs','feedback','testimonials','feature_interest','guest_profiles','guest_cvs','documents','admin_notes','admin_settings'];
+    const missing = need.filter(n=>t[n]==null);
+    const failRate = h.ai_total_24h ? Math.round(h.ai_fail_24h/h.ai_total_24h*100) : 0;
+    $('hBody').innerHTML = '<div class="grid g-kpi" style="margin-bottom:14px">'
+      + '<div class="kpi"><div class="l">Taille de la base</div><div class="v">'+bytes(h.db_size)+'</div></div>'
+      + '<div class="kpi"><div class="l">Dernière inscription</div><div class="v" style="font-size:17px">'+ago(h.last_signup)+'</div></div>'
+      + '<div class="kpi"><div class="l">Dernier paiement réussi</div><div class="v" style="font-size:17px">'+ago(h.last_payment)+'</div></div>'
+      + '<div class="kpi"><div class="l">Ticket ouvert le plus ancien</div><div class="v" style="font-size:17px">'+(h.oldest_open_ticket?ago(h.oldest_open_ticket):'aucun')+'</div></div></div>'
+      + '<div class="grid g2"><div class="card"><h3>Contrôles</h3>'
+      + chk(!missing.length,'Tables de la base', missing.length?'manquantes : '+missing.join(', ')+' → exécutez les migrations':'toutes présentes')
+      + chk(!h.stale_payments,'Paiements bloqués (>1 h)', nf(h.stale_payments)+' en attente')
+      + chk(failRate<15,'Erreurs IA (24 h)', nf(h.ai_fail_24h)+' / '+nf(h.ai_total_24h)+' ('+failRate+'%)')
+      + chk(!h.expired_still_paid,'Abonnements expirés encore actifs', nf(h.expired_still_paid)+(h.expired_still_paid&&can(3)?' <button class="btn sm" onclick="expirePlans()">Rétrograder</button>':''))
+      + '<div class="muted small" style="margin-top:8px">Heure serveur : '+fdt(h.server_time)+'</div></div>'
+      + '<div class="card"><h3>Volumes par table</h3><div style="columns:2;column-gap:20px">'+need.map(n=>'<div class="list-item" style="break-inside:avoid"><span class="mono">'+n+'</span><b class="'+(t[n]==null?'err':'')+'">'+(t[n]==null?'absente':nf(t[n]))+'</b></div>').join('')+'</div></div></div>';
+  }catch(e){ $('hBody').innerHTML = errBox(e); }
+};
+function expirePlans(){ ask('Rétrograder les plans expirés','Tous les comptes dont la date d\'expiration est dépassée repassent en plan gratuit.','Rétrograder',async()=>{ const r=await act(()=>rpc('admin_expire_plans'),''); if(r){ toast(r.count+' compte(s) rétrogradé(s)','ok'); goPage('activity'); } }); }
+
+/* ═════════════ UTILISATEURS ═════════════ */
+const US = { q:'', plan:'all', status:'all', sort:'created_at', dir:'desc', page:0, size:25 };
+PAGEFN.users = function pageUsers(arg){
+  if(arg){ Object.assign(US, {q:'',plan:'all',status:'all',page:0}, arg); }
+  $('mainArea').innerHTML = pageHead('Utilisateurs','Comptes inscrits, abonnements et accès','<button class="btn" onclick="exportUsersCsv()">⬇ Export CSV</button>')
+    + '<div class="row" style="margin-bottom:12px"><input class="f" id="uq" style="flex:1;min-width:200px" placeholder="Nom, email, téléphone, ID…" value="'+esc(US.q)+'" oninput="US.q=this.value;US.page=0;loadUsersDebounced()">'
+    + '<select class="f" onchange="US.plan=this.value;US.page=0;loadUsers()">'+['all','free','starter','premium','pro'].map(p=>'<option value="'+p+'" '+(US.plan===p?'selected':'')+'>'+(p==='all'?'Tous les plans':p)+'</option>').join('')+'</select>'
+    + '<select class="f" onchange="US.status=this.value;US.page=0;loadUsers()">'+[['all','Tous les statuts'],['active','Actifs'],['banned','Bannis'],['paying','Payants'],['expiring','Expirent sous 7 j'],['expired','Plan expiré'],['inactive','Inactifs 30 j+'],['admin','Administrateurs']].map(s=>'<option value="'+s[0]+'" '+(US.status===s[0]?'selected':'')+'>'+s[1]+'</option>').join('')+'</select></div><div id="uBox">'+loading()+'</div>';
+  loadUsers();
+};
+const loadUsersDebounced = debounce(()=>loadUsers(), 300);
+let USERS_LAST = [];
+async function loadUsers(){
+  try{
+    const r = await rpc('admin_list_users',{p_q:US.q,p_plan:US.plan,p_status:US.status,p_sort:US.sort,p_dir:US.dir,p_limit:US.size,p_offset:US.page*US.size});
+    USERS_LAST = r.rows;
+    const th=(k,l)=>'<th class="s" onclick="sortUsers(\''+k+'\')">'+l+(US.sort===k?(US.dir==='asc'?' ▲':' ▼'):'')+'</th>';
+    $('uBox').innerHTML = '<div class="tbl-wrap"><table><thead><tr>'+th('name','Utilisateur')+th('plan','Plan')+th('cv_count','CV')+th('paid_total','Payé')+th('last_seen_at','Vu')+th('created_at','Inscrit')+'<th>Statut</th></tr></thead><tbody>'
+      + (r.rows.map(u=>'<tr class="clk" onclick="openUser(\''+u.id+'\')"><td><b>'+esc(u.name||'—')+'</b><br><span class="muted small">'+esc(u.email)+'</span></td><td>'+planBadge(u.plan)+(u.plan!=='free'&&u.plan_expires_at?'<br><span class="muted small">→ '+fdate(u.plan_expires_at)+'</span>':'')+'</td><td>'+nf(u.cv_count)+'</td><td>'+(u.paid_total?nf(u.paid_total):'—')+'</td><td class="muted">'+ago(u.last_seen_at)+'</td><td class="muted">'+fdate(u.created_at)+'</td><td>'+(u.is_banned?'<span class="badge b-bad">Banni</span>':'<span class="badge b-ok">Actif</span>')+(u.is_admin?' <span class="badge b-info">'+esc(u.admin_role||'admin')+'</span>':'')+'</td></tr>').join('')||'<tr><td colspan="7" class="muted" style="text-align:center;padding:26px">Aucun utilisateur trouvé.</td></tr>')
+      + '</tbody></table></div>'+pager(r.total,US.page,US.size,'usersPage');
+  }catch(e){ $('uBox').innerHTML = errBox(e); }
+}
+function usersPage(p){ US.page=p; loadUsers(); }
+function sortUsers(k){ if(US.sort===k) US.dir = US.dir==='asc'?'desc':'asc'; else { US.sort=k; US.dir='desc'; } US.page=0; loadUsers(); }
+async function exportUsersCsv(){
+  const r = await act(()=>rpc('admin_list_users',{p_q:US.q,p_plan:US.plan,p_status:US.status,p_sort:US.sort,p_dir:US.dir,p_limit:200,p_offset:0}));
+  if(!r) return; csvDownload('utilisateurs',['ID','Nom','Email','Téléphone','Pays','Plan','Expire','Banni','Rôle admin','Inscrit','Dernière visite','CV','Payé (FCFA)','Requêtes IA','Exports'], r.rows.map(u=>[u.id,u.name,u.email,u.phone,u.country,u.plan,u.plan_expires_at,u.is_banned?'oui':'non',u.is_admin?u.admin_role:'',u.created_at,u.last_seen_at,u.cv_count,u.paid_total,u.ai_total_used,u.exports_total]));
+  if(r.total>200) toast('Export limité aux 200 premiers résultats ('+r.total+' au total). Affinez les filtres.');
 }
 
-/* ---------------- Utilisateurs ---------------- */
-async function pageUsers(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Utilisateurs</h2><div id="usersTable">Chargement…</div>';
+let UD = null, UD_TAB = 'apercu';
+async function openUser(id, tab){
+  closeAll(); UD_TAB = tab || 'apercu';
+  openDrawer('Utilisateur', loading());
   try{
-    const { data, error } = await sb.from('profiles').select('id,email,name,plan,is_banned,created_at').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('usersTable').innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Plan</th><th>Statut</th><th>Inscrit</th><th></th></tr></thead><tbody>'
-      + data.map(u=>'<tr><td>'+esc(u.name||'—')+'</td><td>'+esc(u.email)+'</td><td><span class="badge b-'+u.plan+'">'+u.plan+'</span></td>'
-        + '<td>'+(u.is_banned?'<span style="color:var(--bad)">Banni</span>':'Actif')+'</td>'
-        + '<td>'+new Date(u.created_at).toLocaleDateString('fr-FR')+'</td>'
-        + '<td><button class="btn '+(u.is_banned?'':'btn-danger')+'" onclick="toggleBan(\''+u.id+'\','+!u.is_banned+')">'+(u.is_banned?'Débannir':'Bannir')+'</button></td></tr>').join('')
-      + '</tbody></table>';
-  }catch(e){
-    document.getElementById('usersTable').innerHTML = '<div class="stub">Lecture de "profiles" refusée ou erreur : '+e.message+'<br><br>Ajoutez une politique RLS autorisant les admins (is_admin=true) à lire toutes les lignes de "profiles".</div>';
+    UD = await rpc('admin_user_detail',{p_user:id});
+    UD.notes = (await sb.from('admin_notes').select('id,note,created_at,admin_id').eq('entity_type','user').eq('entity_id',id).order('created_at',{ascending:false})).data || [];
+    renderUser();
+  }catch(e){ $('drawerBody').innerHTML = errBox(e); }
+}
+function renderUser(){
+  const d=UD, p=d.profile; if(!p){ $('drawerBody').innerHTML='<div class="stub">Utilisateur introuvable.</div>'; return; }
+  $('drawerTitle').textContent = p.name || p.email;
+  const tabs=[['apercu','Aperçu'],['cv','CV ('+d.cvs.length+')'],['pay','Paiements ('+d.payments.length+')'],['tick','Tickets ('+d.tickets.length+')'],['hist','Historique & notes']];
+  let body='';
+  if(UD_TAB==='apercu'){
+    body = '<dl class="kv"><dt>Email</dt><dd>'+esc(p.email)+' <button class="btn sm" onclick="navigator.clipboard.writeText(\''+esc(p.email)+'\');toast(\'Copié\',\'ok\')">copier</button></dd><dt>Téléphone</dt><dd>'+esc(p.phone||'—')+'</dd><dt>Pays / ville</dt><dd>'+esc(p.country||'—')+' · '+esc(p.city||'—')+'</dd>'
+      +'<dt>Plan</dt><dd>'+planBadge(p.plan)+(p.plan_expires_at?' jusqu\'au '+fdate(p.plan_expires_at):'')+'</dd><dt>Inscrit le</dt><dd>'+fdt(p.created_at)+'</dd><dt>Dernière visite</dt><dd>'+fdt(p.last_seen_at)+'</dd>'
+      +'<dt>Statut</dt><dd>'+(p.is_banned?'<span class="badge b-bad">Banni</span> '+esc(p.ban_reason||''):'<span class="badge b-ok">Actif</span>')+(p.is_admin?' <span class="badge b-info">'+esc(ROLE_FR[p.admin_role||'admin'])+'</span>':'')+'</dd>'
+      +'<dt>IA</dt><dd>'+nf(d.ai.total)+' requête(s) · '+nf(d.ai.errors)+' erreur(s) · '+nf(d.ai.tokens)+' tokens · aujourd\'hui '+nf(p.ai_used_today)+'</dd><dt>Exports</dt><dd>'+nf(d.exports.total)+' (dernier : '+ago(d.exports.last)+')</dd><dt>Documents</dt><dd>'+nf(d.documents)+' lettre(s)/demande(s)</dd><dt>ID</dt><dd class="mono">'+p.id+'</dd></dl>'
+      +'<h4 style="margin:18px 0 8px">Actions</h4><div class="row">'
+      +'<button class="btn pri" '+(can(3)?'':'disabled')+' onclick="userPlanDialog()">Changer le plan</button>'
+      +'<button class="btn '+(p.is_banned?'ok':'danger')+'" '+(can(2)?'':'disabled')+' onclick="userBanDialog()">'+(p.is_banned?'Débannir':'Bannir')+'</button>'
+      +'<button class="btn" '+(can(3)?'':'disabled')+' onclick="userResetQuota()">Réinitialiser quotas</button>'
+      +'<button class="btn" '+(can(4)?'':'disabled')+' onclick="userRoleDialog()">Rôle admin</button>'
+      +'<button class="btn danger" '+(can(4)?'':'disabled')+' onclick="userDeleteDialog()">Supprimer le compte</button></div>'
+      +(can(3)?'':'<p class="muted small">Certaines actions nécessitent un rôle supérieur au vôtre ('+esc(ROLE_FR[admin.admin_role||'admin'])+').</p>');
+  } else if(UD_TAB==='cv'){
+    body = d.cvs.length ? '<div class="tbl-wrap"><table><thead><tr><th>Titre</th><th>Modèle</th><th>Vues</th><th>MAJ</th><th></th></tr></thead><tbody>'+d.cvs.map(c=>'<tr><td>'+esc(c.title)+(c.is_deleted?' <span class="badge b-bad">supprimé</span>':'')+(c.is_public?' <span class="badge b-ok">public</span>':'')+'</td><td>'+esc(c.model_id)+'</td><td>'+nf(c.view_count)+'</td><td class="muted">'+ago(c.updated_at)+'</td><td><button class="btn sm" onclick="openCv(\''+c.id+'\')">Voir</button></td></tr>').join('')+'</tbody></table></div>' : '<div class="stub">Aucun CV.</div>';
+  } else if(UD_TAB==='pay'){
+    body = d.payments.length ? '<div class="tbl-wrap"><table><thead><tr><th>Transaction</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead><tbody>'+d.payments.map(y=>'<tr><td class="mono">'+esc(y.transaction_id)+'</td><td>'+esc(y.plan)+'</td><td>'+nf(y.amount)+'</td><td>'+statusBadge(y.status)+'</td><td class="muted">'+fdate(y.created_at)+'</td></tr>').join('')+'</tbody></table></div>' : '<div class="stub">Aucun paiement.</div>';
+  } else if(UD_TAB==='tick'){
+    body = d.tickets.length ? d.tickets.map(t=>'<div class="list-item"><a style="cursor:pointer" onclick="openTicket(\''+t.id+'\')">'+esc(t.ticket_no)+' — '+esc(t.subject)+'</a><span>'+statusBadge(t.status)+' <span class="muted small">'+fdate(t.created_at)+'</span></span></div>').join('') : '<div class="stub">Aucun ticket.</div>';
+  } else {
+    body = '<h4 style="margin:0 0 8px">Notes internes <span class="muted small">(invisibles pour l\'utilisateur)</span></h4>'
+      +(can(2)?'<div class="row" style="margin-bottom:10px"><input class="f" id="noteIn" style="flex:1" placeholder="Ajouter une note…" onkeydown="if(event.key===\'Enter\')addNote(\'user\',\''+p.id+'\')"><button class="btn pri" onclick="addNote(\'user\',\''+p.id+'\')">Ajouter</button></div>':'')
+      +(UD.notes.map(n=>'<div class="list-item" style="align-items:flex-start"><span>'+esc(n.note)+'<br><span class="muted small">'+fdt(n.created_at)+'</span></span>'+(can(3)?'<button class="btn sm danger" onclick="delNote(\''+n.id+'\')">✕</button>':'')+'</div>').join('')||'<div class="muted small">Aucune note.</div>')
+      +'<h4 style="margin:18px 0 8px">Historique des actions admin</h4>'+(d.audit.map(a=>'<div class="list-item" style="align-items:flex-start"><span><b>'+esc(a.action)+'</b> <span class="muted small">par '+esc(a.admin_email||'—')+'</span><br><span class="muted small mono">'+esc(JSON.stringify(a.new_data||{}))+'</span></span><span class="muted small">'+fdt(a.created_at)+'</span></div>').join('')||'<div class="muted small">Aucune action enregistrée.</div>');
   }
+  $('drawerBody').innerHTML = '<div class="tabs">'+tabs.map(t=>'<button class="'+(UD_TAB===t[0]?'on':'')+'" onclick="UD_TAB=\''+t[0]+'\';renderUser()">'+t[1]+'</button>').join('')+'</div>'+body;
 }
-async function toggleBan(userId, banned){
-  try{ const { error } = await sb.from('profiles').update({ is_banned: banned, banned_at: banned ? new Date().toISOString() : null, banned_by: banned ? admin.id : null }).eq('id', userId); if(error) throw error; pageUsers(); }
-  catch(e){ alert('Erreur: '+e.message); }
+async function addNote(type,id){
+  const v=($('noteIn').value||'').trim(); if(!v) return;
+  const { error } = await sb.from('admin_notes').insert({ entity_type:type, entity_id:id, admin_id:admin.id, note:v });
+  if(error) return toast(error.message,'bad');
+  toast('Note ajoutée','ok'); if(type==='user') openUser(id,'hist'); else openTicket(id);
 }
-function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-/* ---------------- CVs ---------------- */
-async function pageCvs(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">CVs</h2><div id="cvsTable">Chargement…</div>';
-  try{
-    const { data, error } = await sb.from('cvs').select('id,title,model_id,ats_score,is_public,view_count,download_count,created_at').eq('is_deleted', false).order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('cvsTable').innerHTML = '<table><thead><tr><th>Titre</th><th>Modèle</th><th>ATS</th><th>Public</th><th>Vues</th><th>Téléch.</th><th>Créé</th></tr></thead><tbody>'
-      + data.map(c=>'<tr><td>'+esc(c.title)+'</td><td>'+esc(c.model_id)+'</td><td>'+(c.ats_score ?? '—')+'</td><td>'+(c.is_public?'Oui':'Non')+'</td><td>'+c.view_count+'</td><td>'+c.download_count+'</td><td>'+new Date(c.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
-      + '</tbody></table>';
-  }catch(e){
-    document.getElementById('cvsTable').innerHTML = '<div class="stub">Lecture de "cvs" refusée ou erreur : '+e.message+'<br><br>Ajoutez une policy RLS admin sur "cvs", ou une RPC dédiée (comme get_admin_stats) pour lister tous les CVs.</div>';
-  }
+async function delNote(id){ const { error } = await sb.from('admin_notes').delete().eq('id',id); if(error) return toast(error.message,'bad'); openUser(UD.profile.id,'hist'); }
+function userPlanDialog(){
+  const p=UD.profile;
+  ask('Changer le plan de '+(p.name||p.email),'<div class="row" style="margin-bottom:10px"><select class="f" id="dPlan">'+['free','starter','premium','pro'].map(x=>'<option '+(p.plan===x?'selected':'')+'>'+x+'</option>').join('')+'</select><input class="f" id="dDays" type="number" min="1" value="30" style="width:90px"> <span class="muted small">jours</span></div><input class="f" id="dWhy" style="width:100%" placeholder="Motif (cadeau, geste commercial, correction…)">','Appliquer',async()=>{
+    const ok = await act(()=>rpc('admin_set_plan',{p_user:p.id,p_plan:$('dPlan').value,p_days:parseInt($('dDays').value)||30,p_reason:$('dWhy').value||null}),'Plan mis à jour');
+    if(ok){ openUser(p.id); loadUsers && CURRENT==='users' && loadUsers(); } else return false; });
 }
-
-/* ---------------- Paiements ---------------- */
-async function pagePayments(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Paiements</h2><div id="payTable">Chargement…</div>';
-  try{
-    const { data, error } = await sb.from('payments').select('transaction_id,plan,amount,currency,status,provider,paid_at,created_at').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    const statusColor = { success:'b-premium', pending:'b-starter', failed:'b-pro', refunded:'b-free', disputed:'b-pro', processing:'b-starter' };
-    document.getElementById('payTable').innerHTML = '<table><thead><tr><th>Transaction</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Fournisseur</th><th>Date</th></tr></thead><tbody>'
-      + data.map(p=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(p.transaction_id)+'</td><td>'+esc(p.plan)+'</td><td>'+p.amount.toLocaleString('fr-FR')+' '+esc(p.currency)+'</td><td><span class="badge '+(statusColor[p.status]||'b-free')+'">'+esc(p.status)+'</span></td><td>'+esc(p.provider)+'</td><td>'+new Date(p.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
-      + '</tbody></table>';
-  }catch(e){
-    document.getElementById('payTable').innerHTML = '<div class="stub">Lecture de "payments" refusée ou erreur : '+e.message+'</div>';
-  }
+function userBanDialog(){
+  const p=UD.profile, ban=!p.is_banned;
+  ask((ban?'Bannir ':'Débannir ')+(p.name||p.email), ban?'<input class="f" id="dWhy" style="width:100%" placeholder="Motif du bannissement (obligatoire)">':'Le compte retrouvera l\'accès.', ban?'Bannir':'Débannir', async()=>{
+    if(ban && !($('dWhy').value||'').trim()){ toast('Indiquez un motif','bad'); return false; }
+    const ok = await act(()=>rpc('admin_set_ban',{p_user:p.id,p_banned:ban,p_reason:ban?$('dWhy').value:null}), ban?'Compte banni':'Compte débanni');
+    if(ok){ openUser(p.id); CURRENT==='users' && loadUsers(); refreshCounts(); } else return false; }, ban);
 }
-
-/* ---------------- Feedback ---------------- */
-async function pageFeedback(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Feedback</h2><div id="fbTable">Chargement…</div>';
-  try{
-    const { data, error } = await sb.from('feedback').select('id,type,rating,title,message,status,created_at').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('fbTable').innerHTML = data.map(f=>'<div class="stat-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+'⭐'.repeat(f.rating)+' — '+esc(f.title||f.type)+'</b><span class="badge b-'+(f.status==='approved'?'premium':f.status==='rejected'?'pro':'free')+'">'+esc(f.status)+'</span></div>'
-      + '<p style="font-size:12px;color:var(--ink2);margin:8px 0">'+esc(f.message)+'</p>'
-      + (f.status==='pending' ? '<button class="btn" onclick="moderateFeedback(\''+f.id+'\',\'approved\')">Approuver</button> <button class="btn btn-danger" onclick="moderateFeedback(\''+f.id+'\',\'rejected\')">Rejeter</button>' : '')
-      + '</div>').join('') || '<div class="stub">Aucun feedback.</div>';
-  }catch(e){
-    document.getElementById('fbTable').innerHTML = '<div class="stub">Lecture de "feedback" refusée ou erreur : '+e.message+'</div>';
-  }
+function userResetQuota(){ const p=UD.profile; ask('Réinitialiser les quotas','Remet à zéro les requêtes IA du jour et les exports du compte.','Réinitialiser', async()=>{ const ok=await act(()=>rpc('admin_reset_quota',{p_user:p.id}),'Quotas réinitialisés'); if(ok) openUser(p.id); else return false; }); }
+function userRoleDialog(){
+  const p=UD.profile;
+  ask('Rôle administrateur','<select class="f" id="dRole" style="width:100%"><option value="">Aucun (utilisateur normal)</option>'+Object.keys(RANK).map(r=>'<option value="'+r+'" '+(p.is_admin&&p.admin_role===r?'selected':'')+'>'+ROLE_FR[r]+'</option>').join('')+'</select><p class="muted small">Lecture seule : consulter. Modérateur : modérer CV, avis, tickets, bannir. Administrateur : plans, paiements, réglages. Super-admin : gérer les admins, supprimer des comptes.</p>','Enregistrer',async()=>{
+    const r=$('dRole').value; const ok = await act(()=>rpc('admin_set_admin',{p_user:p.id,p_is_admin:!!r,p_role:r||'moderator'}),'Rôle mis à jour'); if(ok) openUser(p.id); else return false; });
 }
-async function moderateFeedback(id, status){
-  try{ const { error } = await sb.from('feedback').update({ status }).eq('id', id); if(error) throw error; pageFeedback(); }
-  catch(e){ alert('Erreur: '+e.message); }
-}
-
-/* ---------------- Témoignages (avis publics soumis depuis la landing page) ----------------
-   Table "testimonials" : n'importe qui peut en soumettre un (connecté ou non), mais seul un
-   avis status='approved' est visible sur la landing page (voir index.html / RLS "testi_public_read"). */
-let GUEST_ROWS = [];
-function guestRef(n){ return 'G-'+String(n).padStart(5,'0'); }
-async function pageGuests(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 6px">Visiteurs sans compte</h2><p style="color:var(--ink2);font-size:12px;margin:0 0 16px">Chaque visiteur qui exporte un CV (ou dont le CV est enregistré après son accord) reçoit un identifiant unique. Les liens fonctionnent pour vous (session admin) ; ils ne deviennent publics que si la personne partage son CV.</p><div id="guestBox">Chargement…</div>';
-  try{
-    const [pr, cr] = await Promise.all([
-      sb.from('guest_profiles').select('guest_id,ref_no,name,email,phone,address,first_seen,last_seen').order('last_seen',{ascending:false}).limit(500),
-      sb.from('guest_cvs').select('guest_id,token,title,model_id,saves,exports,is_public,updated_at').order('updated_at',{ascending:false}).limit(2000)
-    ]);
-    if(pr.error) throw pr.error; if(cr.error) throw cr.error;
-    const cvsBy = {}; (cr.data||[]).forEach(c=>{ (cvsBy[c.guest_id]=cvsBy[c.guest_id]||[]).push(c); });
-    GUEST_ROWS = (pr.data||[]).map(g=>Object.assign({}, g, { cvs: cvsBy[g.guest_id]||[] }));
-    renderGuests('');
-  }catch(e){
-    document.getElementById('guestBox').innerHTML = '<div class="stub">Lecture refusée ou erreur : '+esc(e.message)+'<br><br>Vérifiez que la migration 20261015000200_guest_tracking.sql a bien été appliquée.</div>';
-  }
-}
-function renderGuests(q){
-  q = (q||'').toLowerCase();
-  const rows = GUEST_ROWS.filter(g=>!q || [g.name,g.email,g.phone,guestRef(g.ref_no)].join(' ').toLowerCase().includes(q));
-  const totCv = GUEST_ROWS.reduce((n,g)=>n+g.cvs.length,0), totExp = GUEST_ROWS.reduce((n,g)=>n+g.cvs.reduce((m,c)=>m+c.exports,0),0), withMail = GUEST_ROWS.filter(g=>g.email).length;
-  const card=(t,v)=>'<div class="stat-card"><div style="font-size:11px;color:var(--ink2)">'+t+'</div><div style="font-size:26px;font-weight:800">'+v+'</div></div>';
-  document.getElementById('guestBox').innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+card('Visiteurs',GUEST_ROWS.length)+card('CV conservés',totCv)+card('Exports',totExp)+card('Avec email',withMail)+'</div>'
-    + '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><input id="guestQ" placeholder="Rechercher nom, email, ID…" value="'+esc(q)+'" oninput="renderGuests(this.value)" style="flex:1;min-width:200px"><button class="btn" onclick="exportGuestsCSV()">⬇️ Export CSV</button></div>'
-    + (rows.map(g=>{
-        const links = g.cvs.map(c=>{ const url = location.origin+'/cv/'+c.token; return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:12px;flex-wrap:wrap"><span>'+esc(c.title||'CV')+' · '+c.exports+' export(s) · '+c.saves+' enreg. · '+(c.is_public?'public':'privé')+'</span><a href="'+url+'" target="_blank" rel="noopener" class="btn" style="text-decoration:none">Ouvrir le lien</a></div>'; }).join('');
-        return '<div class="stat-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+guestRef(g.ref_no)+' — '+esc(g.name||'Sans nom')+'</b><span style="color:var(--ink2);font-size:11px">vu le '+new Date(g.last_seen).toLocaleString('fr-FR')+'</span></div>'
-          + '<div style="font-size:12.5px;color:var(--ink2);margin:6px 0">'+esc(g.email||'—')+' · '+esc(g.phone||'—')+' · '+esc(g.address||'—')+'</div>'+links+'</div>';
-      }).join('') || '<div class="stub">Aucun visiteur pour l\'instant.</div>');
-  const inp = document.getElementById('guestQ'); if(inp && q){ inp.focus(); inp.setSelectionRange(q.length,q.length); }
-}
-function exportGuestsCSV(){
-  const cell = v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  const lines = [['ID','Nom','Email','Téléphone','Adresse','Première visite','Dernière visite','CV','Exports','Liens'].map(cell).join(',')];
-  GUEST_ROWS.forEach(g=>lines.push([guestRef(g.ref_no),g.name,g.email,g.phone,g.address,g.first_seen,g.last_seen,g.cvs.length,g.cvs.reduce((m,c)=>m+c.exports,0),g.cvs.map(c=>location.origin+'/cv/'+c.token).join(' ')].map(cell).join(',')));
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'})); a.download='visiteurs.csv'; a.click();
-}
-async function pageInterest(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Intérêt pour les nouveautés</h2><div id="interestBox">Chargement…</div>';
-  try{
-    const { data, error } = await sb.from('feature_interest').select('feature,email,created_at').order('created_at',{ascending:false}).limit(500);
-    if(error) throw error;
-    const names = { lettre:'✉️ Lettre de motivation', demande:'📝 Demande d\'emploi / stage', import:'📥 Import de CV' };
-    const counts = {}; (data||[]).forEach(r=>{ counts[r.feature]=(counts[r.feature]||0)+1; });
-    const emails = {}; (data||[]).forEach(r=>{ if(!emails[r.email]) emails[r.email]=r.created_at; });
-    document.getElementById('interestBox').innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px">'
-      + Object.keys(names).map(k=>'<div class="stat-card"><div style="font-size:11px;color:var(--ink2)">'+names[k]+'</div><div style="font-size:26px;font-weight:800">'+(counts[k]||0)+'</div></div>').join('')
-      + '</div><h3 style="margin:0 0 10px;font-size:14px">Personnes à prévenir ('+Object.keys(emails).length+')</h3>'
-      + (Object.keys(emails).map(m=>'<div class="stat-card" style="margin-bottom:6px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px"><span>'+esc(m)+'</span><span style="color:var(--ink2);font-size:11px">'+new Date(emails[m]).toLocaleDateString('fr-FR')+'</span></div>').join('') || '<div class="stub">Personne pour l\'instant.</div>');
-  }catch(e){
-    document.getElementById('interestBox').innerHTML = '<div class="stub">Lecture refusée ou erreur : '+e.message+'<br><br>Vérifiez que la migration 20261015000100_feature_interest.sql a bien été appliquée.</div>';
-  }
-}
-async function pageTestimonials(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Témoignages</h2><p style="color:var(--ink2);font-size:12px;margin:-10px 0 18px">Avis soumis depuis la landing page. Seuls les avis « Validé » apparaissent publiquement sur la page d\'accueil.</p><div id="testiAdmin">Chargement…</div>';
-  try{
-    const { data, error } = await sb.from('testimonials').select('id,name,role,message,rating,status,created_at').order('created_at',{ascending:false}).limit(100);
-    if(error) throw error;
-    const order = { pending: 0, approved: 1, rejected: 2 };
-    const sorted = (data||[]).slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9) || new Date(b.created_at)-new Date(a.created_at));
-    const statusLabel = { pending:'En attente', approved:'Validé', rejected:'Rejeté' };
-    const statusBadge = { pending:'b-starter', approved:'b-premium', rejected:'b-pro' };
-    document.getElementById('testiAdmin').innerHTML = sorted.map(t=>{
-      let actions = '';
-      if(t.status==='pending') actions = '<button class="btn" onclick="moderateTestimonial(\''+t.id+'\',\'approved\')">✓ Valider</button> <button class="btn btn-danger" onclick="moderateTestimonial(\''+t.id+'\',\'rejected\')">✕ Rejeter</button>';
-      else if(t.status==='approved') actions = '<button class="btn btn-danger" onclick="moderateTestimonial(\''+t.id+'\',\'rejected\')">Retirer de la page</button>';
-      else actions = '<button class="btn" onclick="moderateTestimonial(\''+t.id+'\',\'approved\')">Republier</button>';
-      actions += ' <button class="btn btn-danger" onclick="deleteTestimonial(\''+t.id+'\')" title="Supprimer définitivement">🗑</button>';
-      return '<div class="stat-card" style="margin-bottom:10px">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-        + '<b>'+(t.rating?'⭐'.repeat(t.rating):'')+' '+esc(t.name)+(t.role?' <span style="color:var(--ink2);font-weight:400">— '+esc(t.role)+'</span>':'')+'</b>'
-        + '<span class="badge '+(statusBadge[t.status]||'b-free')+'">'+(statusLabel[t.status]||t.status)+'</span>'
-        + '</div>'
-        + '<p style="font-size:12.5px;color:var(--ink);margin:10px 0">"'+esc(t.message)+'"</p>'
-        + '<div style="font-size:10.5px;color:var(--ink2);margin-bottom:10px">'+new Date(t.created_at).toLocaleString('fr-FR')+'</div>'
-        + actions
-        + '</div>';
-    }).join('') || '<div class="stub">Aucun témoignage pour l\'instant.</div>';
-  }catch(e){
-    document.getElementById('testiAdmin').innerHTML = '<div class="stub">Lecture de "testimonials" refusée ou erreur : '+e.message+'<br><br>Vérifiez que la migration 20261015000000_testimonials.sql a bien été appliquée.</div>';
-  }
-}
-async function moderateTestimonial(id, status){
-  try{ const { error } = await sb.from('testimonials').update({ status: status, reviewed_at: new Date().toISOString(), reviewed_by: admin.id }).eq('id', id); if(error) throw error; pageTestimonials(); }
-  catch(e){ alert('Erreur: '+e.message); }
-}
-async function deleteTestimonial(id){
-  if(!confirm('Supprimer définitivement ce témoignage ?')) return;
-  try{ const { error } = await sb.from('testimonials').delete().eq('id', id); if(error) throw error; pageTestimonials(); }
-  catch(e){ alert('Erreur: '+e.message); }
+function userDeleteDialog(){
+  const p=UD.profile;
+  ask('Supprimer définitivement ce compte','<p>Cette action supprime <b>'+esc(p.email)+'</b>, ses CV et ses documents. <b>Irréversible.</b></p><input class="f" id="dConf" style="width:100%" placeholder="Tapez SUPPRIMER pour confirmer">','Supprimer',async()=>{
+    if($('dConf').value.trim()!=='SUPPRIMER'){ toast('Tapez SUPPRIMER pour confirmer','bad'); return false; }
+    const ok = await act(()=>rpc('admin_delete_user',{p_user:p.id}),'Compte supprimé'); if(ok){ closeAll(); CURRENT==='users' && loadUsers(); } else return false; }, true);
 }
 
-/* ---------------- Logs IA ---------------- */
-async function pageAiLogs(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Logs IA</h2><div id="aiTable">Chargement…</div>';
+/* ═════════════ CV ═════════════ */
+const CS = { q:'', vis:'all', page:0, size:25 };
+PAGEFN.cvs = function pageCvs(arg){
+  if(arg) Object.assign(CS,{q:'',vis:'all',page:0},arg);
+  $('mainArea').innerHTML = pageHead('CV','Tous les CV créés sur la plateforme')
+    + '<div class="row" style="margin-bottom:12px"><input class="f" style="flex:1;min-width:200px" placeholder="Titre, propriétaire, ID…" value="'+esc(CS.q)+'" oninput="CS.q=this.value;CS.page=0;loadCvsDebounced()"><div class="chips">'+[['all','Tous'],['public','Publics'],['private','Privés'],['deleted','Supprimés']].map(c=>'<span class="chip '+(CS.vis===c[0]?'on':'')+'" onclick="CS.vis=\''+c[0]+'\';CS.page=0;goPage(\'cvs\')">'+c[1]+'</span>').join('')+'</div></div><div id="cBox">'+loading()+'</div>';
+  loadCvs();
+};
+const loadCvsDebounced = debounce(()=>loadCvs(),300);
+async function loadCvs(){
   try{
-    const { data, error } = await sb.from('ai_logs').select('action,provider,model,total_tokens,duration_ms,success,error_message,created_at').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('aiTable').innerHTML = '<table><thead><tr><th>Action</th><th>Provider</th><th>Tokens</th><th>Durée</th><th>Statut</th><th>Date</th></tr></thead><tbody>'
-      + data.map(l=>'<tr><td>'+esc(l.action)+'</td><td>'+esc(l.provider)+'/'+esc(l.model||'—')+'</td><td>'+(l.total_tokens ?? '—')+'</td><td>'+(l.duration_ms ? l.duration_ms+'ms' : '—')+'</td><td>'+(l.success?'<span style="color:var(--ok)">OK</span>':'<span style="color:var(--bad)" title="'+esc(l.error_message||'')+'">Erreur</span>')+'</td><td>'+new Date(l.created_at).toLocaleString('fr-FR')+'</td></tr>').join('')
-      + '</tbody></table>';
-  }catch(e){
-    document.getElementById('aiTable').innerHTML = '<div class="stub">Lecture de "ai_logs" refusée ou erreur : '+e.message+'</div>';
-  }
+    const r = await rpc('admin_list_cvs',{p_q:CS.q,p_vis:CS.vis,p_limit:CS.size,p_offset:CS.page*CS.size});
+    $('cBox').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Titre</th><th>Propriétaire</th><th>Modèle</th><th>ATS</th><th>Vues</th><th>Téléch.</th><th>MAJ</th><th></th></tr></thead><tbody>'
+      + (r.rows.map(c=>'<tr class="clk" onclick="openCv(\''+c.id+'\')"><td><b>'+esc(c.title)+'</b>'+(c.is_public?' <span class="badge b-ok">public</span>':'')+(c.is_deleted?' <span class="badge b-bad">supprimé</span>':'')+'</td><td class="muted">'+esc(c.owner_email||'—')+'</td><td>'+esc(c.model_id)+'</td><td>'+(c.ats_score??'—')+'</td><td>'+nf(c.view_count)+'</td><td>'+nf(c.download_count)+'</td><td class="muted">'+ago(c.updated_at)+'</td><td><button class="btn sm">Ouvrir</button></td></tr>').join('')||'<tr><td colspan="8" class="muted" style="text-align:center;padding:26px">Aucun CV.</td></tr>')
+      + '</tbody></table></div>'+pager(r.total,CS.page,CS.size,'cvsPage');
+  }catch(e){ $('cBox').innerHTML = errBox(e); }
+}
+function cvsPage(p){ CS.page=p; loadCvs(); }
+function cvPreviewHtml(cv){
+  const d=cv.data||{}, p=d.p||{}, L=(a)=>Array.isArray(a)?a:[];
+  const line=(t,s)=>'<div style="margin-bottom:6px"><b>'+esc(t||'')+'</b>'+(s?' <span style="color:#555">— '+esc(s)+'</span>':'')+'</div>';
+  return '<div class="cv-prev"><h1>'+esc(p.name||'(sans nom)')+'</h1><div style="color:#555">'+esc(p.role||'')+'</div><div style="color:#777;font-size:11px">'+[p.email,p.phone,p.address].filter(Boolean).map(esc).join(' · ')+'</div>'
+    +(p.summary?'<h4>Profil</h4><div>'+esc(p.summary)+'</div>':'')
+    +(L(d.exp).length?'<h4>Expériences</h4>'+L(d.exp).map(e=>line(e.role||e.title,[e.company,e.start&&(e.start+' – '+(e.end||'')) ].filter(Boolean).join(' · '))).join(''):'')
+    +(L(d.edu).length?'<h4>Formation</h4>'+L(d.edu).map(e=>line(e.degree||e.title,[e.school,e.year].filter(Boolean).join(' · '))).join(''):'')
+    +(L(d.sk).length?'<h4>Compétences</h4><div>'+L(d.sk).map(x=>esc(x.name||x)).join(' · ')+'</div>':'')
+    +(L(d.lang).length?'<h4>Langues</h4><div>'+L(d.lang).map(x=>esc(x.name||x)+(x.level?' ('+esc(x.level)+')':'')).join(' · ')+'</div>':'')+'</div>';
+}
+async function openCv(id){
+  closeAll(); openDrawer('CV', loading());
+  try{
+    const c = await rpc('admin_get_cv',{p_id:id}); if(!c){ $('drawerBody').innerHTML='<div class="stub">CV introuvable.</div>'; return; }
+    $('drawerTitle').textContent = c.title;
+    const url = c.share_token ? location.origin+'/cv/'+c.share_token : '';
+    $('drawerBody').innerHTML = '<dl class="kv"><dt>Propriétaire</dt><dd><a style="cursor:pointer" onclick="openUser(\''+c.user_id+'\')">'+esc(c.owner_email||'—')+'</a></dd><dt>Modèle</dt><dd>'+esc(c.model_id)+' · ATS '+(c.ats_score??'—')+'</dd><dt>Visibilité</dt><dd>'+(c.is_public?'<span class="badge b-ok">Public</span> '+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(url)+'</a>':''):'Privé')+'</dd><dt>Vues / téléch.</dt><dd>'+nf(c.view_count)+' / '+nf(c.download_count)+'</dd><dt>Créé / modifié</dt><dd>'+fdt(c.created_at)+' · '+fdt(c.updated_at)+'</dd></dl>'
+      +'<div class="row" style="margin:14px 0">'+(c.is_public?'<button class="btn" '+(can(2)?'':'disabled')+' onclick="cvAction(\''+id+'\',\'unpublish\')">Dépublier</button>':'')
+      +(c.is_deleted?'<button class="btn ok" '+(can(2)?'':'disabled')+' onclick="cvAction(\''+id+'\',\'restore\')">Restaurer</button>':'<button class="btn danger" '+(can(2)?'':'disabled')+' onclick="cvAction(\''+id+'\',\'delete\')">Supprimer (modération)</button>')+'</div>'
+      + cvPreviewHtml(c);
+  }catch(e){ $('drawerBody').innerHTML = errBox(e); }
+}
+function cvAction(id, action){
+  const lab={unpublish:'Dépublier ce CV',delete:'Supprimer ce CV',restore:'Restaurer ce CV'}[action];
+  ask(lab,'<input class="f" id="dWhy" style="width:100%" placeholder="Motif (enregistré dans le journal)">','Confirmer',async()=>{ const ok=await act(()=>rpc('admin_cv_action',{p_id:id,p_action:action,p_reason:$('dWhy').value||null}),'Fait'); if(ok){ openCv(id); CURRENT==='cvs'&&loadCvs(); } else return false; }, action==='delete');
 }
 
-/* ---------------- Paramètres ---------------- */
-async function pageSettings(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Paramètres — Administrateurs</h2><div id="admList">Chargement…</div>';
+/* ═════════════ PAIEMENTS ═════════════ */
+const PS = { q:'', status:'all', from:'', to:'', page:0, size:25 };
+PAGEFN.payments = function pagePayments(arg){
+  if(arg) Object.assign(PS,{q:'',status:'all',from:'',to:'',page:0},arg);
+  $('mainArea').innerHTML = pageHead('Paiements','Transactions CinetPay et activations manuelles','<button class="btn" onclick="exportPaymentsCsv()">⬇ Export CSV</button>')
+    + '<div class="row" style="margin-bottom:12px"><input class="f" style="flex:1;min-width:180px" placeholder="Transaction, email, téléphone…" value="'+esc(PS.q)+'" oninput="PS.q=this.value;PS.page=0;loadPaymentsDebounced()">'
+    + '<select class="f" onchange="PS.status=this.value;PS.page=0;loadPayments()">'+['all','success','pending','processing','failed','refunded','disputed'].map(s=>'<option value="'+s+'" '+(PS.status===s?'selected':'')+'>'+(s==='all'?'Tous statuts':s)+'</option>').join('')+'</select>'
+    + '<input class="f" type="date" value="'+PS.from+'" onchange="PS.from=this.value;PS.page=0;loadPayments()" title="Du"><input class="f" type="date" value="'+PS.to+'" onchange="PS.to=this.value;PS.page=0;loadPayments()" title="Au"></div><div id="pBox">'+loading()+'</div>';
+  loadPayments();
+};
+const loadPaymentsDebounced = debounce(()=>loadPayments(),300);
+function payArgs(limit,off){ return {p_q:PS.q,p_status:PS.status,p_from:PS.from||null,p_to:PS.to||null,p_limit:limit,p_offset:off}; }
+async function loadPayments(){
   try{
-    const { data, error } = await sb.from('profiles').select('email,name,admin_role').eq('is_admin', true);
-    if(error) throw error;
-    document.getElementById('admList').innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th></tr></thead><tbody>'
-      + data.map(a=>'<tr><td>'+esc(a.name||'—')+'</td><td>'+esc(a.email)+'</td><td>'+esc(a.admin_role||'admin')+'</td></tr>').join('')
-      + '</tbody></table><p style="color:var(--ink2);font-size:11.5px;margin-top:14px">Pour ajouter un admin: <code>UPDATE profiles SET is_admin=true WHERE email=\'...\'</code> (via SQL editor Supabase, jamais depuis cette page côté client).</p>';
-  }catch(e){
-    document.getElementById('admList').innerHTML = '<div class="stub">Erreur: '+e.message+'</div>';
-  }
+    const r = await rpc('admin_list_payments',payArgs(PS.size,PS.page*PS.size));
+    $('pBox').innerHTML = '<div class="grid g3" style="margin-bottom:12px"><div class="kpi"><div class="l">Transactions (filtre)</div><div class="v">'+nf(r.total)+'</div></div><div class="kpi"><div class="l">Encaissé (filtre)</div><div class="v">'+money(r.sum_success)+'</div></div><div class="kpi"><div class="l">Panier moyen</div><div class="v">'+(r.rows.filter(x=>x.status==='success').length?money(Math.round(r.rows.filter(x=>x.status==='success').reduce((a,b)=>a+b.amount,0)/r.rows.filter(x=>x.status==='success').length)):'—')+'</div></div></div>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Transaction</th><th>Utilisateur</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Moyen</th><th>Date</th><th></th></tr></thead><tbody>'
+      + (r.rows.map(p=>'<tr><td class="mono">'+esc(p.transaction_id)+'</td><td>'+(p.user_id?'<a style="cursor:pointer" onclick="openUser(\''+p.user_id+'\')">'+esc(p.user_email||'—')+'</a>':'—')+'</td><td>'+planBadge(p.plan)+'</td><td>'+nf(p.amount)+' '+esc(p.currency)+'</td><td>'+statusBadge(p.status)+'</td><td class="muted small">'+esc(p.payment_method||p.provider||'')+'</td><td class="muted">'+fdt(p.created_at)+'</td><td>'+(can(3)?'<button class="btn sm" onclick="payDialog(\''+p.id+'\',\''+esc(p.transaction_id)+'\',\''+p.status+'\')">Actions</button>':'')+'</td></tr>').join('')||'<tr><td colspan="8" class="muted" style="text-align:center;padding:26px">Aucun paiement.</td></tr>')
+      + '</tbody></table></div>'+pager(r.total,PS.page,PS.size,'paymentsPage');
+  }catch(e){ $('pBox').innerHTML = errBox(e); }
+}
+function paymentsPage(p){ PS.page=p; loadPayments(); }
+async function exportPaymentsCsv(){
+  const r = await act(()=>rpc('admin_list_payments',payArgs(500,0))); if(!r) return;
+  csvDownload('paiements',['Transaction','Email','Plan','Montant','Devise','Statut','Fournisseur','Moyen','Téléphone','Pays','Payé le','Créé le'], r.rows.map(p=>[p.transaction_id,p.user_email,p.plan,p.amount,p.currency,p.status,p.provider,p.payment_method,p.phone,p.country,p.paid_at,p.created_at]));
+  if(r.total>500) toast('Export limité à 500 lignes sur '+r.total+'. Filtrez par date.');
+}
+function payDialog(id, tx, status){
+  openModal('<h3>Transaction '+esc(tx)+'</h3><p class="muted small">Statut actuel : '+statusBadge(status)+'. Toute action est enregistrée dans le journal d\'audit.</p>'
+    +'<div class="row" style="margin-bottom:10px"><span class="small muted">Durée si activation :</span><input class="f" id="dDays" type="number" value="30" min="1" style="width:90px"> <span class="small muted">jours</span></div>'
+    +'<div class="row">'+(status!=='success'?'<button class="btn ok" onclick="payAct(\''+id+'\',\'mark_success\')">✓ Marquer réussi &amp; activer le plan</button>':'')+(status==='success'?'<button class="btn danger" onclick="payAct(\''+id+'\',\'refund\')">↩ Rembourser &amp; rétrograder</button>':'')+(status==='pending'||status==='processing'?'<button class="btn danger" onclick="payAct(\''+id+'\',\'mark_failed\')">✕ Marquer échoué</button>':'')+'</div><div class="acts"><button class="btn" onclick="closeAll()">Fermer</button></div>');
+}
+async function payAct(id, action){
+  const days = parseInt(($('dDays')||{}).value)||30;
+  if(!confirm('Confirmer cette action sur la transaction ?')) return;
+  const ok = await act(()=>rpc('admin_payment_action',{p_id:id,p_action:action,p_days:days}),'Paiement mis à jour');
+  if(ok){ closeAll(); loadPayments(); refreshCounts(); }
 }
 
-/* ---------------- Licences ---------------- */
-function pageLicenses(){
-  document.getElementById('mainArea').innerHTML = '<h2 style="margin:0 0 18px">Licences</h2>'
-    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-    + '<select id="licPlan" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select>'
-    + '<input id="licCount" type="number" value="1" min="1" max="100" title="Nombre de clés" style="width:80px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
-    + '<input id="licDays" type="number" value="30" min="1" title="Durée (jours)" style="width:80px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
-    + '<input id="licNote" placeholder="Note (ex: revendeur Lomé)" style="flex:1;min-width:140px;padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff">'
-    + '<button class="btn" onclick="genLicenses()">Générer et enregistrer</button></div>'
-    + '<div style="font-size:11px;color:var(--ink2);margin-bottom:10px">Nombre · durée en jours · note. Les clés sont enregistrées en base : copiez-les maintenant.</div>'
-    + '<div id="licOut" style="font-family:monospace;font-size:12px;color:var(--ok);white-space:pre-line;margin-bottom:22px"></div>'
-    + '<div id="licList">Chargement…</div>';
+/* ═════════════ LICENCES ═════════════ */
+let LICS = [];
+PAGEFN.licenses = function pageLicenses(){
+  const st='';
+  $('mainArea').innerHTML = pageHead('Licences','Clés d\'activation prépayées (revendeurs, cadeaux, concours)')
+    + (can(3)?'<div class="card" style="margin-bottom:14px"><h3>Générer des clés</h3><div class="row"><select class="f" id="licPlan"><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select><input class="f" id="licCount" type="number" value="1" min="1" max="100" title="Nombre" style="width:80px"><input class="f" id="licDays" type="number" value="30" min="1" title="Durée (jours)" style="width:90px"><input class="f" id="licNote" placeholder="Note (ex : revendeur Lomé)" style="flex:1;min-width:160px"><button class="btn pri" onclick="genLicenses()">Générer</button></div><div class="muted small" style="margin:8px 0">Nombre · durée en jours · note. Les clés sont enregistrées en base.</div><div id="licOut" class="mono" style="color:var(--ok);white-space:pre-line"></div></div>':'')
+    + '<div class="row" style="margin-bottom:10px"><div class="chips" id="licChips">'+[['all','Toutes'],['active','Actives'],['used','Utilisées'],['revoked','Révoquées']].map(c=>'<span class="chip '+(c[0]===LIC_F?'on':'')+'" onclick="LIC_F=\''+c[0]+'\';goPage(\'licenses\')">'+c[1]+'</span>').join('')+'</div><button class="btn" onclick="exportLicCsv()">⬇ Export CSV</button></div><div id="licList">'+loading()+'</div>';
   loadLicenses();
-}
-function randKey(plan){
-  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b=new Uint8Array(12); crypto.getRandomValues(b);
-  return 'SC-'+plan.toUpperCase()+'-'+Array.from(b,function(x){ return A[x%A.length]; }).join('');
-}
+};
+let LIC_F = 'all';
+function randKey(plan){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b=new Uint8Array(12); crypto.getRandomValues(b); return 'SC-'+plan.toUpperCase()+'-'+Array.from(b,x=>A[x%A.length]).join(''); }
 async function genLicenses(){
-  const plan = document.getElementById('licPlan').value;
-  const n = Math.max(1, Math.min(100, parseInt(document.getElementById('licCount').value)||1));
-  const days = Math.max(1, parseInt(document.getElementById('licDays').value)||30);
-  const note = document.getElementById('licNote').value.trim() || null;
-  const rows = Array.from({length:n}, function(){ return { key: randKey(plan), plan: plan, duration_days: days, max_uses: 1, created_by: admin.id, note: note }; });
-  try{
-    const { error } = await sb.from('license_keys').insert(rows);
-    if(error) throw error;
-    document.getElementById('licOut').textContent = rows.map(function(r){ return r.key; }).join('\n');
-    loadLicenses();
-  }catch(e){ document.getElementById('licOut').style.color='var(--bad)'; document.getElementById('licOut').textContent = 'Erreur : '+e.message; }
+  const plan=$('licPlan').value, n=Math.max(1,Math.min(100,parseInt($('licCount').value)||1)), days=Math.max(1,parseInt($('licDays').value)||30), note=$('licNote').value.trim()||null;
+  const rows=Array.from({length:n},()=>({key:randKey(plan),plan,duration_days:days,max_uses:1,created_by:admin.id,note}));
+  const { error } = await sb.from('license_keys').insert(rows);
+  if(error) return toast(error.message,'bad');
+  await sb.rpc('admin_log',{p_action:'license.generate',p_type:'license',p_id:null,p_data:{plan,count:n,days,note}});
+  $('licOut').textContent = rows.map(r=>r.key).join('\n'); toast(n+' clé(s) générée(s)','ok'); loadLicenses();
 }
 async function loadLicenses(){
   try{
-    const { data, error } = await sb.from('license_keys').select('key,plan,duration_days,status,used_at,note,created_at').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('licList').innerHTML = '<table><thead><tr><th>Clé</th><th>Plan</th><th>Durée</th><th>Statut</th><th>Note</th><th></th></tr></thead><tbody>'
-      + data.map(function(k){ return '<tr><td style="font-family:monospace;font-size:11px">'+esc(k.key)+'</td><td>'+esc(k.plan)+'</td><td>'+k.duration_days+' j</td><td>'+esc(k.status)+'</td><td>'+esc(k.note||'')+'</td><td>'+(k.status==='active'?'<button class="btn btn-danger" onclick="revokeLicense(\''+esc(k.key)+'\')">Révoquer</button>':'')+'</td></tr>'; }).join('')
-      + '</tbody></table>';
-  }catch(e){ document.getElementById('licList').innerHTML = '<div class="stub">Erreur : '+esc(e.message)+'</div>'; }
+    let q = sb.from('license_keys').select('key,plan,duration_days,status,used_at,used_by,note,created_at').order('created_at',{ascending:false}).limit(300);
+    if(LIC_F!=='all') q=q.eq('status',LIC_F);
+    const { data, error } = await q; if(error) throw error; LICS=data;
+    const users = {}; const ids=[...new Set(data.map(k=>k.used_by).filter(Boolean))];
+    if(ids.length){ const u=await sb.from('profiles').select('id,email').in('id',ids); (u.data||[]).forEach(x=>users[x.id]=x.email); }
+    $('licList').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Clé</th><th>Plan</th><th>Durée</th><th>Statut</th><th>Utilisée par</th><th>Note</th><th>Créée</th><th></th></tr></thead><tbody>'
+      + (data.map(k=>'<tr><td class="mono">'+esc(k.key)+' <button class="btn sm" onclick="navigator.clipboard.writeText(\''+esc(k.key)+'\');toast(\'Copié\',\'ok\')">⧉</button></td><td>'+planBadge(k.plan)+'</td><td>'+k.duration_days+' j</td><td>'+statusBadge(k.status)+'</td><td class="muted small">'+(k.used_by?esc(users[k.used_by]||k.used_by)+'<br>'+fdate(k.used_at):'—')+'</td><td class="muted small">'+esc(k.note||'')+'</td><td class="muted small">'+fdate(k.created_at)+'</td><td>'+(can(3)&&k.status==='active'?'<button class="btn sm danger" onclick="revokeLicense(\''+esc(k.key)+'\')">Révoquer</button>':'')+'</td></tr>').join('')||'<tr><td colspan="8" class="muted" style="text-align:center;padding:26px">Aucune clé.</td></tr>')
+      + '</tbody></table></div>';
+  }catch(e){ $('licList').innerHTML = errBox(e); }
 }
-async function revokeLicense(key){
-  if(!confirm('Révoquer cette clé ?')) return;
-  const { error } = await sb.from('license_keys').update({ status:'revoked' }).eq('key', key);
-  if(error) alert('Erreur : '+error.message); else loadLicenses();
-}
+function exportLicCsv(){ csvDownload('licences',['Clé','Plan','Durée (j)','Statut','Utilisée le','Note','Créée'], LICS.map(k=>[k.key,k.plan,k.duration_days,k.status,k.used_at,k.note,k.created_at])); }
+function revokeLicense(key){ ask('Révoquer cette clé','<span class="mono">'+esc(key)+'</span>','Révoquer',async()=>{ const { error } = await sb.from('license_keys').update({status:'revoked'}).eq('key',key); if(error){ toast(error.message,'bad'); return false; } sb.rpc('admin_log',{p_action:'license.revoke',p_type:'license',p_id:key}); toast('Clé révoquée','ok'); loadLicenses(); }, true); }
 
-/* ---------------- Support (réutilise le même schéma realtime que l'app) ---------------- */
-async function pageSupport(){
-  const el = document.getElementById('mainArea');
-  el.innerHTML = '<h2 style="margin:0 0 18px">Support — Tickets</h2><div id="ticketsAdmin">Chargement…</div>';
+/* ═════════════ SUPPORT ═════════════ */
+const TS = { status:'active', priority:'all', q:'', page:0, size:25 };
+const CANNED = [
+  ['Accusé de réception','Bonjour, merci pour votre message. Nous avons bien reçu votre demande et revenons vers vous très rapidement.'],
+  ['Demande de précisions','Bonjour, pour mieux vous aider, pourriez-vous préciser l\'appareil (téléphone/ordinateur), le navigateur utilisé et décrire les étapes qui mènent au problème ? Une capture d\'écran serait idéale.'],
+  ['Paiement : vérification','Bonjour, nous vérifions votre paiement auprès de l\'opérateur. Pouvez-vous nous indiquer le numéro de transaction et le numéro utilisé pour payer ? Votre plan sera activé dès confirmation.'],
+  ['Problème résolu','Bonjour, le problème est maintenant corrigé. N\'hésitez pas à actualiser la page. Si cela persiste, répondez simplement à ce message.'],
+  ['CV non synchronisé','Bonjour, connectez-vous avec le même compte sur les deux appareils, ouvrez l\'application et patientez quelques secondes : vos CV se synchronisent automatiquement. Vérifiez que vous utilisez bien la dernière version de l\'application.']
+];
+PAGEFN.support = function pageSupport(arg){
+  if(arg) Object.assign(TS,{status:'active',priority:'all',q:'',page:0},arg);
+  $('mainArea').innerHTML = pageHead('Support','Tickets des utilisateurs')
+    + '<div class="row" style="margin-bottom:12px"><input class="f" style="flex:1;min-width:180px" placeholder="Sujet, n° ticket, email…" value="'+esc(TS.q)+'" oninput="TS.q=this.value;TS.page=0;loadTicketsDebounced()">'
+    + '<div class="chips">'+[['active','En cours'],['open','Ouverts'],['waiting_user','En attente client'],['resolved','Résolus'],['closed','Fermés'],['all','Tous']].map(c=>'<span class="chip '+(TS.status===c[0]?'on':'')+'" onclick="TS.status=\''+c[0]+'\';TS.page=0;goPage(\'support\')">'+c[1]+'</span>').join('')+'</div>'
+    + '<select class="f" onchange="TS.priority=this.value;TS.page=0;loadTickets()">'+[['all','Toutes priorités'],['urgent','Urgent'],['high','Haute'],['normal','Normale'],['low','Basse']].map(s=>'<option value="'+s[0]+'" '+(TS.priority===s[0]?'selected':'')+'>'+s[1]+'</option>').join('')+'</select></div><div id="tBox">'+loading()+'</div>';
+  loadTickets();
+};
+const loadTicketsDebounced = debounce(()=>loadTickets(),300);
+async function loadTickets(){
   try{
-    const { data, error } = await sb.from('support_tickets').select('*').order('created_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    document.getElementById('ticketsAdmin').innerHTML = '<table><thead><tr><th>Sujet</th><th>Statut</th><th>Créé</th></tr></thead><tbody>'
-      + data.map(t=>'<tr><td>'+esc(t.subject)+'</td><td><span class="badge b-starter">'+esc(t.status)+'</span></td><td>'+new Date(t.created_at).toLocaleDateString('fr-FR')+'</td></tr>').join('')
-      + '</tbody></table>';
-  }catch(e){
-    document.getElementById('ticketsAdmin').innerHTML = '<div class="stub">Erreur ou RLS bloquant la lecture admin de "support_tickets" : '+e.message+'</div>';
-  }
+    const r = await rpc('admin_list_tickets',{p_status:TS.status,p_priority:TS.priority,p_q:TS.q,p_limit:TS.size,p_offset:TS.page*TS.size});
+    const pri={urgent:'b-bad',high:'b-warn',normal:'',low:''};
+    $('tBox').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Ticket</th><th>Utilisateur</th><th>Priorité</th><th>Statut</th><th>Msg</th><th>Dernière activité</th></tr></thead><tbody>'
+      + (r.rows.map(t=>'<tr class="clk" onclick="openTicket(\''+t.id+'\')"><td><b>'+esc(t.subject)+'</b><br><span class="muted small mono">'+esc(t.ticket_no)+' · '+esc(t.category)+'</span></td><td class="muted">'+esc(t.user_email||'—')+(t.user_plan?'<br>'+planBadge(t.user_plan):'')+'</td><td><span class="badge '+(pri[t.priority]||'')+'">'+esc(t.priority)+'</span></td><td>'+statusBadge(t.status)+'</td><td>'+nf(t.msg_count)+(t.unread?' <span class="badge b-bad">'+t.unread+' non lu</span>':'')+'</td><td class="muted">'+ago(t.updated_at)+'</td></tr>').join('')||'<tr><td colspan="6" class="muted" style="text-align:center;padding:26px">Aucun ticket.</td></tr>')
+      + '</tbody></table></div>'+pager(r.total,TS.page,TS.size,'ticketsPage');
+  }catch(e){ $('tBox').innerHTML = errBox(e); }
+}
+function ticketsPage(p){ TS.page=p; loadTickets(); }
+let TK = null;
+async function openTicket(id){
+  closeAll(); openDrawer('Ticket', loading());
+  try{ TK = await rpc('admin_ticket_thread',{p_id:id}); renderTicket(); refreshCounts(); }catch(e){ $('drawerBody').innerHTML = errBox(e); }
+}
+function renderTicket(){
+  const t=TK.ticket; $('drawerTitle').textContent = t.ticket_no+' — '+t.subject;
+  $('drawerBody').innerHTML = '<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="small muted">De <a style="cursor:pointer" onclick="openUser(\''+t.user_id+'\')">'+esc(t.user_email||'—')+'</a> · '+fdt(t.created_at)+'</span><span>'+statusBadge(t.status)+' <span class="badge">'+esc(t.priority)+'</span></span></div>'
+    + (can(2)?'<div class="row" style="margin-bottom:12px"><select class="f" id="tkSt" onchange="tkUpdate({p_status:this.value})">'+['open','in_progress','waiting_user','resolved','closed'].map(s=>'<option '+(t.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select><select class="f" onchange="tkUpdate({p_priority:this.value})">'+['low','normal','high','urgent'].map(s=>'<option '+(t.priority===s?'selected':'')+'>'+s+'</option>').join('')+'</select><button class="btn sm" onclick="tkUpdate({p_assign_me:true})">Me l\'assigner</button></div>':'')
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'+TK.messages.map(m=>'<div class="bubble '+(m.sender_type==='admin'?'b-admin':'b-user')+'">'+esc(m.content)+'<div class="small" style="opacity:.65;margin-top:4px">'+(m.sender_type==='admin'?'Équipe':esc(m.sender_email||'Utilisateur'))+' · '+fdt(m.created_at)+'</div></div>').join('')+'</div>'
+    + (can(2)?'<select class="f" style="width:100%;margin-bottom:6px" onchange="if(this.value!==\'\'){ $(\'tkMsg\').value=CANNED[this.value][1]; this.value=\'\'; }"><option value="">⚡ Réponse rapide…</option>'+CANNED.map((c,i)=>'<option value="'+i+'">'+esc(c[0])+'</option>').join('')+'</select><textarea class="f" id="tkMsg" placeholder="Votre réponse à l\'utilisateur…"></textarea><div class="row" style="margin:8px 0 18px"><button class="btn pri" onclick="tkReply(\'waiting_user\')">Envoyer</button><button class="btn ok" onclick="tkReply(\'resolved\')">Envoyer &amp; résoudre</button></div>':'')
+    + '<h4 style="margin:6px 0 8px">Notes internes <span class="muted small">(invisibles pour l\'utilisateur)</span></h4>'
+    + (can(2)?'<div class="row" style="margin-bottom:8px"><input class="f" id="noteIn" style="flex:1" placeholder="Ajouter une note…" onkeydown="if(event.key===\'Enter\')addNote(\'ticket\',\''+t.id+'\')"><button class="btn" onclick="addNote(\'ticket\',\''+t.id+'\')">Ajouter</button></div>':'')
+    + (TK.notes.map(n=>'<div class="list-item"><span>'+esc(n.note)+'<br><span class="muted small">'+esc(n.admin_email||'')+' · '+fdt(n.created_at)+'</span></span></div>').join('')||'<div class="muted small">Aucune note.</div>');
+}
+async function tkUpdate(args){ const ok = await act(()=>rpc('admin_ticket_update',Object.assign({p_id:TK.ticket.id},args)),'Ticket mis à jour'); if(ok){ openTicket(TK.ticket.id); CURRENT==='support'&&loadTickets(); } }
+async function tkReply(status){
+  const v=($('tkMsg').value||'').trim(); if(!v) return toast('Écrivez un message','bad');
+  const ok = await act(()=>rpc('admin_ticket_reply',{p_id:TK.ticket.id,p_content:v,p_status:status}),'Réponse envoyée');
+  if(ok){ if(status==='resolved') await rpc('admin_ticket_update',{p_id:TK.ticket.id,p_status:'resolved'}); openTicket(TK.ticket.id); CURRENT==='support'&&loadTickets(); }
 }
 
-/* ---------------- Broadcast ---------------- */
-function pageBroadcast(){
-  const st='width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#0F172A;color:#fff;margin-bottom:10px';
-  document.getElementById('mainArea').innerHTML = '<h2 style="margin:0 0 18px">Broadcast</h2>'
-    + '<input id="bcTitle" placeholder="Titre" maxlength="80" style="'+st+'">'
-    + '<textarea id="bcMsg" placeholder="Message affiché à tous les utilisateurs connectés…" maxlength="400" style="'+st+';min-height:90px"></textarea>'
-    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
-    + '<select id="bcType" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="info">Information</option><option value="success">Bonne nouvelle</option><option value="warning">Avertissement</option><option value="maintenance">Maintenance</option></select>'
-    + '<select id="bcTarget" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:#0F172A;color:#fff"><option value="all">Tous</option><option value="free">Gratuit</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select>'
-    + '<button class="btn" onclick="sendBroadcast()">Publier</button></div><div id="bcMsgOut" style="font-size:12px;color:var(--ok);margin-bottom:20px"></div>'
-    + '<div id="bcList">Chargement…</div>';
+/* ═════════════ AVIS & TÉMOIGNAGES ═════════════ */
+let MOD_TAB='testimonials', MOD_F='pending';
+PAGEFN.moderation = function pageModeration(arg){
+  if(arg && arg.tab) MOD_TAB=arg.tab;
+  $('mainArea').innerHTML = pageHead('Avis & témoignages','Seuls les témoignages « validés » s\'affichent sur la page d\'accueil')
+    + '<div class="tabs"><button class="'+(MOD_TAB==='testimonials'?'on':'')+'" onclick="MOD_TAB=\'testimonials\';goPage(\'moderation\')">🗣️ Témoignages'+(CNT.testimonials_pending?' ('+CNT.testimonials_pending+')':'')+'</button><button class="'+(MOD_TAB==='feedback'?'on':'')+'" onclick="MOD_TAB=\'feedback\';goPage(\'moderation\')">⭐ Feedback'+(CNT.feedback_pending?' ('+CNT.feedback_pending+')':'')+'</button></div>'
+    + '<div class="chips" style="margin-bottom:12px">'+[['pending','En attente'],['approved','Validés'],['rejected','Rejetés'],['all','Tous']].map(c=>'<span class="chip '+(MOD_F===c[0]?'on':'')+'" onclick="MOD_F=\''+c[0]+'\';goPage(\'moderation\')">'+c[1]+'</span>').join('')+'</div><div id="modBox">'+loading()+'</div>';
+  MOD_TAB==='testimonials' ? loadTestimonials() : loadFeedback();
+};
+async function loadTestimonials(){
+  try{
+    let q=sb.from('testimonials').select('id,name,role,message,rating,status,created_at').order('created_at',{ascending:false}).limit(200); if(MOD_F!=='all') q=q.eq('status',MOD_F);
+    const { data, error } = await q; if(error) throw error;
+    $('modBox').innerHTML = data.map(t=>{
+      let a='';
+      if(can(2)){ if(t.status!=='approved') a+='<button class="btn ok" onclick="modTesti(\''+t.id+'\',\'approved\')">✓ Valider</button> '; if(t.status!=='rejected') a+='<button class="btn danger" onclick="modTesti(\''+t.id+'\',\'rejected\')">✕ Rejeter</button> '; }
+      if(can(3)) a+='<button class="btn sm danger" onclick="delTesti(\''+t.id+'\')" title="Supprimer définitivement">🗑</button>';
+      return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+(t.rating?'⭐'.repeat(t.rating)+' ':'')+esc(t.name)+(t.role?' <span class="muted" style="font-weight:400">— '+esc(t.role)+'</span>':'')+'</b>'+statusBadge(t.status)+'</div><p style="margin:10px 0">« '+esc(t.message)+' »</p><div class="muted small" style="margin-bottom:10px">'+fdt(t.created_at)+'</div>'+a+'</div>'; }).join('') || '<div class="stub">Aucun témoignage dans cette catégorie.</div>';
+  }catch(e){ $('modBox').innerHTML = errBox(e); }
+}
+async function modTesti(id,status){ const { error } = await sb.from('testimonials').update({status,reviewed_at:new Date().toISOString(),reviewed_by:admin.id}).eq('id',id); if(error) return toast(error.message,'bad'); sb.rpc('admin_log',{p_action:'testimonial.'+status,p_type:'testimonial',p_id:id}); toast(status==='approved'?'Témoignage publié':'Témoignage rejeté','ok'); refreshCounts(); loadTestimonials(); }
+function delTesti(id){ ask('Supprimer ce témoignage','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('testimonials').delete().eq('id',id); if(error){ toast(error.message,'bad'); return false; } sb.rpc('admin_log',{p_action:'testimonial.delete',p_type:'testimonial',p_id:id}); loadTestimonials(); },true); }
+async function loadFeedback(){
+  try{
+    let q=sb.from('feedback').select('id,type,rating,title,message,status,admin_note,created_at').order('created_at',{ascending:false}).limit(200); if(MOD_F!=='all') q=q.eq('status',MOD_F);
+    const { data, error } = await q; if(error) throw error;
+    $('modBox').innerHTML = data.map(f=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+'⭐'.repeat(f.rating)+' '+esc(f.title||f.type)+' <span class="badge">'+esc(f.type)+'</span></b>'+statusBadge(f.status)+'</div><p style="margin:10px 0">'+esc(f.message)+'</p><div class="muted small" style="margin-bottom:10px">'+fdt(f.created_at)+'</div>'+(can(2)?(f.status!=='approved'?'<button class="btn ok" onclick="modFb(\''+f.id+'\',\'approved\')">Approuver</button> ':'')+(f.status!=='rejected'?'<button class="btn danger" onclick="modFb(\''+f.id+'\',\'rejected\')">Rejeter</button>':''):'')+'</div>').join('') || '<div class="stub">Aucun feedback dans cette catégorie.</div>';
+  }catch(e){ $('modBox').innerHTML = errBox(e); }
+}
+async function modFb(id,status){ const { error } = await sb.from('feedback').update({status}).eq('id',id); if(error) return toast(error.message,'bad'); sb.rpc('admin_log',{p_action:'feedback.'+status,p_type:'feedback',p_id:id}); refreshCounts(); loadFeedback(); }
+
+/* ═════════════ VISITEURS SANS COMPTE ═════════════ */
+let GUEST_ROWS = [], GQ = '';
+const guestRef = n => 'G-'+String(n).padStart(5,'0');
+PAGEFN.guests = async function pageGuests(){
+  $('mainArea').innerHTML = pageHead('Visiteurs sans compte','Identifiant unique, profil et CV de chaque visiteur ayant accepté la conservation de son CV','<button class="btn" onclick="exportGuestsCSV()">⬇ Export CSV</button>')+'<div id="guestBox">'+loading()+'</div>';
+  try{
+    const [pr, cr] = await Promise.all([
+      sb.from('guest_profiles').select('guest_id,ref_no,name,email,phone,address,first_seen,last_seen').order('last_seen',{ascending:false}).limit(1000),
+      sb.from('guest_cvs').select('id,guest_id,token,title,model_id,saves,exports,is_public,updated_at').order('updated_at',{ascending:false}).limit(3000)]);
+    if(pr.error) throw pr.error; if(cr.error) throw cr.error;
+    const by={}; (cr.data||[]).forEach(c=>{ (by[c.guest_id]=by[c.guest_id]||[]).push(c); });
+    GUEST_ROWS = (pr.data||[]).map(g=>Object.assign({},g,{cvs:by[g.guest_id]||[]})); renderGuests();
+  }catch(e){ $('guestBox').innerHTML = errBox(e); }
+};
+function renderGuests(){
+  const q=GQ.toLowerCase(); const rows=GUEST_ROWS.filter(g=>!q||[g.name,g.email,g.phone,guestRef(g.ref_no)].join(' ').toLowerCase().includes(q));
+  const totCv=GUEST_ROWS.reduce((n,g)=>n+g.cvs.length,0), totExp=GUEST_ROWS.reduce((n,g)=>n+g.cvs.reduce((m,c)=>m+c.exports,0),0), mails=GUEST_ROWS.filter(g=>g.email).length;
+  const k=(l,v)=>'<div class="kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';
+  $('guestBox').innerHTML = '<div class="grid g-kpi" style="margin-bottom:12px">'+k('Visiteurs',nf(GUEST_ROWS.length))+k('CV conservés',nf(totCv))+k('Exports',nf(totExp))+k('Avec email',nf(mails))+'</div>'
+    + '<input class="f" id="guestQ" style="width:100%;max-width:420px;margin-bottom:12px" placeholder="Rechercher nom, email, téléphone, ID…" value="'+esc(GQ)+'" oninput="GQ=this.value;renderGuests();const i=$(\'guestQ\');i.focus();i.setSelectionRange(GQ.length,GQ.length)">'
+    + (rows.map(g=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+guestRef(g.ref_no)+' — '+esc(g.name||'Sans nom')+'</b><span class="muted small">vu '+ago(g.last_seen)+(can(3)?' <button class="btn sm danger" onclick="delGuest(\''+g.guest_id+'\')">Supprimer</button>':'')+'</span></div><div class="muted" style="margin:6px 0">'+esc(g.email||'—')+' · '+esc(g.phone||'—')+' · '+esc(g.address||'—')+'</div>'
+      + g.cvs.map(c=>'<div class="list-item"><span>'+esc(c.title||'CV')+' <span class="muted small">· '+c.exports+' export(s) · '+c.saves+' enreg. · '+(c.is_public?'public':'privé')+'</span></span><a class="btn sm" style="text-decoration:none" target="_blank" rel="noopener" href="'+location.origin+'/cv/'+esc(c.token)+'">Ouvrir le lien</a></div>').join('')+'</div>').join('') || '<div class="stub">Aucun visiteur.</div>');
+}
+function exportGuestsCSV(){ csvDownload('visiteurs',['ID','Nom','Email','Téléphone','Adresse','Première visite','Dernière visite','CV','Exports','Liens'], GUEST_ROWS.map(g=>[guestRef(g.ref_no),g.name,g.email,g.phone,g.address,g.first_seen,g.last_seen,g.cvs.length,g.cvs.reduce((m,c)=>m+c.exports,0),g.cvs.map(c=>location.origin+'/cv/'+c.token).join(' ')])); }
+function delGuest(id){ ask('Supprimer ce visiteur','Son profil et ses CV conservés seront effacés définitivement (droit à l\'effacement).','Supprimer',async()=>{ const a=await sb.from('guest_cvs').delete().eq('guest_id',id); const b=await sb.from('guest_profiles').delete().eq('guest_id',id); if(a.error||b.error){ toast((a.error||b.error).message,'bad'); return false; } sb.rpc('admin_log',{p_action:'guest.delete',p_type:'guest',p_id:id}); toast('Visiteur supprimé','ok'); goPage('guests'); },true); }
+
+/* ═════════════ INTÉRÊT POUR LES NOUVEAUTÉS ═════════════ */
+let INTEREST = [];
+PAGEFN.interest = async function pageInterest(){
+  $('mainArea').innerHTML = pageHead('Intérêt pour les nouveautés','Personnes à prévenir au lancement des prochaines fonctionnalités','<button class="btn" onclick="exportInterestCsv()">⬇ Export CSV</button>')+'<div id="intBox">'+loading()+'</div>';
+  try{
+    const { data, error } = await sb.from('feature_interest').select('feature,email,created_at').order('created_at',{ascending:false}).limit(2000); if(error) throw error; INTEREST = data||[];
+    const names={lettre:'✉️ Lettre de motivation',demande:'📝 Demande d\'emploi / stage',import:'📥 Import de CV'}, counts={}, emails={};
+    INTEREST.forEach(r=>{ counts[r.feature]=(counts[r.feature]||0)+1; (emails[r.email]=emails[r.email]||[]).push(r.feature); });
+    $('intBox').innerHTML = '<div class="grid g-kpi" style="margin-bottom:14px">'+Object.keys(names).map(k=>'<div class="kpi"><div class="l">'+names[k]+'</div><div class="v">'+nf(counts[k]||0)+'</div></div>').join('')+'<div class="kpi"><div class="l">Contacts uniques</div><div class="v">'+nf(Object.keys(emails).length)+'</div></div></div>'
+      + '<div class="card"><h3>Personnes à prévenir <small>'+Object.keys(emails).length+'</small></h3>'+(Object.keys(emails).map(m=>'<div class="list-item"><span>'+esc(m)+'</span><span class="muted small">'+emails[m].map(f=>esc((names[f]||f).replace(/^\S+\s/,''))).join(' · ')+'</span></div>').join('')||'<div class="muted">Personne pour l\'instant.</div>')+'</div>';
+  }catch(e){ $('intBox').innerHTML = errBox(e); }
+};
+function exportInterestCsv(){ csvDownload('interet',['Email','Fonctionnalité','Date'], INTEREST.map(r=>[r.email,r.feature,r.created_at])); }
+
+/* ═════════════ ANNONCES (broadcast) ═════════════ */
+PAGEFN.broadcast = function pageBroadcast(){
+  $('mainArea').innerHTML = pageHead('Annonces','Messages affichés aux utilisateurs connectés')
+    + (can(3)?'<div class="card" style="margin-bottom:14px"><h3>Nouvelle annonce</h3><input class="f" id="bcTitle" placeholder="Titre" maxlength="80" style="width:100%;margin-bottom:8px"><textarea class="f" id="bcMsg" placeholder="Message…" maxlength="400"></textarea><div class="row" style="margin-top:8px"><select class="f" id="bcType"><option value="info">Information</option><option value="success">Bonne nouvelle</option><option value="warning">Avertissement</option><option value="maintenance">Maintenance</option></select><select class="f" id="bcTarget"><option value="all">Tous</option><option value="free">Gratuit</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="pro">Pro</option></select><label class="small muted row">Fin : <input class="f" id="bcEnd" type="date"></label><button class="btn pri" onclick="sendBroadcast()">Publier</button></div></div>':'<div class="stub" style="margin-bottom:14px">Publier une annonce nécessite le rôle Administrateur.</div>')
+    + '<div id="bcList">'+loading()+'</div>';
   loadBroadcastsAdmin();
-}
+};
 async function sendBroadcast(){
-  const title = document.getElementById('bcTitle').value.trim();
-  const message = document.getElementById('bcMsg').value.trim();
-  const out = document.getElementById('bcMsgOut');
-  if(!title || !message){ out.style.color='var(--bad)'; out.textContent='Titre et message requis.'; return; }
-  try{
-    const { error } = await sb.from('admin_broadcasts').insert({ admin_id: admin.id, title: title, message: message, type: document.getElementById('bcType').value, target_plan: document.getElementById('bcTarget').value });
-    if(error) throw error;
-    out.style.color='var(--ok)'; out.textContent = '✓ Message publié.';
-    document.getElementById('bcTitle').value=''; document.getElementById('bcMsg').value='';
-    loadBroadcastsAdmin();
-  }catch(e){ out.style.color='var(--bad)'; out.textContent = 'Erreur : '+e.message; }
+  const title=$('bcTitle').value.trim(), message=$('bcMsg').value.trim(); if(!title||!message) return toast('Titre et message requis','bad');
+  const row={admin_id:admin.id,title,message,type:$('bcType').value,target_plan:$('bcTarget').value}; if($('bcEnd').value) row.ends_at=new Date($('bcEnd').value+'T23:59:59').toISOString();
+  const { error } = await sb.from('admin_broadcasts').insert(row); if(error) return toast(error.message,'bad');
+  sb.rpc('admin_log',{p_action:'broadcast.create',p_type:'broadcast',p_id:null,p_data:{title}}); toast('Annonce publiée','ok'); goPage('broadcast');
 }
 async function loadBroadcastsAdmin(){
   try{
-    const { data, error } = await sb.from('admin_broadcasts').select('id,title,type,target_plan,is_active,created_at').order('created_at',{ascending:false}).limit(20);
-    if(error) throw error;
-    document.getElementById('bcList').innerHTML = '<table><thead><tr><th>Titre</th><th>Type</th><th>Cible</th><th>Statut</th><th></th></tr></thead><tbody>'
-      + data.map(function(b){ return '<tr><td>'+esc(b.title)+'</td><td>'+esc(b.type)+'</td><td>'+esc(b.target_plan||'all')+'</td><td>'+(b.is_active?'Actif':'Désactivé')+'</td><td><button class="btn" onclick="toggleBroadcast(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'Désactiver':'Réactiver')+'</button></td></tr>'; }).join('')
-      + '</tbody></table>';
-  }catch(e){ document.getElementById('bcList').innerHTML = '<div class="stub">Erreur : '+esc(e.message)+'</div>'; }
+    const { data, error } = await sb.from('admin_broadcasts').select('id,title,message,type,target_plan,is_active,ends_at,created_at').order('created_at',{ascending:false}).limit(50); if(error) throw error;
+    $('bcList').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Annonce</th><th>Type</th><th>Cible</th><th>Fin</th><th>Statut</th><th></th></tr></thead><tbody>'+(data.map(b=>'<tr><td><b>'+esc(b.title)+'</b><br><span class="muted small">'+esc(b.message)+'</span></td><td>'+esc(b.type)+'</td><td>'+esc(b.target_plan||'all')+'</td><td class="muted small">'+fdate(b.ends_at)+'</td><td>'+(b.is_active?'<span class="badge b-ok">Actif</span>':'<span class="badge">Désactivé</span>')+'</td><td>'+(can(3)?'<button class="btn sm" onclick="toggleBroadcast(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'Désactiver':'Réactiver')+'</button> <button class="btn sm danger" onclick="delBroadcast(\''+b.id+'\')">🗑</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6" class="muted" style="text-align:center;padding:22px">Aucune annonce.</td></tr>')+'</tbody></table></div>';
+  }catch(e){ $('bcList').innerHTML = errBox(e); }
 }
-async function toggleBroadcast(id, active){
-  const { error } = await sb.from('admin_broadcasts').update({ is_active: active }).eq('id', id);
-  if(error) alert('Erreur : '+error.message); else loadBroadcastsAdmin();
+async function toggleBroadcast(id,active){ const { error } = await sb.from('admin_broadcasts').update({is_active:active}).eq('id',id); if(error) toast(error.message,'bad'); else loadBroadcastsAdmin(); }
+function delBroadcast(id){ ask('Supprimer cette annonce','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('admin_broadcasts').delete().eq('id',id); if(error){ toast(error.message,'bad'); return false; } loadBroadcastsAdmin(); },true); }
+
+/* ═════════════ INTELLIGENCE ARTIFICIELLE ═════════════ */
+let AI_DAYS=30;
+PAGEFN.ai = async function pageAi(){
+  $('mainArea').innerHTML = pageHead('Intelligence artificielle','Utilisation, coûts en tokens et erreurs','<div class="chips">'+[7,30,90].map(d=>'<span class="chip '+(d===AI_DAYS?'on':'')+'" onclick="AI_DAYS='+d+';goPage(\'ai\')">'+d+' j</span>').join('')+'</div>')+'<div id="aiBody">'+loading()+'</div>';
+  try{
+    const a = await rpc('admin_ai_stats',{p_days:AI_DAYS}); const rate = a.total ? Math.round(a.errors/a.total*1000)/10 : 0;
+    $('aiBody').innerHTML = '<div class="grid g-kpi" style="margin-bottom:14px"><div class="kpi"><div class="l">Requêtes</div><div class="v">'+nf(a.total)+'</div></div><div class="kpi"><div class="l">Taux d\'erreur</div><div class="v '+(rate>15?'down':'')+'">'+rate+'%</div><div class="d flat">'+nf(a.errors)+' erreur(s)</div></div><div class="kpi"><div class="l">Tokens consommés</div><div class="v">'+nf(a.tokens)+'</div></div><div class="kpi"><div class="l">Latence moyenne</div><div class="v">'+nf(a.avg_ms)+' ms</div></div></div>'
+      + '<div class="card" style="margin-bottom:14px"><h3>Requêtes par jour</h3>'+lineChart(a.series,{color:PAL[5]})+'</div>'
+      + '<div class="grid g3" style="margin-bottom:14px"><div class="card"><h3>Par action</h3>'+bars((a.by_action||[]).map(x=>({id:x.id+(x.err?' ('+x.err+' err.)':''),n:x.n})))+'</div><div class="card"><h3>Par modèle</h3>'+bars(a.by_provider||[],{color:3})+'</div><div class="card"><h3>Plus gros utilisateurs</h3>'+((a.top_users||[]).map(u=>'<div class="list-item"><a style="cursor:pointer" onclick="'+(u.id?'openUser(\''+u.id+'\')':'')+'">'+esc(u.email||'(anonyme)')+'</a><b>'+nf(u.n)+'</b></div>').join('')||'<div class="muted small">Aucun.</div>')+'</div></div>'
+      + '<div class="card"><h3>Dernières erreurs</h3>'+((a.last_errors||[]).map(e=>'<div class="list-item" style="align-items:flex-start"><span><b>'+esc(e.action)+'</b> <span class="muted small">'+esc(e.provider)+' '+esc(e.error_code||'')+'</span><br><span class="muted small">'+esc(e.error_message||'')+'</span></span><span class="muted small">'+ago(e.created_at)+'</span></div>').join('')||'<div class="muted small">Aucune erreur récente 🎉</div>')+'</div>';
+  }catch(e){ $('aiBody').innerHTML = errBox(e); }
+};
+
+/* ═════════════ EXPORTS ═════════════ */
+PAGEFN.exports = async function pageExports(){
+  $('mainArea').innerHTML = pageHead('Exports','PDF, Word et autres téléchargements de CV')+'<div id="exBody">'+loading()+'</div>';
+  try{
+    const x = await rpc('admin_export_stats',{p_days:30});
+    $('exBody').innerHTML = '<div class="grid g-kpi" style="margin-bottom:14px"><div class="kpi"><div class="l">Exports (30 j)</div><div class="v">'+nf(x.total)+'</div></div><div class="kpi"><div class="l">Échecs</div><div class="v '+(x.failed?'down':'')+'">'+nf(x.failed)+'</div></div></div>'
+      + '<div class="grid g-21" style="margin-bottom:14px"><div class="card"><h3>Exports par jour</h3>'+lineChart(x.series,{color:PAL[2]})+'</div><div class="card"><h3>Par format</h3>'+donut((x.by_format||[]).map(f=>({id:f.id,n:f.n})))+'</div></div>'
+      + '<div class="card"><h3>Derniers exports</h3>'+((x.recent||[]).map(r=>'<div class="list-item"><span>'+esc(r.email||'visiteur')+' <span class="badge">'+esc(r.format)+'</span></span><span class="muted small">'+(r.success?'':'<span class="err">échec</span> ')+ago(r.created_at)+'</span></div>').join('')||'<div class="muted small">Aucun export enregistré.</div>')+'</div>';
+  }catch(e){ $('exBody').innerHTML = errBox(e); }
+};
+
+/* ═════════════ JOURNAL D'AUDIT ═════════════ */
+const AS = { q:'', page:0, size:50 };
+PAGEFN.audit = function pageAudit(){
+  $('mainArea').innerHTML = pageHead('Journal d\'audit','Toutes les actions sensibles des administrateurs, horodatées et non modifiables','<button class="btn" onclick="exportAuditCsv()">⬇ Export CSV</button>')
+    + '<input class="f" style="width:100%;max-width:420px;margin-bottom:12px" placeholder="Filtrer : action, admin, ID…" value="'+esc(AS.q)+'" oninput="AS.q=this.value;AS.page=0;loadAuditDebounced()"><div id="aBox">'+loading()+'</div>';
+  loadAudit();
+};
+const loadAuditDebounced = debounce(()=>loadAudit(),300);
+let AUDIT_LAST=[];
+async function loadAudit(){
+  try{
+    const r = await rpc('admin_list_audit',{p_q:AS.q,p_limit:AS.size,p_offset:AS.page*AS.size}); AUDIT_LAST=r.rows;
+    $('aBox').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Cible</th><th>Détails</th></tr></thead><tbody>'
+      + (r.rows.map(a=>'<tr><td class="muted small" style="white-space:nowrap">'+fdt(a.created_at)+'</td><td>'+esc(a.admin_email||'système')+'</td><td><span class="badge b-info">'+esc(a.action)+'</span></td><td class="small">'+esc(a.target_email||a.entity_type)+'<br><span class="mono muted">'+esc((a.entity_id||'').slice(0,18))+'</span></td><td class="mono muted" style="max-width:340px;word-break:break-all">'+esc(JSON.stringify(a.new_data||a.old_data||{}).slice(0,200))+'</td></tr>').join('')||'<tr><td colspan="5" class="muted" style="text-align:center;padding:24px">Aucune entrée.</td></tr>')
+      + '</tbody></table></div>'+pager(r.total,AS.page,AS.size,'auditPage');
+  }catch(e){ $('aBox').innerHTML = errBox(e); }
+}
+function auditPage(p){ AS.page=p; loadAudit(); }
+function exportAuditCsv(){ csvDownload('audit',['Date','Admin','Action','Type','Cible','Avant','Après'], AUDIT_LAST.map(a=>[a.created_at,a.admin_email,a.action,a.entity_type,a.target_email||a.entity_id,JSON.stringify(a.old_data||''),JSON.stringify(a.new_data||'')])); }
+
+/* ═════════════ RÉGLAGES & ÉQUIPE ═════════════ */
+let SET_TAB='site';
+PAGEFN.settings = function pageSettings(arg){
+  if(arg&&arg.tab) SET_TAB=arg.tab;
+  $('mainArea').innerHTML = pageHead('Réglages & équipe','Contrôle du site, équipe d\'administration, sécurité')
+    + '<div class="tabs">'+[['site','🌐 Site'],['team','👥 Équipe'],['data','💾 Données'],['me','🔐 Mon compte']].map(t=>'<button class="'+(SET_TAB===t[0]?'on':'')+'" onclick="SET_TAB=\''+t[0]+'\';goPage(\'settings\')">'+t[1]+'</button>').join('')+'</div><div id="setBody">'+loading()+'</div>';
+  ({site:setSite,team:setTeam,data:setData,me:setMe})[SET_TAB]();
+};
+async function setSite(){
+  try{
+    const { data, error } = await sb.from('admin_settings').select('key,value,updated_at'); if(error) throw error;
+    const S={}; (data||[]).forEach(r=>S[r.key]=r.value); const m=S.maintenance||{}, b=S.banner||{}; const dis=can(3)?'':'disabled';
+    $('setBody').innerHTML = '<div class="grid g2"><div class="card"><h3>🚧 Mode maintenance</h3><p class="muted small">Affiche un bandeau d\'avertissement bien visible sur le site et l\'application (les admins ne sont pas bloqués).</p><label class="row" style="margin-bottom:8px"><input type="checkbox" id="mEn" '+(m.enabled?'checked':'')+' '+dis+'> Activer la maintenance</label><textarea class="f" id="mMsg" '+dis+'>'+esc(m.message||'')+'</textarea><div style="margin-top:10px"><button class="btn pri" '+dis+' onclick="saveSetting(\'maintenance\',{enabled:$(\'mEn\').checked,message:$(\'mMsg\').value})">Enregistrer</button></div></div>'
+      + '<div class="card"><h3>📣 Bandeau d\'annonce</h3><p class="muted small">Message court affiché en haut de la page d\'accueil et de l\'application (promotion, nouveauté…).</p><label class="row" style="margin-bottom:8px"><input type="checkbox" id="bEn" '+(b.enabled?'checked':'')+' '+dis+'> Afficher le bandeau</label><input class="f" id="bTx" style="width:100%;margin-bottom:8px" maxlength="160" value="'+esc(b.text||'')+'" placeholder="Ex : -20% sur le plan Premium jusqu\'à dimanche !" '+dis+'><select class="f" id="bTy" '+dis+'>'+['info','success','warning'].map(t=>'<option '+(b.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select><div style="margin-top:10px"><button class="btn pri" '+dis+' onclick="saveSetting(\'banner\',{enabled:$(\'bEn\').checked,text:$(\'bTx\').value,type:$(\'bTy\').value})">Enregistrer</button></div></div></div>'+(can(3)?'':'<p class="muted small">Modification réservée au rôle Administrateur.</p>');
+  }catch(e){ $('setBody').innerHTML = errBox(e); }
+}
+async function saveSetting(key,val){ const ok=await act(()=>rpc('admin_set_setting',{p_key:key,p_value:val}),'Réglage enregistré'); if(ok) goPage('settings'); }
+async function setTeam(){
+  try{
+    const { data, error } = await sb.from('profiles').select('id,email,name,admin_role,last_seen_at').eq('is_admin',true).order('created_at'); if(error) throw error;
+    $('setBody').innerHTML = '<div class="card" style="margin-bottom:14px"><h3>Équipe d\'administration <small>'+data.length+'</small></h3><div class="tbl-wrap" style="border:none"><table><thead><tr><th>Membre</th><th>Rôle</th><th>Vu</th><th></th></tr></thead><tbody>'+data.map(a=>'<tr><td><b>'+esc(a.name||'—')+'</b><br><span class="muted small">'+esc(a.email)+'</span></td><td><span class="badge b-info">'+esc(ROLE_FR[a.admin_role||'admin'])+'</span></td><td class="muted small">'+ago(a.last_seen_at)+'</td><td>'+(can(4)&&a.id!==admin.id?'<button class="btn sm" onclick="openUser(\''+a.id+'\')">Gérer</button>':'')+'</td></tr>').join('')+'</tbody></table></div></div>'
+      + (can(4)?'<div class="card"><h3>Ajouter un membre</h3><p class="muted small">La personne doit déjà avoir un compte CVxMaker (inscrite avec cet email).</p><div class="row"><input class="f" id="newAdm" style="flex:1;min-width:200px" placeholder="Email du compte"><select class="f" id="newRole">'+Object.keys(RANK).map(r=>'<option value="'+r+'" '+(r==='moderator'?'selected':'')+'>'+ROLE_FR[r]+'</option>').join('')+'</select><button class="btn pri" onclick="addAdmin()">Ajouter</button></div></div>':'<div class="stub">Seul un super-admin peut gérer l\'équipe.</div>')
+      + '<div class="card" style="margin-top:14px"><h3>Droits par rôle</h3><div class="tbl-wrap" style="border:none"><table><thead><tr><th>Action</th><th>Lecture seule</th><th>Modérateur</th><th>Admin</th><th>Super-admin</th></tr></thead><tbody>'+[['Consulter toutes les données',1,1,1,1],['Modérer avis, CV, tickets · bannir',0,1,1,1],['Changer plans · paiements · licences · réglages',0,0,1,1],['Gérer les administrateurs · supprimer un compte',0,0,0,1]].map(r=>'<tr><td>'+r[0]+'</td>'+r.slice(1).map(v=>'<td>'+(v?'✅':'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div></div>';
+  }catch(e){ $('setBody').innerHTML = errBox(e); }
+}
+async function addAdmin(){
+  const email=($('newAdm').value||'').trim().toLowerCase(); if(!email) return toast('Saisissez un email','bad');
+  const { data, error } = await sb.from('profiles').select('id,email').ilike('email',email).limit(1); if(error) return toast(error.message,'bad');
+  if(!data||!data.length) return toast('Aucun compte avec cet email. La personne doit d\'abord s\'inscrire.','bad');
+  ask('Donner l\'accès admin','Accorder le rôle <b>'+esc(ROLE_FR[$('newRole').value])+'</b> à <b>'+esc(data[0].email)+'</b> ?','Confirmer',async()=>{ const ok=await act(()=>rpc('admin_set_admin',{p_user:data[0].id,p_is_admin:true,p_role:$('newRole').value}),'Membre ajouté'); if(ok) goPage('settings',{tab:'team'}); else return false; });
+}
+async function setData(){
+  $('setBody').innerHTML = '<div class="grid g2"><div class="card"><h3>📦 Exports de données</h3><p class="muted small">Téléchargez des sauvegardes lisibles (CSV) des tables principales.</p><div class="row"><button class="btn" onclick="backupCsv(\'users\')">Utilisateurs</button><button class="btn" onclick="backupCsv(\'payments\')">Paiements</button><button class="btn" onclick="backupCsv(\'cvs\')">CV (métadonnées)</button></div><p class="muted small" style="margin-top:10px">Pour une sauvegarde complète de la base, utilisez les sauvegardes automatiques de Supabase (Database → Backups).</p></div>'
+    + '<div class="card"><h3>🧹 Maintenance</h3><p class="muted small">Rétrograde au plan gratuit les comptes dont l\'abonnement a expiré.</p><button class="btn" '+(can(3)?'':'disabled')+' onclick="expirePlans()">Rétrograder les plans expirés</button><p class="muted small" style="margin-top:14px">Vue d\'ensemble technique : <a style="cursor:pointer" onclick="goPage(\'activity\')">Activité & santé</a></p></div></div>';
+}
+async function backupCsv(kind){
+  toast('Préparation…');
+  try{
+    if(kind==='users'){ const r=await rpc('admin_list_users',{p_q:'',p_plan:'all',p_status:'all',p_sort:'created_at',p_dir:'desc',p_limit:200,p_offset:0}); csvDownload('sauvegarde-utilisateurs',['ID','Nom','Email','Téléphone','Plan','Expire','Inscrit'],r.rows.map(u=>[u.id,u.name,u.email,u.phone,u.plan,u.plan_expires_at,u.created_at])); if(r.total>200) toast('200 premiers sur '+r.total+' (limite d\'export navigateur).'); }
+    else if(kind==='payments'){ exportPaymentsCsv(); }
+    else { const r=await rpc('admin_list_cvs',{p_q:'',p_vis:'all',p_limit:200,p_offset:0}); csvDownload('sauvegarde-cv',['ID','Titre','Propriétaire','Modèle','Public','Vues','Créé'],r.rows.map(c=>[c.id,c.title,c.owner_email,c.model_id,c.is_public,c.view_count,c.created_at])); }
+  }catch(e){ toast(e.message,'bad'); }
+}
+function setMe(){
+  $('setBody').innerHTML = '<div class="card" style="max-width:460px"><h3>Changer mon mot de passe</h3><input class="f" id="pw1" type="password" placeholder="Nouveau mot de passe (8 caractères min.)" style="width:100%;margin-bottom:8px" autocomplete="new-password"><input class="f" id="pw2" type="password" placeholder="Confirmer" style="width:100%;margin-bottom:10px" autocomplete="new-password"><button class="btn pri" onclick="changePw()">Mettre à jour</button><p class="muted small" style="margin-top:14px">Connecté en tant que <b>'+esc(admin.email)+'</b> · '+esc(ROLE_FR[admin.admin_role||'admin'])+'. Déconnexion automatique après 30 min d\'inactivité.</p></div>';
+}
+async function changePw(){
+  const a=$('pw1').value, b=$('pw2').value; if(a.length<8) return toast('8 caractères minimum','bad'); if(a!==b) return toast('Les mots de passe diffèrent','bad');
+  const { error } = await sb.auth.updateUser({password:a}); if(error) return toast(error.message,'bad'); toast('Mot de passe mis à jour','ok'); $('pw1').value=$('pw2').value='';
 }
 </script>
 </body>

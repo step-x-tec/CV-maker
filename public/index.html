@@ -300,6 +300,22 @@ const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) &
 if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
 const sb = (CONFIG_OK && window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+/* Bandeau d'annonce / mode maintenance, pilotés depuis Admin → Réglages & équipe */
+(async function siteNotice(){
+  try{
+    if(!sb) return;
+    const r = await sb.rpc('get_public_settings'), s = (r && r.data) || {}, m = s.maintenance || {}, b = s.banner || {};
+    let txt = '', kind = '';
+    if(m.enabled){ txt = '🚧 ' + (m.message || 'Maintenance en cours.'); kind = 'warning'; }
+    else if(b.enabled && b.text){ txt = b.text; kind = b.type || 'info'; }
+    if(!txt) return;
+    const d = document.createElement('div'); d.id = 'siteNotice'; d.setAttribute('role','status');
+    d.style.cssText = 'position:relative;z-index:2147483000;padding:8px 14px;text-align:center;font:600 13px/1.35 system-ui,sans-serif;color:#fff;background:' + ({warning:'#B45309',success:'#047857',info:'#1D4ED8'}[kind] || '#1D4ED8');
+    d.textContent = txt; document.body.insertBefore(d, document.body.firstChild);
+  }catch(e){}
+})();
+
+
 function escH(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 let testiRating = 5;
