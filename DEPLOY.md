@@ -112,7 +112,7 @@ Si vous préférez ne pas utiliser Git : glissez le dossier `public/` sur app.ne
 
 ### 7.5 Configuration Supabase différente
 
-**Configuration obligatoire :** ouvrez `public/config.js` et renseignez `SUPABASE_URL` et `SUPABASE_ANON_KEY` (Supabase → Project Settings → API ; clé *anon public* uniquement, jamais la `service_role`). Aucune valeur n'est codée en dur dans les pages. Les secrets serveur (CinetPay, service_role) se déclarent dans Supabase (`supabase secrets set`) et dans `.env` en local, jamais dans `public/`.
+**Configuration obligatoire :** ouvrez `public/config.js` et renseignez `SUPABASE_URL` et `SUPABASE_ANON_KEY` (Supabase → Project Settings → API ; clé *anon public* uniquement, jamais la `service_role`). Aucune valeur n'est codée en dur dans les pages. Renseignez aussi `CONTACT_EMAIL` (adresse publique affichée dans le pied de page et la page `confidentialite.html` ; laissez vide pour la masquer). Les erreurs techniques ne sont jamais montrées aux visiteurs : elles restent dans la console du navigateur. Les secrets serveur (CinetPay, service_role) se déclarent dans Supabase (`supabase secrets set`) et dans `.env` en local, jamais dans `public/`.
 
 ## 8. Checklist avant l'ouverture au public
 
@@ -132,3 +132,16 @@ Si vous préférez ne pas utiliser Git : glissez le dossier `public/` sur app.ne
 - **Assistant IA hébergé (GROQ)** : désactivé par défaut, l'app utilise son moteur local. La fonction `ai-chat` est prête si vous changez d'avis (voir DEPLOY.md §4).
 - **Vérification manuelle des paiements par carte** : selon votre compte CinetPay, la validation de certains moyens de paiement peut prendre plus de temps ; le webhook gère ça automatiquement (statut `pending` → `success`/`failed`).
 - **Sauvegardes de la base** : activez les sauvegardes automatiques dans Supabase → Settings → Database (Point-in-time recovery recommandé au-delà de la phase de test).
+
+## Suivi du parcours (nouveau)
+
+Exécutez aussi `supabase/migrations/20261020000000_funnel_events.sql`. Elle enregistre, sans aucune donnée personnelle, les étapes : visite, clic sur « Créer mon CV », ouverture de l'éditeur, inscription, import, comparaison à une offre, export PDF.
+
+Pour voir les chiffres (connecté en admin) dans l'éditeur SQL de Supabase :
+`select * from admin_funnel(30);` (30 derniers jours, par campagne et source).
+
+Pour mesurer une pub, ajoutez à votre lien : `?utm_source=tiktok&utm_medium=video&utm_campaign=pub_pro`.
+
+## Personnalisation de la mise en page (nouveau)
+
+Dans l'aperçu du CV, le bouton « ✋ Personnaliser » permet de sélectionner n'importe quel élément et de le déplacer, le redimensionner, le réordonner (même d'une colonne à l'autre), régler les lettres (taille, espacement, interligne, police, couleur, gras, italique, alignement) ou le masquer. Les réglages sont enregistrés par modèle dans le CV (champ `lay`) et rejoués à l'identique à l'écran, en PDF et sur le lien public. Aucun changement de base de données n'est nécessaire.

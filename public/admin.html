@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" href="icons/favicon-32.png" type="image/png">
 <script src="config.js" onerror="void 0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:dark;--bg:#0B1220;--panel:#131C2E;--panel2:#1C2740;--panel3:#26334F;--ink:#F1F5F9;--ink2:#94A3B8;--ink3:#64748B;--accent:#3B82F6;--accent2:#2563EB;--ok:#10B981;--warn:#F59E0B;--bad:#EF4444;--vio:#8B5CF6;--border:rgba(255,255,255,.08);--r:12px}
@@ -196,8 +196,23 @@ const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
 const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
 const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) && /^(eyJ|sb_publishable_)/.test(SUPABASE_ANON_KEY);
 if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
-if(!CONFIG_OK){ document.addEventListener('DOMContentLoaded',function(){ document.body.innerHTML='<div style="font-family:sans-serif;color:#fff;padding:40px;max-width:560px;margin:auto"><h2>Configuration manquante</h2><p>Renseignez <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans <code>/config.js</code>, puis redéployez.</p></div>'; }); throw new Error('config.js non renseigné'); }
+if(!CONFIG_OK){ document.addEventListener('DOMContentLoaded',function(){ document.body.innerHTML='<div style="font-family:sans-serif;color:#fff;padding:40px;max-width:560px;margin:auto"><h2>Espace indisponible</h2><p>L\'espace d\'administration est momentanément indisponible. Réessayez dans quelques instants.</p></div>'; }); throw new Error('config.js non renseigné'); }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* Traduit toute erreur technique en message clair pour l'utilisateur (le détail reste en console). */
+function userMsg(e, fallback){
+  const raw=String((e&&e.message)||e||''); try{ console.warn('[CVxMaker]', e); }catch(_){}
+  const m=raw.toLowerCase();
+  if(/failed to fetch|networkerror|load failed|network request failed|timeout|timed out|offline/.test(m)) return 'Connexion impossible. Vérifiez votre connexion Internet puis réessayez.';
+  if(/jwt|not authenticated|auth session missing|invalid token|refresh token/.test(m)) return 'Votre session a expiré. Reconnectez-vous puis réessayez.';
+  if(/permission denied|row-level security|forbidden|42501|not allowed|droits insuffisants/.test(m)) return "Vous n'avez pas l'autorisation d'effectuer cette action.";
+  if(/rate limit|too many/.test(m)) return 'Trop de tentatives. Patientez quelques minutes puis réessayez.';
+  if(/could not find the function|schema cache|does not exist|undefined_table|pgrst|relation .* does not exist|column .* does not exist/.test(m)) return 'Ce service est momentanément indisponible. Réessayez dans quelques instants.';
+  if(/duplicate key|already exists/.test(m)) return 'Cet élément existe déjà.';
+  if(/invalid input|violates|check constraint|value too long|invalid uuid/.test(m)) return 'Certaines informations saisies ne sont pas valides. Vérifiez-les puis réessayez.';
+  if(raw && raw.length<160 && !/supabase|postgres|sql|rpc|jwt|function|column|relation|constraint|syntax|violates|undefined|null value|[a-z_]+\.[a-z_]+|[{}\[\]]/i.test(raw)) return raw;
+  return fallback || 'Une erreur est survenue. Réessayez dans un instant.';
+}
+
 let admin = null;           // profil de l'admin connecté
 const RANK = { viewer:1, moderator:2, admin:3, superadmin:4 };
 const ROLE_FR = { viewer:'Lecture seule', moderator:'Modérateur', admin:'Administrateur', superadmin:'Super-admin' };
@@ -224,7 +239,7 @@ function csvDownload(name, head, rows){
 }
 function debounce(fn, ms){ let t; return function(){ const a=arguments; clearTimeout(t); t=setTimeout(()=>fn.apply(null,a), ms); }; }
 function loading(){ return '<div class="skel" style="width:60%"></div><div class="skel"></div><div class="skel" style="width:80%"></div>'; }
-function errBox(e){ return '<div class="stub"><b class="err">Erreur</b><br>'+esc(e && e.message || e)+'<br><br><span class="small">Si le message parle d\'une fonction ou d\'une table introuvable, exécutez la migration <code>20261017000000_admin_suite.sql</code> (et les précédentes) dans l\'éditeur SQL de Supabase.</span></div>'; }
+function errBox(e){ return '<div class="stub"><b class="err">Impossible de charger ces données</b><br>'+esc(userMsg(e))+'<br><br><button class="btn" onclick="location.reload()">Actualiser la page</button></div>'; }
 
 /* ── appel RPC ── */
 async function rpc(name, args){
@@ -235,7 +250,7 @@ async function rpc(name, args){
 }
 async function act(fn, okMsg){          // exécute une action, affiche un toast, renvoie true/false
   try{ const r = await fn(); if(okMsg) toast(okMsg,'ok'); return r===undefined?true:r; }
-  catch(e){ toast(e.message || 'Erreur', 'bad'); return false; }
+  catch(e){ toast(userMsg(e), 'bad'); return false; }
 }
 
 /* ── tiroir / modale ── */
@@ -300,7 +315,7 @@ const globalSearch = debounce(async function(q){
     if((r.payments||[]).length) h+='<h5>Paiements</h5>'+r.payments.map(p=>'<a onclick="goPage(\'payments\',{q:\''+esc(p.transaction_id)+'\'})">'+esc(p.transaction_id)+'<small>'+nf(p.amount)+' · '+esc(p.status)+'</small></a>').join('');
     if((r.tickets||[]).length) h+='<h5>Tickets</h5>'+r.tickets.map(t=>'<a onclick="openTicket(\''+t.id+'\')">'+esc(t.ticket_no)+' — '+esc(t.subject)+'<small>'+esc(t.status)+'</small></a>').join('');
     box.innerHTML = h || '<a class="muted">Aucun résultat</a>'; box.style.display='block';
-  }catch(e){ box.innerHTML='<a class="err">'+esc(e.message)+'</a>'; box.style.display='block'; }
+  }catch(e){ box.innerHTML='<a class="err">'+esc(userMsg(e,'Connexion impossible pour le moment.'))+'</a>'; box.style.display='block'; }
 }, 250);
 document.addEventListener('click', e=>{ if(!e.target.closest('.search')) $('sres').style.display='none'; });
 
@@ -322,13 +337,13 @@ async function adminLogin(){
     const { data, error } = await sb.auth.signInWithPassword({ email:$('admEmail').value.trim(), password:$('admPass').value });
     if(error) throw error;
     await enterAdmin(data.user);
-  }catch(e){ err.textContent = /failed to fetch|network/i.test(e.message) ? 'Impossible de joindre le serveur Supabase. Vérifiez config.js et votre connexion.' : (e.message==='Invalid login credentials'?'Email ou mot de passe incorrect.':e.message); err.style.display='block'; }
+  }catch(e){ err.textContent = e.message==='Invalid login credentials' ? 'Email ou mot de passe incorrect.' : userMsg(e,'Connexion impossible pour le moment. Réessayez plus tard.'); err.style.display='block'; }
 }
 async function adminForgot(){
   const email = $('admEmail').value.trim(); const err = $('loginErr');
   if(!email){ err.textContent='Saisissez votre email ci-dessus.'; err.style.display='block'; return; }
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/app' });
-  err.style.color = error ? 'var(--bad)' : 'var(--ok)'; err.textContent = error ? error.message : 'Email de réinitialisation envoyé (si le compte existe).'; err.style.display='block';
+  err.style.color = error ? 'var(--bad)' : 'var(--ok)'; err.textContent = error ? userMsg(error,'Envoi impossible pour le moment. Réessayez plus tard.') : 'Email de réinitialisation envoyé (si le compte existe).'; err.style.display='block';
 }
 (async function adminInit(){
   try{ const { data } = await sb.auth.getSession(); if(data && data.session) await enterAdmin(data.session.user); }catch(e){}
@@ -433,7 +448,7 @@ PAGEFN.activity = async function pageActivity(){
       + '<div class="kpi"><div class="l">Dernier paiement réussi</div><div class="v" style="font-size:17px">'+ago(h.last_payment)+'</div></div>'
       + '<div class="kpi"><div class="l">Ticket ouvert le plus ancien</div><div class="v" style="font-size:17px">'+(h.oldest_open_ticket?ago(h.oldest_open_ticket):'aucun')+'</div></div></div>'
       + '<div class="grid g2"><div class="card"><h3>Contrôles</h3>'
-      + chk(!missing.length,'Tables de la base', missing.length?'manquantes : '+missing.join(', ')+' → exécutez les migrations':'toutes présentes')
+      + chk(!missing.length,'Tables de la base', missing.length?'indisponibles : '+missing.join(', '):'toutes disponibles')
       + chk(!h.stale_payments,'Paiements bloqués (>1 h)', nf(h.stale_payments)+' en attente')
       + chk(failRate<15,'Erreurs IA (24 h)', nf(h.ai_fail_24h)+' / '+nf(h.ai_total_24h)+' ('+failRate+'%)')
       + chk(!h.expired_still_paid,'Abonnements expirés encore actifs', nf(h.expired_still_paid)+(h.expired_still_paid&&can(3)?' <button class="btn sm" onclick="expirePlans()">Rétrograder</button>':''))
@@ -517,10 +532,10 @@ function renderUser(){
 async function addNote(type,id){
   const v=($('noteIn').value||'').trim(); if(!v) return;
   const { error } = await sb.from('admin_notes').insert({ entity_type:type, entity_id:id, admin_id:admin.id, note:v });
-  if(error) return toast(error.message,'bad');
+  if(error) return toast(userMsg(error),'bad');
   toast('Note ajoutée','ok'); if(type==='user') openUser(id,'hist'); else openTicket(id);
 }
-async function delNote(id){ const { error } = await sb.from('admin_notes').delete().eq('id',id); if(error) return toast(error.message,'bad'); openUser(UD.profile.id,'hist'); }
+async function delNote(id){ const { error } = await sb.from('admin_notes').delete().eq('id',id); if(error) return toast(userMsg(error),'bad'); openUser(UD.profile.id,'hist'); }
 function userPlanDialog(){
   const p=UD.profile;
   ask('Changer le plan de '+(p.name||p.email),'<div class="row" style="margin-bottom:10px"><select class="f" id="dPlan">'+['free','starter','premium','pro'].map(x=>'<option '+(p.plan===x?'selected':'')+'>'+x+'</option>').join('')+'</select><input class="f" id="dDays" type="number" min="1" value="30" style="width:90px"> <span class="muted small">jours</span></div><input class="f" id="dWhy" style="width:100%" placeholder="Motif (cadeau, geste commercial, correction…)">','Appliquer',async()=>{
@@ -646,7 +661,7 @@ async function genLicenses(){
   const plan=$('licPlan').value, n=Math.max(1,Math.min(100,parseInt($('licCount').value)||1)), days=Math.max(1,parseInt($('licDays').value)||30), note=$('licNote').value.trim()||null;
   const rows=Array.from({length:n},()=>({key:randKey(plan),plan,duration_days:days,max_uses:1,created_by:admin.id,note}));
   const { error } = await sb.from('license_keys').insert(rows);
-  if(error) return toast(error.message,'bad');
+  if(error) return toast(userMsg(error),'bad');
   await sb.rpc('admin_log',{p_action:'license.generate',p_type:'license',p_id:null,p_data:{plan,count:n,days,note}});
   $('licOut').textContent = rows.map(r=>r.key).join('\n'); toast(n+' clé(s) générée(s)','ok'); loadLicenses();
 }
@@ -663,7 +678,7 @@ async function loadLicenses(){
   }catch(e){ $('licList').innerHTML = errBox(e); }
 }
 function exportLicCsv(){ csvDownload('licences',['Clé','Plan','Durée (j)','Statut','Utilisée le','Note','Créée'], LICS.map(k=>[k.key,k.plan,k.duration_days,k.status,k.used_at,k.note,k.created_at])); }
-function revokeLicense(key){ ask('Révoquer cette clé','<span class="mono">'+esc(key)+'</span>','Révoquer',async()=>{ const { error } = await sb.from('license_keys').update({status:'revoked'}).eq('key',key); if(error){ toast(error.message,'bad'); return false; } sb.rpc('admin_log',{p_action:'license.revoke',p_type:'license',p_id:key}); toast('Clé révoquée','ok'); loadLicenses(); }, true); }
+function revokeLicense(key){ ask('Révoquer cette clé','<span class="mono">'+esc(key)+'</span>','Révoquer',async()=>{ const { error } = await sb.from('license_keys').update({status:'revoked'}).eq('key',key); if(error){ toast(userMsg(error),'bad'); return false; } sb.rpc('admin_log',{p_action:'license.revoke',p_type:'license',p_id:key}); toast('Clé révoquée','ok'); loadLicenses(); }, true); }
 
 /* ═════════════ SUPPORT ═════════════ */
 const TS = { status:'active', priority:'all', q:'', page:0, size:25 };
@@ -735,8 +750,8 @@ async function loadTestimonials(){
       return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+(t.rating?'⭐'.repeat(t.rating)+' ':'')+esc(t.name)+(t.role?' <span class="muted" style="font-weight:400">— '+esc(t.role)+'</span>':'')+'</b>'+statusBadge(t.status)+'</div><p style="margin:10px 0">« '+esc(t.message)+' »</p><div class="muted small" style="margin-bottom:10px">'+fdt(t.created_at)+'</div>'+a+'</div>'; }).join('') || '<div class="stub">Aucun témoignage dans cette catégorie.</div>';
   }catch(e){ $('modBox').innerHTML = errBox(e); }
 }
-async function modTesti(id,status){ const { error } = await sb.from('testimonials').update({status,reviewed_at:new Date().toISOString(),reviewed_by:admin.id}).eq('id',id); if(error) return toast(error.message,'bad'); sb.rpc('admin_log',{p_action:'testimonial.'+status,p_type:'testimonial',p_id:id}); toast(status==='approved'?'Témoignage publié':'Témoignage rejeté','ok'); refreshCounts(); loadTestimonials(); }
-function delTesti(id){ ask('Supprimer ce témoignage','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('testimonials').delete().eq('id',id); if(error){ toast(error.message,'bad'); return false; } sb.rpc('admin_log',{p_action:'testimonial.delete',p_type:'testimonial',p_id:id}); loadTestimonials(); },true); }
+async function modTesti(id,status){ const { error } = await sb.from('testimonials').update({status,reviewed_at:new Date().toISOString(),reviewed_by:admin.id}).eq('id',id); if(error) return toast(userMsg(error),'bad'); sb.rpc('admin_log',{p_action:'testimonial.'+status,p_type:'testimonial',p_id:id}); toast(status==='approved'?'Témoignage publié':'Témoignage rejeté','ok'); refreshCounts(); loadTestimonials(); }
+function delTesti(id){ ask('Supprimer ce témoignage','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('testimonials').delete().eq('id',id); if(error){ toast(userMsg(error),'bad'); return false; } sb.rpc('admin_log',{p_action:'testimonial.delete',p_type:'testimonial',p_id:id}); loadTestimonials(); },true); }
 async function loadFeedback(){
   try{
     let q=sb.from('feedback').select('id,type,rating,title,message,status,admin_note,created_at').order('created_at',{ascending:false}).limit(200); if(MOD_F!=='all') q=q.eq('status',MOD_F);
@@ -744,7 +759,7 @@ async function loadFeedback(){
     $('modBox').innerHTML = data.map(f=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+'⭐'.repeat(f.rating)+' '+esc(f.title||f.type)+' <span class="badge">'+esc(f.type)+'</span></b>'+statusBadge(f.status)+'</div><p style="margin:10px 0">'+esc(f.message)+'</p><div class="muted small" style="margin-bottom:10px">'+fdt(f.created_at)+'</div>'+(can(2)?(f.status!=='approved'?'<button class="btn ok" onclick="modFb(\''+f.id+'\',\'approved\')">Approuver</button> ':'')+(f.status!=='rejected'?'<button class="btn danger" onclick="modFb(\''+f.id+'\',\'rejected\')">Rejeter</button>':''):'')+'</div>').join('') || '<div class="stub">Aucun feedback dans cette catégorie.</div>';
   }catch(e){ $('modBox').innerHTML = errBox(e); }
 }
-async function modFb(id,status){ const { error } = await sb.from('feedback').update({status}).eq('id',id); if(error) return toast(error.message,'bad'); sb.rpc('admin_log',{p_action:'feedback.'+status,p_type:'feedback',p_id:id}); refreshCounts(); loadFeedback(); }
+async function modFb(id,status){ const { error } = await sb.from('feedback').update({status}).eq('id',id); if(error) return toast(userMsg(error),'bad'); sb.rpc('admin_log',{p_action:'feedback.'+status,p_type:'feedback',p_id:id}); refreshCounts(); loadFeedback(); }
 
 /* ═════════════ VISITEURS SANS COMPTE ═════════════ */
 let GUEST_ROWS = [], GQ = '';
@@ -796,7 +811,7 @@ PAGEFN.broadcast = function pageBroadcast(){
 async function sendBroadcast(){
   const title=$('bcTitle').value.trim(), message=$('bcMsg').value.trim(); if(!title||!message) return toast('Titre et message requis','bad');
   const row={admin_id:admin.id,title,message,type:$('bcType').value,target_plan:$('bcTarget').value}; if($('bcEnd').value) row.ends_at=new Date($('bcEnd').value+'T23:59:59').toISOString();
-  const { error } = await sb.from('admin_broadcasts').insert(row); if(error) return toast(error.message,'bad');
+  const { error } = await sb.from('admin_broadcasts').insert(row); if(error) return toast(userMsg(error),'bad');
   sb.rpc('admin_log',{p_action:'broadcast.create',p_type:'broadcast',p_id:null,p_data:{title}}); toast('Annonce publiée','ok'); goPage('broadcast');
 }
 async function loadBroadcastsAdmin(){
@@ -805,8 +820,8 @@ async function loadBroadcastsAdmin(){
     $('bcList').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Annonce</th><th>Type</th><th>Cible</th><th>Fin</th><th>Statut</th><th></th></tr></thead><tbody>'+(data.map(b=>'<tr><td><b>'+esc(b.title)+'</b><br><span class="muted small">'+esc(b.message)+'</span></td><td>'+esc(b.type)+'</td><td>'+esc(b.target_plan||'all')+'</td><td class="muted small">'+fdate(b.ends_at)+'</td><td>'+(b.is_active?'<span class="badge b-ok">Actif</span>':'<span class="badge">Désactivé</span>')+'</td><td>'+(can(3)?'<button class="btn sm" onclick="toggleBroadcast(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'Désactiver':'Réactiver')+'</button> <button class="btn sm danger" onclick="delBroadcast(\''+b.id+'\')">🗑</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6" class="muted" style="text-align:center;padding:22px">Aucune annonce.</td></tr>')+'</tbody></table></div>';
   }catch(e){ $('bcList').innerHTML = errBox(e); }
 }
-async function toggleBroadcast(id,active){ const { error } = await sb.from('admin_broadcasts').update({is_active:active}).eq('id',id); if(error) toast(error.message,'bad'); else loadBroadcastsAdmin(); }
-function delBroadcast(id){ ask('Supprimer cette annonce','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('admin_broadcasts').delete().eq('id',id); if(error){ toast(error.message,'bad'); return false; } loadBroadcastsAdmin(); },true); }
+async function toggleBroadcast(id,active){ const { error } = await sb.from('admin_broadcasts').update({is_active:active}).eq('id',id); if(error) toast(userMsg(error),'bad'); else loadBroadcastsAdmin(); }
+function delBroadcast(id){ ask('Supprimer cette annonce','Suppression définitive.','Supprimer',async()=>{ const { error } = await sb.from('admin_broadcasts').delete().eq('id',id); if(error){ toast(userMsg(error),'bad'); return false; } loadBroadcastsAdmin(); },true); }
 
 /* ═════════════ INTELLIGENCE ARTIFICIELLE ═════════════ */
 let AI_DAYS=30;
@@ -879,7 +894,7 @@ async function setTeam(){
 }
 async function addAdmin(){
   const email=($('newAdm').value||'').trim().toLowerCase(); if(!email) return toast('Saisissez un email','bad');
-  const { data, error } = await sb.from('profiles').select('id,email').ilike('email',email).limit(1); if(error) return toast(error.message,'bad');
+  const { data, error } = await sb.from('profiles').select('id,email').ilike('email',email).limit(1); if(error) return toast(userMsg(error),'bad');
   if(!data||!data.length) return toast('Aucun compte avec cet email. La personne doit d\'abord s\'inscrire.','bad');
   ask('Donner l\'accès admin','Accorder le rôle <b>'+esc(ROLE_FR[$('newRole').value])+'</b> à <b>'+esc(data[0].email)+'</b> ?','Confirmer',async()=>{ const ok=await act(()=>rpc('admin_set_admin',{p_user:data[0].id,p_is_admin:true,p_role:$('newRole').value}),'Membre ajouté'); if(ok) goPage('settings',{tab:'team'}); else return false; });
 }
@@ -893,14 +908,14 @@ async function backupCsv(kind){
     if(kind==='users'){ const r=await rpc('admin_list_users',{p_q:'',p_plan:'all',p_status:'all',p_sort:'created_at',p_dir:'desc',p_limit:200,p_offset:0}); csvDownload('sauvegarde-utilisateurs',['ID','Nom','Email','Téléphone','Plan','Expire','Inscrit'],r.rows.map(u=>[u.id,u.name,u.email,u.phone,u.plan,u.plan_expires_at,u.created_at])); if(r.total>200) toast('200 premiers sur '+r.total+' (limite d\'export navigateur).'); }
     else if(kind==='payments'){ exportPaymentsCsv(); }
     else { const r=await rpc('admin_list_cvs',{p_q:'',p_vis:'all',p_limit:200,p_offset:0}); csvDownload('sauvegarde-cv',['ID','Titre','Propriétaire','Modèle','Public','Vues','Créé'],r.rows.map(c=>[c.id,c.title,c.owner_email,c.model_id,c.is_public,c.view_count,c.created_at])); }
-  }catch(e){ toast(e.message,'bad'); }
+  }catch(e){ toast(userMsg(e),'bad'); }
 }
 function setMe(){
   $('setBody').innerHTML = '<div class="card" style="max-width:460px"><h3>Changer mon mot de passe</h3><input class="f" id="pw1" type="password" placeholder="Nouveau mot de passe (8 caractères min.)" style="width:100%;margin-bottom:8px" autocomplete="new-password"><input class="f" id="pw2" type="password" placeholder="Confirmer" style="width:100%;margin-bottom:10px" autocomplete="new-password"><button class="btn pri" onclick="changePw()">Mettre à jour</button><p class="muted small" style="margin-top:14px">Connecté en tant que <b>'+esc(admin.email)+'</b> · '+esc(ROLE_FR[admin.admin_role||'admin'])+'. Déconnexion automatique après 30 min d\'inactivité.</p></div>';
 }
 async function changePw(){
   const a=$('pw1').value, b=$('pw2').value; if(a.length<8) return toast('8 caractères minimum','bad'); if(a!==b) return toast('Les mots de passe diffèrent','bad');
-  const { error } = await sb.auth.updateUser({password:a}); if(error) return toast(error.message,'bad'); toast('Mot de passe mis à jour','ok'); $('pw1').value=$('pw2').value='';
+  const { error } = await sb.auth.updateUser({password:a}); if(error) return toast(userMsg(error),'bad'); toast('Mot de passe mis à jour','ok'); $('pw1').value=$('pw2').value='';
 }
 </script>
 </body>

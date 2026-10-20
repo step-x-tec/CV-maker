@@ -21,7 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
 <script src="config.js" onerror="void 0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <style>
 :root{color-scheme:light;--bg:#F6F4EF;--ink:#211D2C;--ink2:#736E7D;--nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;--ok:#127A5B;
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -255,7 +256,7 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-s
 
 <footer><div class="wrap">
   <div class="cols">
-    <div><h4>CVxMaker</h4><a href="mailto:contact@cvxmaker.example">Nous contacter</a></div>
+    <div><h4>CVxMaker</h4><a id="contactLink" href="#" style="display:none">Nous contacter</a><a href="confidentialite.html">Confidentialité</a></div>
     <div><h4>Produit</h4><a href="#templates">Modèles</a><a href="#features">Fonctionnalités</a><a href="#pricing">Tarifs</a></div>
     <div><h4>Pays couverts</h4><span style="font-size:12.5px;color:#94A3B8">Togo · Sénégal · Côte d'Ivoire · Cameroun · RDC · Mali</span></div>
   </div>
@@ -298,7 +299,41 @@ const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
 const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || '';
 const CONFIG_OK = /^https:\/\/[a-z0-9]{12,}\.supabase\.co$/.test(SUPABASE_URL) && /^(eyJ|sb_publishable_)/.test(SUPABASE_ANON_KEY);
 if (!CONFIG_OK) console.error('[CVxMaker] Configuration manquante : renseignez SUPABASE_URL et SUPABASE_ANON_KEY dans /config.js');
+/* Traduit toute erreur technique en message clair pour l'utilisateur (le détail reste en console). */
+function userMsg(e, fallback){
+  const raw=String((e&&e.message)||e||''); try{ console.warn('[CVxMaker]', e); }catch(_){}
+  const m=raw.toLowerCase();
+  if(/failed to fetch|networkerror|load failed|network request failed|timeout|timed out|offline/.test(m)) return 'Connexion impossible. Vérifiez votre connexion Internet puis réessayez.';
+  if(/jwt|not authenticated|auth session missing|invalid token|refresh token/.test(m)) return 'Votre session a expiré. Reconnectez-vous puis réessayez.';
+  if(/permission denied|row-level security|forbidden|42501|not allowed|droits insuffisants/.test(m)) return "Vous n'avez pas l'autorisation d'effectuer cette action.";
+  if(/rate limit|too many/.test(m)) return 'Trop de tentatives. Patientez quelques minutes puis réessayez.';
+  if(/could not find the function|schema cache|does not exist|undefined_table|pgrst|relation .* does not exist|column .* does not exist/.test(m)) return 'Ce service est momentanément indisponible. Réessayez dans quelques instants.';
+  if(/duplicate key|already exists/.test(m)) return 'Cet élément existe déjà.';
+  if(/invalid input|violates|check constraint|value too long|invalid uuid/.test(m)) return 'Certaines informations saisies ne sont pas valides. Vérifiez-les puis réessayez.';
+  if(/[àâçéèêëîïôûùüœ]/i.test(raw) && raw.length<160 && !/supabase|postgres|sql|rpc|jwt/i.test(raw)) return raw;
+  return fallback || 'Une erreur est survenue. Réessayez dans un instant.';
+}
+(function(){ var e=(CFG.CONTACT_EMAIL||"").trim(); var a=document.getElementById("contactLink"); if(a&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){ a.href="mailto:"+e; a.style.display=""; } })();
 const sb = (CONFIG_OK && window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+/* ---- Suivi anonyme du parcours (entonnoir) : aucun contenu de CV, aucune donnée personnelle ---- */
+const cvxTrack=(function(){
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(_){ return null; } }
+  function uuid(){ return (crypto.randomUUID&&crypto.randomUUID())||'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}); }
+  let vid=ls('cvx_vid'); if(!vid){ vid=uuid(); ls('cvx_vid',vid); }
+  try{ const q=new URLSearchParams(location.search); const s=q.get('utm_source'); if(s||q.get('utm_campaign')){ ls('cvx_utm',JSON.stringify({s:s||'',m:q.get('utm_medium')||'',c:q.get('utm_campaign')||''})); } }catch(_){}
+  let utm={}; try{ utm=JSON.parse(ls('cvx_utm')||'{}'); }catch(_){}
+  const once={};
+  return function(name,props,unique){
+    try{
+      if(unique){ const k='cvx_ev_'+name; if(once[k]||ls(k)) return; once[k]=1; ls(k,'1'); }
+      if(typeof sb==='undefined'||!sb) return;
+      Promise.resolve(sb.rpc('track_event',{p_visitor:vid,p_name:name,p_source:utm.s||null,p_medium:utm.m||null,p_campaign:utm.c||null,p_props:props||{}})).catch(()=>{});
+    }catch(_){}
+  };
+})();
+cvxTrack('landing_view',{},false);
+document.addEventListener('click',function(e){ var l=e.target.closest&&e.target.closest('a[href^="/app"]'); if(l) cvxTrack('cta_click',{where:(l.textContent||'').trim().slice(0,40)}); },true);
+
 
 /* Bandeau d'annonce / mode maintenance, pilotés depuis Admin → Réglages & équipe */
 (async function siteNotice(){
@@ -365,7 +400,7 @@ async function submitTestimonial(){
     document.getElementById('testiMessage').value = '';
     testiRating = 5; renderTestiStars();
   }catch(e){
-    msgEl.textContent = 'Erreur : ' + e.message;
+    msgEl.textContent = userMsg(e,'Envoi impossible pour le moment. Réessayez plus tard.');
     msgEl.className = 'testi-msg err';
   }finally{
     btn.disabled = false; btn.textContent = 'Envoyer mon avis';
@@ -384,7 +419,7 @@ async function submitInterest(){
     if(error && error.code!=='23505') throw error;
     msg.textContent='Merci ! Nous vous préviendrons dès leur sortie.'; msg.className='testi-msg ok';
     document.getElementById('soonEmail').value='';
-  }catch(e){ msg.textContent='Erreur : '+e.message; msg.className='testi-msg err'; }
+  }catch(e){ msg.textContent=userMsg(e,'Inscription impossible pour le moment. Réessayez plus tard.'); msg.className='testi-msg err'; }
   finally{ btn.disabled=false; }
 }
 </script>
