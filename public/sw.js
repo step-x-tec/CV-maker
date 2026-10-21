@@ -3,7 +3,7 @@
 // pour l'éditeur déjà visité. Ne met jamais en cache les appels Supabase
 // (API externe, toujours en réseau) ni les requêtes non-GET.
 
-const SW_VERSION = 'cvxmaker-v8';
+const SW_VERSION = 'cvxmaker-v9';
 const SHELL_CACHE = SW_VERSION + '-shell';
 
 const SHELL_FILES = [

@@ -153,6 +153,7 @@ h2.display{font-size:21px;margin:0 0 14px}
 .accent-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .accent-dot{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .12s ease}
 .accent-dot:hover{transform:scale(1.12)}
+.cc-box{margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);display:grid;gap:10px}.cc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cc-lbl{font-size:12.5px;font-weight:700;flex:1 1 150px}.cc-row input[type=color]{width:42px;height:38px;border:1.5px solid var(--border);border-radius:10px;padding:2px;background:#fff;cursor:pointer}.cc-row input[type=text]{width:92px;height:38px;border:1.5px solid var(--border);border-radius:10px;padding:0 10px;font:600 13px/1 ui-monospace,monospace;text-transform:uppercase}.cc-reset{height:38px;border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:0 12px;font-weight:700;font-size:12px;cursor:pointer}.cc-warn{font-size:11.5px;color:#B45309;min-height:0}.cc-warn:empty{display:none}
 .accent-dot.active{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
 
 /* ---------- ATS ---------- */
@@ -1002,7 +1003,7 @@ function entryFromRow(row, keepId){
   const b=blankCV(), d=row.data||{};
   return { id:keepId||newId(), cloudId:row.id, cloudTs:Date.parse(row.updated_at)||0, name:row.title||'CV sans titre', customName:true, modelId:row.model_id||'t01', accent:row.accent_color||'#2563EB',
     photoData:(row.design&&row.design.photo)||'', savedAt:row.updated_at||new Date().toISOString(),
-    cv:normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), lay:(d.lay&&typeof d.lay==='object')?d.lay:{}, exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] }) };
+    cv:normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), lay:(d.lay&&typeof d.lay==='object')?d.lay:{}, theme:(d.theme&&typeof d.theme==='object')?d.theme:{}, exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] }) };
 }
 function loadEntryIntoEditor(it){
   cv=normalizeCV(JSON.parse(JSON.stringify(it.cv))); S.modelId=it.modelId; S.accent=it.accent; S.photoData=it.photoData||''; setCurrentId(it.id);
@@ -1162,7 +1163,7 @@ async function initPublicView(token){
     if(!data || !data.is_public){ showPublicError('Ce lien n\'existe pas ou n\'est plus actif.'); return; }
     sb.rpc('increment_cv_view', { p_token: token }).then(function(){},function(){});   // au mieux ; jamais bloquant pour l'affichage
     const b=blankCV(), d=data.data||{};
-    const pcv = normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), lay:(d.lay&&typeof d.lay==='object')?d.lay:{}, exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] });
+    const pcv = normalizeCV({ p:Object.assign(b.p,d.p||{}), ec:Object.assign(b.ec,d.ec||{}), lay:(d.lay&&typeof d.lay==='object')?d.lay:{}, theme:(d.theme&&typeof d.theme==='object')?d.theme:{}, exp:d.exp||[], edu:d.edu||[], sk:d.sk||[], lang:d.lang||[], cert:d.cert||[], hobby:d.hobby||[], ref:d.ref||[], award:d.award||[], logiciel:d.logiciel||[], quality:d.quality||[], projects:d.projects||[] });
     const tpl = TEMPLATES.find(function(t){ return t.id===data.model_id; }) || TEMPLATES[0];
     const over = { accent: data.accent_color || (tpl&&tpl.ac), photoData: (data.design && data.design.photo) || '' };
     const html = layHTML(renderTpl(tpl, pcv, over), pcv && pcv.lay && pcv.lay[tpl.id]);
@@ -2908,7 +2909,7 @@ function projectsHTML(cv,headColor,textColor,size){
 }
 function renderTpl(tpl, data, over){
   if(!tpl) return '<div style="min-height:1123px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-family:Inter,sans-serif;font-size:13px;text-align:center;padding:40px">Modèles en cours de mise à jour.<br>Revenez dans un instant.</div>';
-  const S2 = Object.assign({}, S, { bg: tpl.bg }, over||{});
+  const S2 = Object.assign({}, S, { bg: (data && data.theme && /^#[0-9a-f]{6}$/i.test(data.theme[tpl.id]||'') ? data.theme[tpl.id] : tpl.bg) }, over||{});
   return tpl.render(data, S2);
 }
 const SAMPLE_PHOTO = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#D9C3A5"/><circle cx="50" cy="38" r="18" fill="#7A4B2E"/><path d="M14 100c2-24 18-36 36-36s34 12 36 36z" fill="#7A4B2E"/></svg>');
@@ -3778,7 +3779,8 @@ function renderForm(){
     + '<div class="tpl-hint">Touchez un modèle : nous vous guidons ensuite vers la couleur, puis « Suivant ».</div>'
     + '<div class="tpl-grid" id="tplGrid">'+tplCardsHTML()+'</div>'
     + '<div class="accent-box" id="accentSection"><div class="accent-head"><b>Couleur d\'accent</b><span>Modèle : <em id="accentTplName">'+esc(cur.name)+'</em></span></div>'
-    + '<div class="accent-row">'+['#2563EB','#10B981','#F59E0B','#EF4444','#7C3AED','#16215C'].map(function(c){ return '<div class="accent-dot '+(S.accent===c?'active':'')+'" data-c="'+c+'" style="background:'+c+'" onclick="pickAccent(\''+c+'\')"></div>'; }).join('')+'</div>'
+    + '<div class="accent-row" id="accentRow">'+accentDotsHTML()+'</div>'
+    + customColorHTML()
     + '<div class="accent-next">Vous pouvez maintenant toucher « Suivant » pour continuer.</div></div>';
   } else if(step===2){
     body += H('Photo & langue')
@@ -3944,10 +3946,53 @@ function pickTemplate(id){
   const nb=document.querySelector('.btn-next'); if(nb){ nb.classList.remove('nudge'); void nb.offsetWidth; nb.classList.add('nudge'); }
   if(typeof TOUR!=='undefined' && TOUR.active && step===1){ TOUR.phase='next'; syncTour(); }
 }
-function pickAccent(c){
-  S.accent=c; onChange();
-  document.querySelectorAll('.accent-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-c')===c); });
+const ACCENT_PRESETS=['#2563EB','#10B981','#F59E0B','#EF4444','#7C3AED','#16215C'];
+function cleanHex(v){ v=String(v||'').trim().replace(/^#?/,'#'); if(/^#[0-9a-f]{3}$/i.test(v)) v='#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]; return /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : null; }
+function hexLum(h){ const n=parseInt(h.slice(1),16), f=function(x){ x/=255; return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4); }; return .2126*f(n>>16&255)+.7152*f(n>>8&255)+.0722*f(n&255); }
+function recentColors(){ try{ return JSON.parse(localStorage.getItem('scv_recent_colors')||'[]').filter(function(c){ return cleanHex(c); }).slice(0,5); }catch(e){ return []; } }
+function rememberColor(c){ if(ACCENT_PRESETS.indexOf(c)>=0) return; try{ localStorage.setItem('scv_recent_colors', JSON.stringify([c].concat(recentColors().filter(function(x){ return x!==c; })).slice(0,5))); }catch(e){} }
+function accentDotsHTML(){
+  const list = ACCENT_PRESETS.concat(recentColors().filter(function(c){ return ACCENT_PRESETS.indexOf(c)<0; }));
+  if(list.indexOf((S.accent||'').toUpperCase())<0 && cleanHex(S.accent)) list.push(cleanHex(S.accent));
+  return list.map(function(c){ return '<div class="accent-dot '+((S.accent||'').toUpperCase()===c.toUpperCase()?'active':'')+'" data-c="'+c+'" style="background:'+c+'" onclick="pickAccent(\''+c+'\')"></div>'; }).join('');
+}
+function curTplBg(){ const t = TEMPLATES.find(function(x){ return x.id===S.modelId; })||TEMPLATES[0]; const c = cv.theme && cv.theme[S.modelId]; return { def:(t&&t.bg)||'#FFFFFF', cur: cleanHex(c)||(t&&t.bg)||'#FFFFFF', custom: !!cleanHex(c) }; }
+function customColorHTML(){
+  const bg = curTplBg(), ac = cleanHex(S.accent)||'#2563EB'; setTimeout(ccWarn,0);
+  return '<div class="cc-box">'
+   +'<div class="cc-row"><label class="cc-lbl" for="ccAccent">Ma couleur d\'accent</label>'
+   +'<input type="color" id="ccAccent" value="'+ac+'" oninput="pickAccent(this.value,true)" onchange="pickAccent(this.value)" aria-label="Choisir une couleur d\'accent">'
+   +'<input type="text" id="ccAccentHex" value="'+ac+'" maxlength="7" spellcheck="false" autocapitalize="characters" oninput="ccHex(\'accent\',this)" aria-label="Code couleur hexadécimal"></div>'
+   +'<div class="cc-row"><label class="cc-lbl" for="ccBg">Couleur du fond du modèle</label>'
+   +'<input type="color" id="ccBg" value="'+bg.cur+'" oninput="pickTplBg(this.value,true)" onchange="pickTplBg(this.value)" aria-label="Choisir la couleur du fond">'
+   +'<input type="text" id="ccBgHex" value="'+bg.cur+'" maxlength="7" spellcheck="false" autocapitalize="characters" oninput="ccHex(\'bg\',this)" aria-label="Code couleur hexadécimal">'
+   +'<button type="button" class="cc-reset" id="ccBgReset" onclick="pickTplBg(null)" style="'+(bg.custom?'':'display:none')+'">Rétablir</button></div>'
+   +'<div class="cc-warn" id="ccWarn" role="status"></div></div>';
+}
+function ccWarn(){
+  const el = document.getElementById('ccWarn'); if(!el) return; const msgs = [];
+  const ac = cleanHex(S.accent); if(ac && hexLum(ac)>0.72) msgs.push('Cette couleur d\'accent est très claire : elle risque d\'être peu lisible, surtout à l\'impression.');
+  const bg = curTplBg(), t = TEMPLATES.find(function(x){ return x.id===S.modelId; });
+  if(bg.custom && t && Math.abs(hexLum(bg.cur)-hexLum(t.bg))>0.45) msgs.push('Ce fond change fortement le contraste du modèle : vérifiez que le texte reste lisible (vous pouvez ajuster la couleur du texte avec « Personnaliser »).');
+  el.textContent = msgs.join(' ');
+}
+function ccHex(kind,inp){ const c = cleanHex(inp.value); inp.style.borderColor = (c || inp.value==='' ) ? '' : '#DC2626'; if(!c) return; if(kind==='accent') pickAccent(c,true,true); else pickTplBg(c,true,true); }
+function pickAccent(c,live,fromHex){
+  c = cleanHex(c) || c; S.accent=c; onChange();
+  document.querySelectorAll('.accent-dot').forEach(function(d){ d.classList.toggle('active', (d.getAttribute('data-c')||'').toUpperCase()===String(c).toUpperCase()); });
+  const ci=document.getElementById('ccAccent'); if(ci && cleanHex(c)) ci.value=cleanHex(c); const hi=document.getElementById('ccAccentHex'); if(hi && !fromHex) hi.value=c;
+  ccWarn();
+  if(live) return;
+  const hx=cleanHex(c); if(hx) rememberColor(hx); const row=document.getElementById('accentRow'); if(row) row.innerHTML=accentDotsHTML();
   refreshTplGrid();
+}
+function pickTplBg(c,live,fromHex){
+  cv.theme = cv.theme || {};
+  if(c==null){ delete cv.theme[S.modelId]; } else cv.theme[S.modelId] = cleanHex(c);
+  onChange();
+  const b = curTplBg(); const ci=document.getElementById('ccBg'); if(ci) ci.value=b.cur; const hi=document.getElementById('ccBgHex'); if(hi && !fromHex) hi.value=b.cur;
+  const rs=document.getElementById('ccBgReset'); if(rs) rs.style.display = b.custom?'':'none';
+  ccWarn(); if(!live) refreshTplGrid();
 }
 function addItem(key,obj){ cv[key].push(obj); openState[key+(cv[key].length-1)]=true; onChange(); renderForm(); }
 function removeItem(key,i){ cv[key].splice(i,1); openState={}; onChange(); renderForm(); }
