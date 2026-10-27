@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>window.__H0=(location.hash||'').slice(1);</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CVxMaker — Administration</title>
@@ -268,7 +269,8 @@ document.addEventListener('keydown', e=>{
 
 /* ── navigation ── */
 const SECTIONS = [
-  ['Pilotage', [['dashboard','📊','Tableau de bord'],['activity','⚡','Activité & santé']]],
+  ['Pilotage', [['dashboard','📊','Tableau de bord'],['live','🟢','Utilisateurs en direct'],['activity','⚡','Activité & santé']]],
+  ['Publicité',[['ads','🎯','Campagnes']]],
   ['Gestion',  [['users','👥','Utilisateurs'],['cvs','📄','CV'],['payments','💰','Paiements'],['licenses','🔑','Licences'],['support','💬','Support']]],
   ['Communauté',[['moderation','⭐','Avis & témoignages'],['guests','🧑‍💻','Visiteurs sans compte'],['interest','🔔','Intérêt nouveautés'],['broadcast','📢','Annonces']]],
   ['Données',  [['ai','🤖','Intelligence artificielle'],['exports','📤','Exports'],['audit','🧾','Journal d\'audit']]],
@@ -918,5 +920,7 @@ async function changePw(){
   const { error } = await sb.auth.updateUser({password:a}); if(error) return toast(userMsg(error),'bad'); toast('Mot de passe mis à jour','ok'); $('pw1').value=$('pw2').value='';
 }
 </script>
+<script src="ads-render.js"></script>
+<script src="admin-ads.js"></script>
 </body>
 </html>

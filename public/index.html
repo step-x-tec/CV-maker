@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr" style="color-scheme:light">
+<html lang="fr" style="color-scheme:only light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CVxMaker — Créez un CV professionnel en 5 minutes</title>
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="only light">
 <meta name="supported-color-schemes" content="light">
 <meta name="darkreader-lock">
 <meta name="theme-color" content="#1B1640">
@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <style>
-:root{color-scheme:light;--bg:#F6F4EF;--ink:#211D2C;--ink2:#736E7D;--nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;--ok:#127A5B;
+:root{color-scheme:only light;--bg:#F6F4EF;--ink:#211D2C;--ink2:#736E7D;--nav:#1B1640;--accent:#B0691E;--accent2:#C97D2C;--border:#E7E2D8;--ok:#127A5B;
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif}
@@ -128,6 +128,7 @@ footer a{display:block;font-size:12.5px;color:#94A3B8;margin-bottom:7px}
 footer .bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;font-size:11.5px;color:#64748B;text-align:center}
 .soon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:22px;max-width:420px;margin-left:auto;margin-right:auto}.soon-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:20px;text-align:left}.soon-card .ic{font-size:26px;margin-bottom:8px}.soon-card h3{font-size:15px;margin-bottom:4px}.soon-card p{margin:0;font-size:13px;color:var(--ink2);line-height:1.5}.soon-tag{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;background:var(--accent);padding:3px 9px;border-radius:99px;margin-bottom:10px}.soon-form{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.soon-form input{padding:12px 16px;border:1.5px solid var(--border);border-radius:99px;font-size:14px;min-width:240px;flex:1;max-width:340px}
 </style>
+<style id="noDark">html{color-scheme:only light;background-color:#F6F4EF}@media print{html,body{background:#fff !important;color-scheme:only light}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
 </head>
 <body>
 

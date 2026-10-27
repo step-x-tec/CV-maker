@@ -145,3 +145,15 @@ Pour mesurer une pub, ajoutez à votre lien : `?utm_source=tiktok&utm_medium=vid
 ## Personnalisation de la mise en page (nouveau)
 
 Dans l'aperçu du CV, le bouton « ✋ Personnaliser » permet de sélectionner n'importe quel élément et de le déplacer, le redimensionner, le réordonner (même d'une colonne à l'autre), régler les lettres (taille, espacement, interligne, police, couleur, gras, italique, alignement) ou le masquer. Les réglages sont enregistrés par modèle dans le CV (champ `lay`) et rejoués à l'identique à l'écran, en PDF et sur le lien public. Aucun changement de base de données n'est nécessaire.
+
+---
+
+## Publicité et utilisateurs en direct (nouveau)
+
+Exécutez `supabase/migrations/20261027000000_ads_and_presence.sql` (après les précédentes ; relançable sans risque). Elle crée :
+
+- **La présence** : l'application enregistre l'activité des connectés toutes les 2 minutes. Avant cette migration, les compteurs « actifs 24 h / 7 j » restaient à zéro. Admin → *Utilisateurs en direct* (en ligne maintenant, actifs, nouveaux, heures, pays).
+- **Les campagnes** : Admin → *Publicité → Campagnes*. Image ou mini-vidéo, titre, texte, bouton, lien (clic = redirection vers la source, l'annonce reste jusqu'à la croix), croix active après N secondes (0 à 30), fermeture automatique, 5 formats (pop-up, plein écran, volet bas, bannière, coin), couleurs / arrondi / animation, ciblage (formules, pays, appareil, ancienneté, a déjà téléchargé), emplacements (ouverture, Mes CV, après téléchargement), fréquence, plafonds (vues totales, par utilisateur, par jour, clics), planning, priorité, UTM, statistiques et export CSV.
+- **Le stockage** `ad-media` (bucket public, 25 Mo, images et MP4/WebM). Si le script ne peut pas le créer, créez-le à la main dans Supabase → Storage.
+
+Par défaut, les comptes administrateurs ne voient pas les annonces : cochez « Afficher aussi aux comptes administrateurs » pour tester sur votre compte.
