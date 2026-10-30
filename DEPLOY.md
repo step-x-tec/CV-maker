@@ -157,3 +157,15 @@ Exécutez `supabase/migrations/20261027000000_ads_and_presence.sql` (après les 
 - **Le stockage** `ad-media` (bucket public, 25 Mo, images et MP4/WebM). Si le script ne peut pas le créer, créez-le à la main dans Supabase → Storage.
 
 Par défaut, les comptes administrateurs ne voient pas les annonces : cochez « Afficher aussi aux comptes administrateurs » pour tester sur votre compte.
+
+---
+
+## Correctif « Vous n'avez pas l'autorisation… » sur l'accueil
+
+Exécutez `supabase/migrations/20261028000000_fix_anon_is_admin.sql` : elle rend aux visiteurs non connectés le droit d'exécuter `is_admin()` / `admin_rank()`, que les règles d'accès évaluent. Sans elle, « Me prévenir » et l'envoi/lecture des avis échouent pour les visiteurs.
+
+---
+
+## E-mails d'authentification
+
+Modèles français prêts à coller dans `supabase/templates/` (guide : `supabase/templates/LISEZ-MOI.md`, aperçu : `preview.html`). Pensez aussi au SMTP personnalisé : l'envoi intégré de Supabase est très limité.

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:only light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+<title>Code de vérification</title>
+<style>:root{color-scheme:only light}body{margin:0;padding:0}a{color:#B0691E}@media only screen and (max-width:620px){.wrap{width:100%!important}.pad{padding:26px 22px!important}.h1{font-size:24px!important;line-height:31px!important}}</style>
+</head>
+<body style="margin:0;padding:0;background:#F6F4EF" bgcolor="#F6F4EF">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all">Votre code à 6 chiffres : {{ .Token }}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F6F4EF" style="background:#F6F4EF"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" class="wrap" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:560px">
+<tr><td align="center" bgcolor="#1B1640" style="background:#1B1640;background:linear-gradient(135deg,#1B1640,#241C52);border-radius:16px 16px 0 0;padding:26px 20px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="padding-right:11px"><img src="{{ .SiteURL }}/icons/icon-192.png" width="38" height="38" alt="" style="display:block;border:0;border-radius:10px"></td>
+<td style="font-family:Georgia,'Times New Roman',serif;font-size:23px;line-height:28px;font-weight:700;color:#FFFFFF;letter-spacing:-.2px">CVx<span style="color:#E8B15E">Maker</span></td>
+</tr></table></td></tr>
+<tr><td class="pad" bgcolor="#FFFFFF" style="background:#FFFFFF;padding:36px 38px 34px;border-left:1px solid #E7E2D8;border-right:1px solid #E7E2D8">
+<h1 class="h1" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:27px;line-height:34px;font-weight:700;color:#211D2C">Code de vérification</h1>
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:15.5px;line-height:25px;color:#3B3646"><p style="margin:0 0 6px">Saisissez ce code pour confirmer votre identité et valider l'opération en cours :</p></div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:22px 0 6px"><tr><td align="center" bgcolor="#F6F4EF" style="background:#F6F4EF;border:1px solid #E7E2D8;border-radius:12px;padding:20px 10px"><div style="font-family:'Courier New',Courier,monospace;font-size:34px;line-height:40px;font-weight:700;letter-spacing:10px;color:#1B1640">{{ .Token }}</div></td></tr></table><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px"><tr><td bgcolor="#FBF6EE" style="background:#FBF6EE;border-left:3px solid #C97D2C;border-radius:6px;padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#5B5566">Ce code est valable quelques minutes. <b>Ne le communiquez à personne</b> : l'équipe CVxMaker ne vous le demandera jamais.</td></tr></table>
+</td></tr>
+<tr><td bgcolor="#FFFFFF" style="background:#FFFFFF;border:1px solid #E7E2D8;border-top:0;border-radius:0 0 16px 16px;padding:0 38px 28px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid #EFEBE2;padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#8A8594" align="center">
+Vous recevez cet e-mail car une action a été demandée avec l'adresse <b style="color:#5B5566">{{ .Email }}</b> sur CVxMaker.<br>
+<a href="{{ .SiteURL }}" target="_blank" style="color:#8A8594;text-decoration:underline">cvxmaker.netlify.app</a> &nbsp;·&nbsp; Le CV parfait, prêt en quelques minutes.
+</td></tr></table></td></tr>
+</table>
+</td></tr></table>
+</body></html>

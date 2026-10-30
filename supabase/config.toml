@@ -11,3 +11,31 @@ verify_jwt = true
 
 [functions.ai-chat]
 verify_jwt = true
+
+# ── E-mails d'authentification (modèles CVxMaker) ──
+# Utilisés en local et par `supabase config push`. Sur Supabase Cloud, vous pouvez aussi les coller à la main
+# (voir supabase/templates/LISEZ-MOI.md).
+[auth.email.template.confirmation]
+subject = "Confirmez votre adresse e-mail — CVxMaker"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Réinitialisez votre mot de passe CVxMaker"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Votre lien de connexion CVxMaker"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirmez votre nouvelle adresse e-mail — CVxMaker"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.invite]
+subject = "Vous êtes invité(e) sur CVxMaker"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.reauthentication]
+subject = "Votre code de vérification CVxMaker"
+content_path = "./supabase/templates/reauthentication.html"
+
