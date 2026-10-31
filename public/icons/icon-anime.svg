@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><style>
+.zb1,.zb2{transform-origin:256px 404px;animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.9,.3,1.2);animation-duration:.7s}
+.zb1{animation-name:zf1;animation-delay:.25s}.zb2{animation-name:zf2;animation-delay:.15s}
+@keyframes zf1{from{transform:rotate(0)}to{transform:rotate(-15deg)}}@keyframes zf2{from{transform:rotate(0)}to{transform:rotate(-7.5deg)}}
+.zf{transform-origin:256px 404px;animation:zpop .6s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes zpop{from{transform:translateY(24px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.zck{stroke-dasharray:260;animation:zdr .55s .75s cubic-bezier(.5,0,.2,1) both}
+@keyframes zdr{from{stroke-dashoffset:260}to{stroke-dashoffset:0}}
+.zs{transform-box:fill-box;transform-origin:center;animation:zin .5s cubic-bezier(.2,1.6,.4,1) both,ztw 2.6s ease-in-out infinite}
+.s1{animation-delay:1.2s,1.9s}.s2{animation-delay:1.35s,2.4s}.s3{animation-delay:1.5s,2.9s}
+@keyframes zin{from{transform:scale(0) rotate(-60deg)}to{transform:none}}
+@keyframes ztw{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.78);opacity:.75}}
+@media (prefers-reduced-motion:reduce){.zb1,.zb2,.zf,.zck,.zs{animation:none!important}.zb1{transform:rotate(-15deg)}.zb2{transform:rotate(-7.5deg)}}
+</style><defs>
+<linearGradient id="zbg" x1=".1" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#7352FF"/><stop offset=".5" stop-color="#4631D6"/><stop offset="1" stop-color="#25188F"/></linearGradient>
+<linearGradient id="zhl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="zwm" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FF5E3A"/><stop offset=".5" stop-color="#FF9A1F"/><stop offset="1" stop-color="#FFD23F"/></linearGradient>
+<filter id="zsh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="12" stdDeviation="11" flood-color="#150C58" flood-opacity=".42"/></filter>
+</defs><rect width="512" height="512" rx="118" fill="url(#zbg)"/><rect width="512" height="512" rx="118" fill="url(#zhl)"/><g transform="translate(256 262) scale(1.07) translate(-256 -262)"><g class="zb1"><path d="M146 112H306L366 172V380a24 24 0 0 1-24 24H170a24 24 0 0 1-24-24V136a24 24 0 0 1 24-24Z" fill="#fff" fill-opacity="0.26"/></g><g class="zb2"><path d="M146 112H306L366 172V380a24 24 0 0 1-24 24H170a24 24 0 0 1-24-24V136a24 24 0 0 1 24-24Z" fill="#fff" fill-opacity="0.52"/></g><g filter="url(#zsh)"><g class="zf"><path d="M146 112H306L366 172V380a24 24 0 0 1-24 24H170a24 24 0 0 1-24-24V136a24 24 0 0 1 24-24Z" fill="#fff" fill-opacity="1"/><path d="M306 112V172H366Z" fill="#E0DAF7" stroke="#E0DAF7" stroke-width="8" stroke-linejoin="round"/><circle cx="192" cy="168" r="26" fill="#CFC8F0"/><path d="M234 158H282M234 184H266" stroke="#D5CFF0" stroke-width="16" stroke-linecap="round"/></g></g><path class="zck" d="M178 300L232 354L346 238" fill="none" stroke="url(#zwm)" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/><g class="zs s1"><path d="M400 64Q409 115 460 124Q409 133 400 184Q391 133 340 124Q391 115 400 64Z" fill="url(#zwm)" /></g><g class="zs s2"><path d="M446 172Q450 192 470 196Q450 200 446 220Q442 200 422 196Q442 192 446 172Z" fill="#FFD23F" /></g><g class="zs s3"><path d="M122 112Q125 125 138 128Q125 131 122 144Q119 131 106 128Q119 125 122 112Z" fill="#fff" fill-opacity=".7"/></g></g></svg>
