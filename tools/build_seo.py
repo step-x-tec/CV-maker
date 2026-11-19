@@ -14,6 +14,7 @@ TODAY = os.environ.get('SEO_DATE', datetime.date.today().isoformat())
 E = html.escape
 SITE = 'CVxMaker'
 OG_IMG = BASE + '/assets/og-cvxmaker.png'
+GSC_TOKEN = 'jPniFugUSK36Cj67q9cHcqI7tHJomW1wsIybUcWMcC0'   # Google Search Console (balise de vérification)
 
 def jl(obj):
     return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + '</script>'
@@ -124,6 +125,7 @@ def build_home():
     head = f"""<!--SEO-HEAD-->
 <meta name="description" content="{E(desc)}">
 <link rel="canonical" href="{BASE}/">
+<meta name="google-site-verification" content="{GSC_TOKEN}">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <link rel="alternate" hreflang="fr" href="{BASE}/"><link rel="alternate" hreflang="x-default" href="{BASE}/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="{SITE}"><meta property="og:locale" content="fr_FR">
