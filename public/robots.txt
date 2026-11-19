@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
-Allow: /app.html
 Disallow: /admin.html
+Disallow: /admin/
+
+Sitemap: https://cvxmaker.netlify.app/sitemap.xml

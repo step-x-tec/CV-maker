@@ -1,0 +1,22 @@
+# CVxMaker
+
+> Créateur de CV en ligne en français : 50 modèles, score ATS, lettres de motivation et demandes d'emploi, import de CV, version anglaise, export PDF et Word. Pensé pour l'Afrique francophone et les candidatures internationales.
+
+## Pages principales
+- [Accueil](https://cvxmaker.netlify.app/)
+- [Tous les guides](https://cvxmaker.netlify.app/guides)
+- [Créer un CV gratuit en ligne, étape par étape](https://cvxmaker.netlify.app/creer-un-cv-gratuit): Créez un CV professionnel gratuit depuis votre téléphone : 50 modèles, score ATS, export PDF. Guidé en 7 étapes, sans logiciel à installer.
+- [Modèles de CV professionnels : trouvez le bon design](https://cvxmaker.netlify.app/modeles-de-cv): Découvrez 50 modèles de CV professionnels : sidebar, minimaliste, créatif, corporate. Personnalisez les couleurs et exportez en PDF.
+- [Lettre de motivation : structure, formules et erreurs à éviter](https://cvxmaker.netlify.app/lettre-de-motivation): Rédigez une lettre de motivation efficace : structure en 3 paragraphes, formules de politesse, erreurs à éviter. Générée à partir de votre CV.
+- [Demande d'emploi ou de stage : modèle et conseils](https://cvxmaker.netlify.app/demande-d-emploi): Rédigez une demande d'emploi ou de stage claire et courte : structure, mentions à inclure et erreurs à éviter. Export PDF et Word.
+- [CV compatible ATS : les règles pour passer les filtres](https://cvxmaker.netlify.app/cv-compatible-ats): Comprendre les ATS et adapter votre CV : mise en page simple, mots-clés de l'offre, intitulés standards. Score ATS estimé inclus.
+- [CV en anglais : traduire et adapter son CV](https://cvxmaker.netlify.app/cv-en-anglais): Passez votre CV en anglais sans le recopier : vocabulaire des rubriques, différences avec le CV français, version bilingue dans CVxMaker.
+- [Le CV en Afrique francophone : usages et bonnes pratiques](https://cvxmaker.netlify.app/cv-afrique-francophone): Les usages du CV au Togo, Sénégal, Côte d'Ivoire, Cameroun, RDC, Mali : photo, état civil, longueur, références. Modèles adaptés.
+- [CV sans expérience : que mettre pour convaincre](https://cvxmaker.netlify.app/cv-sans-experience): Pas d'expérience professionnelle ? Mettez en avant formation, projets, stages, bénévolat et compétences. Structure et exemples de phrases.
+- [CV d'étudiant : décrocher un stage](https://cvxmaker.netlify.app/cv-etudiant-stage): Comment rédiger un CV d'étudiant pour décrocher un stage : formation, projets, compétences, durée. Modèle de structure et erreurs à éviter.
+- [Centres d'intérêt sur un CV : lesquels choisir](https://cvxmaker.netlify.app/centres-d-interet-cv): Que mettre dans la rubrique loisirs d'un CV ? Exemples utiles, ceux à éviter et comment les rendre pertinents pour un recruteur.
+- [Décrire ses missions sur un CV : verbes d'action et exemples](https://cvxmaker.netlify.app/decrire-ses-missions-cv): Comment rédiger les missions de vos expériences : verbes d'action, résultats chiffrés quand c'est possible, exemples avant/après.
+- [Les erreurs de CV les plus fréquentes](https://cvxmaker.netlify.app/erreurs-cv-frequentes): Fautes d'orthographe, CV trop long, photo inadaptée, mise en page chargée : les erreurs qui coûtent un entretien, et les corrections simples.
+- [Lettre de démission : modèle et conseils](https://cvxmaker.netlify.app/lettre-de-demission): Rédiger une lettre de démission claire et professionnelle : mentions obligatoires, préavis, ton à adopter, modèle prêt à adapter.
+- [Préparer un entretien d'embauche : méthode en 6 étapes](https://cvxmaker.netlify.app/preparer-un-entretien): Comment préparer un entretien : recherche sur l'entreprise, questions fréquentes, exemples de réponses, questions à poser, tenue et ponctualité.
+- [Postuler à l'étranger : adapter son CV](https://cvxmaker.netlify.app/postuler-a-l-etranger): CV international : format, photo, état civil, langue, équivalence de diplômes. Les points à adapter pour postuler dans un autre pays.

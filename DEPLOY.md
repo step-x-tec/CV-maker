@@ -169,3 +169,34 @@ Exécutez `supabase/migrations/20261028000000_fix_anon_is_admin.sql` : elle rend
 ## E-mails d'authentification
 
 Modèles français prêts à coller dans `supabase/templates/` (guide : `supabase/templates/LISEZ-MOI.md`, aperçu : `preview.html`). Pensez aussi au SMTP personnalisé : l'envoi intégré de Supabase est très limité.
+
+## Version anglaise du CV (traduction)
+
+- Bouton « Traduire en anglais » de l'assistant IA, ou 🎚️ Mise en page → Langue du CV → English.
+- Le CV français n'est jamais modifié : la version anglaise est une vue (champ `vl` = `en`) et une mémoire de traduction (`en`) enregistrées avec le CV (local et cloud).
+- Titres de sections et valeurs courantes (niveaux, nationalité, état civil, mois, « Présent ») : dictionnaire intégré, sur les 51 modèles.
+- Textes libres : modèle de traduction `Xenova/opus-mt-fr-en` exécuté dans le navigateur (≈ 110 Mo téléchargés une seule fois depuis cdn.jsdelivr.net et huggingface.co ; aucun texte du CV n'est envoyé).
+- L'export PDF, l'export Word et le lien public suivent la langue affichée.
+- Non couvert : lettres de motivation et autres documents (restent en français).
+
+## Import d'un CV existant (lecture améliorée)
+
+- Lecture par rubriques (Profil, Expériences, Formation, Formations complémentaires → certifications, Compétences, Logiciels, Langues, Loisirs, Qualités, Distinctions, Projets, Références) et par blocs datés (date en début de ligne ou sur sa propre ligne).
+- Reprend aussi : adresse, site web, LinkedIn, état civil (naissance, nationalité, situation, permis), références citées dans les expériences, niveaux de langue.
+- Lecture 100 % locale (pdf.js / mammoth chargés depuis cdnjs, aucun fichier envoyé). Limite connue : les CV en deux colonnes ou scannés se lisent moins bien ; l'écran de confirmation montre ce qui a été reconnu.
+
+### Import : textes écrits « en bloc »
+
+- Texte sur une seule ligne, coupé au hasard, séparé par des barres ou sans puces : les rubriques en MAJUSCULES, les puces, les périodes datées et les « Référence : » sont retrouvées dans le texte.
+- Principe : ne rien deviner. Nom, poste, état civil, langues (niveau explicite) et logiciels (liste d'au moins 3) ne sont remplis que s'ils sont sûrs ; sinon « non trouvé ». Les passages douteux apparaissent dans « À classer » et l'utilisateur choisit où les mettre (ou les ignore).
+- La lecture ne peut pas échouer : en cas d'erreur inattendue, seules les coordonnées sûres sont reprises et le texte est proposé à classer.
+- Limite : un texte rédigé en phrases libres, sans rubriques ni dates, ne peut pas être structuré sans IA. Option prévue : analyse par IA sur demande (envoie le texte au serveur, avec accord explicite).
+
+## Référencement (SEO) — v17
+
+- Nouveau : 7 pages de guides (`public/*.html` listées dans `public/sitemap.xml`), balises de partage, données structurées, `robots.txt`, `llms.txt`, image `assets/og-cvxmaker.png`.
+- Tout est généré par `python3 tools/build_seo.py [https://votre-domaine.com]` (contenu dans `tools/seo_content.py`). Relancez-le après achat d'un domaine, puis redéployez.
+- L'éditeur `/app` et les CV partagés `/cv/*` sont en `noindex` (voir `netlify.toml`).
+- Étapes à faire de votre côté (Search Console, Bing, domaine, profils, liens) : voir `SEO-PLAN.md`.
+- Service worker : `cvxmaker-v17`.
+- v17 (passe 2) : hub `/guides` + 8 articles, vitesse/accessibilité de l'accueil, `tools/indexnow.py` (à lancer après chaque déploiement pour prévenir Bing).
