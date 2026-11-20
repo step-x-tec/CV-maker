@@ -5559,8 +5559,7 @@ if(__pubToken){
   renderForm();
   renderCV();
   Promise.resolve(restoreSession()).catch(function(){}).then(function(){
-    var go=function(){ if(!currentUser && typeof startGuestAds==='function') startGuestAds(); };
-    if(document.readyState==='complete') go(); else window.addEventListener('load', go);
+    window.__authChecked=true;   // la vérification de session est terminée : le moteur d'annonces (autre bloc de script) peut démarrer en mode visiteur
   });
   maybeShowOnboarding();
 }
@@ -6288,12 +6287,17 @@ function adsAppAction(n){
     else if(n==='templates'||n==='new_cv') goStep(1);
   }catch(e){}
 }
+function adsOpenWhenFree(i){   // attend la fin de la visite guidée / des fenêtres ouvertes avant la pub d'ouverture
+  i=i||0;
+  if(!adsCanShow() && i<40){ setTimeout(function(){ adsOpenWhenFree(i+1); },3000); return; }
+  AdsEngine.trigger('app_open');
+}
 function startGuestAds(){
   if(currentUser || startGuestAds.done) return;
   if(!sb || !window.AdsEngine){ startGuestAds.n=(startGuestAds.n||0)+1; if(startGuestAds.n<40) setTimeout(startGuestAds,600); return; }
   startGuestAds.done=true;
   AdsEngine.init({sb:sb, guest:true, canShow:adsCanShow, onAppAction:adsAppAction});
-  AdsEngine.trigger('app_open');
+  adsOpenWhenFree(0);
 }
 function startAds(){
   if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser){ startAds.n=(startAds.n||0)+1; if(startAds.n<40) setTimeout(startAds,600); else if(/adsdebug/.test(location.search)) alert('Annonces : ads-render.js ne s\'est pas chargé (cache ? déploiement ?)'); } else if(/adsdebug/.test(location.search) && !startAds.w){ startAds.w=1; setTimeout(function(){ if(!currentUser) alert('Annonces : vous n\'êtes pas connecté. Connectez-vous à un compte utilisateur.'); },3000); } return; }
@@ -6307,10 +6311,12 @@ function startAds(){
       else if(n==='templates'||n==='new_cv') goStep(1);
     }catch(e){}
   }});
-  AdsEngine.trigger('app_open');
+  adsOpenWhenFree(0);
 }
+window.startAds=startAds; window.startGuestAds=startGuestAds;
 (function(){ var n=0, t=setInterval(function(){ n++;
   try{
+    if(!currentUser && window.__authChecked && sb && window.AdsEngine){ startGuestAds(); }
     if(currentUser && sb && window.AdsEngine && window.Presence){ startAds(); if(startAds.done){ clearInterval(t); } }
   }catch(e){}
   if(n>180) clearInterval(t);
