@@ -945,8 +945,8 @@ async function onAuthSuccess(data){
   currentUser = data.user || (data.session && data.session.user);
   if(!currentUser) return;
   updateAuthUI();
-  await syncFromCloud();
-  await refreshPlanBadge();
+  try{ startAds(); }catch(e){}
+  try{ await syncFromCloud(); await refreshPlanBadge(); }catch(e){}
   loadBroadcasts(); startAds();
 }
 
@@ -980,7 +980,9 @@ async function restoreSession(){
   const { data } = await sb.auth.getSession();
   if(data && data.session){
     currentUser = data.session.user; updateAuthUI();
-    await syncFromCloud(); await refreshPlanBadge(); loadBroadcasts(); startAds();
+    try{ startAds(); }catch(e){}
+    try{ await syncFromCloud(); await refreshPlanBadge(); }catch(e){}
+    loadBroadcasts(); startAds();
     if(window.__payTx) pollPayment(window.__payTx);
   }
 }
@@ -6226,6 +6228,7 @@ function adsCanShow(){
 function startAds(){
   if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser){ startAds.n=(startAds.n||0)+1; if(startAds.n<40) setTimeout(startAds,600); else if(/adsdebug/.test(location.search)) alert('Annonces : ads-render.js ne s\'est pas chargé (cache ? déploiement ?)'); } else if(/adsdebug/.test(location.search) && !startAds.w){ startAds.w=1; setTimeout(function(){ if(!currentUser) alert('Annonces : vous n\'êtes pas connecté. Connectez-vous à un compte utilisateur.'); },3000); } return; }
   if(startAds.done===currentUser.id) return; startAds.done=currentUser.id;
+  if(!sb){ if(window.AdsEngine && /adsdebug/.test(location.search)) alert('Annonces : Supabase non initialisé (vérifiez config.js)'); }
   Presence.start(sb);
   AdsEngine.init({sb:sb, canShow:adsCanShow, onAppAction:function(n){
     try{
@@ -6236,6 +6239,12 @@ function startAds(){
   }});
   AdsEngine.trigger('app_open');
 }
+(function(){ var n=0, t=setInterval(function(){ n++;
+  try{
+    if(currentUser && sb && window.AdsEngine && window.Presence){ startAds(); if(startAds.done){ clearInterval(t); } }
+  }catch(e){}
+  if(n>180) clearInterval(t);
+},1000); })();
 ['exportPDF','exportWord'].forEach(function(n){
   var f=window[n]; if(typeof f!=='function') return;
   window[n]=function(){ var r=f.apply(this,arguments); setTimeout(function(){ if(window.AdsEngine) AdsEngine.trigger('after_export'); },6000); return r; };

@@ -232,7 +232,7 @@
   function device() { return w.matchMedia && w.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile'; }
   E.init = function (o) { E.sb = o.sb; E.opts = o || {}; dbg('moteur démarré, Supabase ' + (o.sb ? 'connecté' : 'ABSENT (clé config.js ?)'), !o.sb); };
   E.trigger = function (placement) {
-    if (!E.sb || E.busy || E.current) { dbg('déclencheur « ' + placement + ' » ignoré (' + (!E.sb ? 'pas de Supabase' : E.busy ? 'requête en cours' : 'annonce déjà affichée') + ')', true); return; }
+    if (!E.sb || E.busy || E.current) { dbg('déclencheur « ' + placement + ' » ignoré (' + (!E.sb ? (/COLLEZ_ICI|^$/.test(String((w.__SC_CONFIG__ || {}).SUPABASE_ANON_KEY || '')) ? 'CLÉ SUPABASE NON RENSEIGNÉE dans config.js' : 'vous n\'êtes pas connecté à un compte, ou la connexion Supabase a échoué') : E.busy ? 'requête en cours' : 'annonce déjà affichée') + ')', true); return; }
     if (E.opts.canShow && !E.opts.canShow()) { dbg('déclencheur « ' + placement + ' » ignoré : fenêtre ouverte, visite guidée ou onglet masqué', true); return; }
     if (!DBG && Date.now() - E.last < 150000 && placement !== 'after_export') return; // 1 annonce / 2,5 min max
     E.busy = true;
