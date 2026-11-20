@@ -14,7 +14,7 @@
   ];
   var PLACEMENTS = [['app_open', 'À l\'ouverture de l\'appli'], ['my_cvs', 'À l\'ouverture de « Mes CV »'], ['after_export', 'Après un téléchargement de CV'], ['editor', 'Pendant l\'édition (réservé)']];
   var FREQ = [['once', 'Une seule fois par utilisateur'], ['once_per_session', 'Une fois par session'], ['once_per_day', 'Une fois par jour'], ['every_n_days', 'Tous les N jours'], ['always', 'À chaque déclenchement']];
-  var PLANS = ['free', 'starter', 'premium', 'pro'];
+  var PLANS = ['guest', 'free', 'starter', 'premium', 'pro'];
   var COLORS = [['#4f46e5', '#ffffff'], ['#0ea5e9', '#ffffff'], ['#10b981', '#ffffff'], ['#f59e0b', '#111827'], ['#ef4444', '#ffffff'], ['#111827', '#ffffff'], ['#ec4899', '#ffffff']];
   var ACTIONS = [['link', '🔗 Ouvrir un lien'], ['app', '📱 Aller dans l\'appli'], ['copy', '🏷️ Copier un code promo'], ['share', '📤 Partager'], ['whatsapp', '💬 WhatsApp'], ['mailto', '✉️ Écrire un e-mail'], ['tel', '📞 Appeler'], ['vote', '🗳️ Réponse / sondage'], ['close', '✕ Fermer']];
   var APP_TARGETS = [['upgrade', 'Tarifs / passer Premium'], ['my_cvs', 'Mes CV'], ['templates', 'Choisir un modèle'], ['new_cv', 'Créer un CV']];
@@ -23,10 +23,10 @@
 
   function blank() {
     return { id: null, name: '', status: 'draft', priority: 5, format: 'popup', media_type: 'image', media_url: '', poster_url: '', title: '', body: '', cta_label: 'En savoir plus', link_url: '', link_new_tab: true, sponsor_label: 'Sponsorisé', buttons: [],
-      close_delay_s: 5, allow_close: true, auto_close_s: null, video_autoplay: true, video_muted: true, video_loop: false,
+      close_delay_s: 5, allow_close: true, auto_close_s: null, video_autoplay: true, video_muted: false, video_loop: false,
       theme: { bg: '#ffffff', text: '', accent: '#4f46e5', overlay: 62, radius: 18, animation: 'zoom', align: 'left', sponsor: true },
       audience: { plans: [], countries: [], devices: [], min_account_days: '', max_account_days: '', has_exported: 'any', include_admins: false },
-      placement: 'app_open', trigger_delay_s: 3, frequency: 'once_per_day', frequency_days: 3, max_impressions: null, max_per_user: null, daily_cap: null, max_clicks: null, starts_at: null, ends_at: null };
+      placement: 'app_open', extra_placements: [], trigger_delay_s: 3, frequency: 'once_per_day', frequency_days: 3, max_impressions: null, max_per_user: null, daily_cap: null, max_clicks: null, starts_at: null, ends_at: null };
   }
   function ctr(c) { return c.impressions ? (Math.round(c.clicks / c.impressions * 1000) / 10) + ' %' : '—'; }
   function pct(a, b) { return b ? Math.min(100, Math.round(a / b * 100)) : 0; }
@@ -129,12 +129,15 @@
       (a.media_type !== 'none' ? '<div class="adf"><div class="addrop" id="ad_drop" onclick="$(\'ad_file\').click()"><div style="font-size:26px">⬆️</div><b>' + (a.media_url ? 'Remplacer le fichier' : 'Glissez un fichier ici ou cliquez') + '</b><div class="muted small">' + (a.media_type === 'video' ? 'MP4 ou WebM · 25 Mo max · idéal 9:16 ou 1:1, 5 à 15 s' : 'JPG, PNG, WebP ou GIF · 25 Mo max · idéal 1080×1350 ou 1080×1080') + '</div><div class="small" id="ad_up"></div></div><input type="file" id="ad_file" hidden accept="' + (a.media_type === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/gif') + '"></div>' +
         f('…ou URL du média (https)', '<input class="f" id="ad_media" value="' + esc(a.media_url || '') + '" placeholder="https://…">') +
         (a.media_type === 'video' ? f('Image d\'aperçu de la vidéo (facultatif)', '<input class="f" id="ad_poster" value="' + esc(a.poster_url || '') + '" placeholder="https://…">') +
-          '<div class="row" style="gap:16px;margin-bottom:12px">' + chk('ad_vauto', 'Lecture automatique', a.video_autoplay) + chk('ad_vmute', 'Sans le son au départ', a.video_muted) + chk('ad_vloop', 'En boucle', a.video_loop) + '</div>' : '') : '') +
+          '<div class="row" style="gap:16px;margin-bottom:12px">' + chk('ad_vauto', 'Lecture automatique', a.video_autoplay) + chk('ad_vsound', 'Démarrer avec le son activé 🔊', !a.video_muted) + chk('ad_vloop', 'En boucle', a.video_loop) + '</div>' : '') : '') +
       f('Titre', '<input class="f" id="ad_title" maxlength="120" value="' + esc(a.title || '') + '" placeholder="Accroche courte et claire">') +
       f('Texte', '<textarea class="f" id="ad_body" maxlength="400" style="min-height:70px">' + esc(a.body || '') + '</textarea>') +
       '<div class="adg2">' + f('Texte du bouton', '<input class="f" id="ad_cta" maxlength="40" value="' + esc(a.cta_label) + '">') + f('Mention de transparence', '<input class="f" id="ad_sp" maxlength="24" value="' + esc(a.sponsor_label) + '">') + '</div>' +
       f('Lien de destination', '<input class="f" id="ad_link" value="' + esc(a.link_url || '') + '" placeholder="https://site-du-partenaire.com/offre">', 'Au clic sur l\'image ou le bouton, l\'utilisateur est redirigé vers ce lien. L\'annonce reste affichée jusqu\'à la croix.') +
       '<div class="row" style="gap:16px">' + chk('ad_tab', 'Ouvrir dans un nouvel onglet', a.link_new_tab) + chk('ad_utm', 'Ajouter le suivi UTM automatiquement', false) + '</div>' +
+      '<div class="adf"><span class="adl">Action au clic sur l\'annonce (hors boutons)</span><div class="adg2" style="grid-template-columns:1fr 1.4fr;gap:6px">' +
+        '<select class="f" id="ad_ca"><option value="none">Lien de destination ci-dessus</option>' + ACTIONS.filter(function (x) { return x[0] !== 'close'; }).map(function (x) { return '<option value="' + x[0] + '"' + (((a.theme || {}).click_action || 'none') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '<option value="close"' + (((a.theme || {}).click_action) === 'close' ? ' selected' : '') + '>✕ Fermer l\'annonce</option></select>' +
+        '<input class="f" id="ad_cv" maxlength="300" placeholder="Valeur (lien, cible, code…)" value="' + esc((a.theme || {}).click_value || '') + '"></div></div>' +
       '<div class="adf"><span class="adl">Boutons d\'action (jusqu\'à 3) — remplacent le bouton simple</span>' +
       [0, 1, 2].map(function (i) { var b = (a.buttons || [])[i] || {}; return '<div class="adg2" style="grid-template-columns:1fr 1.1fr 1.4fr .8fr;gap:6px;margin-bottom:6px">' +
         '<input class="f" id="ad_bl_' + i + '" maxlength="40" placeholder="Texte du bouton ' + (i + 1) + '" value="' + esc(b.label || '') + '">' +
@@ -155,7 +158,7 @@
       '<div class="adg2">' + f('Assombrissement du fond : <b id="ad_ov_v">' + t.overlay + ' %</b>', '<input type="range" id="ad_ov" min="0" max="90" value="' + t.overlay + '">') + f('Arrondi : <b id="ad_rd_v">' + t.radius + ' px</b>', '<input type="range" id="ad_rd" min="0" max="40" value="' + t.radius + '">') + '</div>' +
       '<div class="adg2">' + f('Alignement du texte', '<select class="f" id="ad_al">' + opts([['left', 'À gauche'], ['center', 'Centré']], t.align) + '</select>') + '<div style="padding-top:22px">' + chk('ad_spon', 'Afficher le badge « ' + esc(a.sponsor_label) + ' »', t.sponsor !== false) + '</div></div></div>' +
 
-      '<div class="card" style="margin-bottom:14px"><h3>4 · Ciblage</h3><div class="adf"><span class="adl">Formules concernées (aucune cochée = tout le monde)</span><div class="row" style="gap:14px;flex-wrap:wrap">' + PLANS.map(function (p) { return chk('ad_pl_' + p, p, (u.plans || []).indexOf(p) >= 0); }).join('') + '</div></div>' +
+      '<div class="card" style="margin-bottom:14px"><h3>4 · Ciblage</h3><div class="adf"><span class="adl">Formules concernées (aucune cochée = tout le monde)</span><div class="row" style="gap:14px;flex-wrap:wrap">' + PLANS.map(function (p) { return chk('ad_pl_' + p, p === 'guest' ? 'guest (sans compte)' : p, (u.plans || []).indexOf(p) >= 0); }).join('') + '</div></div>' +
       f('Pays (codes ISO séparés par des virgules, vide = tous)', '<input class="f" id="ad_co" value="' + esc((u.countries || []).join(', ')) + '" placeholder="CI, SN, FR">') +
       '<div class="adf"><span class="adl">Appareils (aucun coché = tous)</span><div class="row" style="gap:14px">' + chk('ad_dv_mobile', '📱 Mobile', (u.devices || []).indexOf('mobile') >= 0) + chk('ad_dv_desktop', '💻 Ordinateur', (u.devices || []).indexOf('desktop') >= 0) + '</div></div>' +
       '<div class="adg2">' + f('Compte créé depuis au moins (jours)', '<input class="f" id="ad_min" type="number" min="0" value="' + esc(u.min_account_days) + '">') + f('…et au plus (jours)', '<input class="f" id="ad_max" type="number" min="0" value="' + esc(u.max_account_days) + '">') + '</div>' +
@@ -164,6 +167,7 @@
 
       '<div class="card" style="margin-bottom:14px"><h3>5 · Diffusion</h3>' +
       f('Où et quand', '<select class="f" id="ad_pl">' + opts(PLACEMENTS, a.placement) + '</select>') +
+      '<div class="adf"><span class="adl">Afficher aussi à…</span><div class="row" style="gap:14px;flex-wrap:wrap">' + PLACEMENTS.filter(function (x) { return x[0] !== 'editor'; }).map(function (x) { return chk('ad_xp_' + x[0], x[1], (a.extra_placements || []).indexOf(x[0]) >= 0); }).join('') + '</div></div>' +
       '<div class="adg2">' + f('Délai après le déclencheur (s)', '<input class="f" id="ad_td" type="number" min="0" max="120" value="' + a.trigger_delay_s + '">') + f('Priorité : <b id="ad_pr_v">' + a.priority + '</b> / 10', '<input type="range" id="ad_pr" min="1" max="10" value="' + a.priority + '">', 'Si plusieurs campagnes sont éligibles, la plus haute passe en premier.') + '</div>' +
       '<div class="adg2">' + f('Fréquence', '<select class="f" id="ad_fq">' + opts(FREQ, a.frequency) + '</select>') + f('N (jours)', '<input class="f" id="ad_fd" type="number" min="1" max="90" value="' + a.frequency_days + '">') + '</div>' +
       '<div class="adg2">' + f('Nombre total de vues maximum', '<input class="f" id="ad_mi" type="number" min="1" value="' + (a.max_impressions || '') + '" placeholder="Illimité">') + f('Vues maximum par utilisateur', '<input class="f" id="ad_mu" type="number" min="1" value="' + (a.max_per_user || '') + '" placeholder="Illimité">') + '</div>' +
@@ -184,16 +188,16 @@
     a.link_url = g('ad_link').trim(); a.link_new_tab = c('ad_tab');
     a.buttons = [0, 1, 2].map(function (i) { return { label: (g('ad_bl_' + i) || '').trim(), action: g('ad_ba_' + i) || 'link', value: (g('ad_bv_' + i) || '').trim(), style: g('ad_bs_' + i) || 'primary' }; }).filter(function (b) { return b.label; });
     if ($('ad_media')) a.media_url = g('ad_media').trim(); if ($('ad_poster')) a.poster_url = g('ad_poster').trim();
-    if ($('ad_vauto')) { a.video_autoplay = c('ad_vauto'); a.video_muted = c('ad_vmute'); a.video_loop = c('ad_vloop'); }
+    if ($('ad_vauto')) { a.video_autoplay = c('ad_vauto'); a.video_muted = !c('ad_vsound'); a.video_loop = c('ad_vloop'); }
     a.close_delay_s = +g('ad_cd'); a.allow_close = c('ad_allow'); a.auto_close_s = intOrNull(g('ad_auto'));
-    a.theme = { bg: g('ad_bg'), text: '', accent: g('ad_ac'), overlay: +g('ad_ov'), radius: +g('ad_rd'), animation: g('ad_an'), align: g('ad_al'), sponsor: c('ad_spon') };
+    a.theme = { bg: g('ad_bg'), text: '', accent: g('ad_ac'), overlay: +g('ad_ov'), radius: +g('ad_rd'), animation: g('ad_an'), align: g('ad_al'), sponsor: c('ad_spon'), click_action: g('ad_ca') || 'none', click_value: (g('ad_cv') || '').trim() };
     a.audience = {
       plans: PLANS.filter(function (p) { return c('ad_pl_' + p); }),
       countries: g('ad_co').split(/[,\s;]+/).map(function (x) { return x.trim().toUpperCase(); }).filter(function (x) { return /^[A-Z]{2}$/.test(x); }),
       devices: ['mobile', 'desktop'].filter(function (d) { return c('ad_dv_' + d); }),
       min_account_days: g('ad_min'), max_account_days: g('ad_max'), has_exported: g('ad_ex'), include_admins: c('ad_adm')
     };
-    a.placement = g('ad_pl'); a.trigger_delay_s = intOrNull(g('ad_td')) || 0; a.priority = +g('ad_pr'); a.frequency = g('ad_fq'); a.frequency_days = intOrNull(g('ad_fd')) || 3;
+    a.placement = g('ad_pl'); a.extra_placements = ['app_open', 'my_cvs', 'after_export'].filter(function (k) { return c('ad_xp_' + k) && k !== a.placement; }); a.trigger_delay_s = intOrNull(g('ad_td')) || 0; a.priority = +g('ad_pr'); a.frequency = g('ad_fq'); a.frequency_days = intOrNull(g('ad_fd')) || 3;
     a.max_impressions = intOrNull(g('ad_mi')); a.max_per_user = intOrNull(g('ad_mu')); a.daily_cap = intOrNull(g('ad_dc')); a.max_clicks = intOrNull(g('ad_mc'));
     a.starts_at = fromLocal(g('ad_st')); a.ends_at = fromLocal(g('ad_en'));
   }
@@ -246,8 +250,9 @@
     if (a.poster_url && !/^https:\/\//i.test(a.poster_url)) return 'L\'URL de l\'aperçu vidéo doit commencer par https://';
     if (a.link_url && !/^https?:\/\//i.test(a.link_url)) return 'Le lien doit commencer par http:// ou https://';
     var be = null;
-    (a.buttons || []).forEach(function (b, i) {
-      if (be) return; var n = 'Bouton ' + (i + 1);
+    var ck = (a.theme && a.theme.click_action && a.theme.click_action !== 'none') ? [{ action: a.theme.click_action, value: a.theme.click_value || '', _click: true }] : [];
+    (a.buttons || []).concat(ck).forEach(function (b, i) {
+      if (be) return; var n = b._click ? 'Clic sur l\'annonce' : 'Bouton ' + (i + 1);
       if (b.action === 'link' && !/^https?:\/\//i.test(b.value)) be = n + ' : le lien doit commencer par http:// ou https://';
       else if (b.action === 'app' && ['upgrade', 'plans', 'my_cvs', 'templates', 'new_cv'].indexOf(b.value) < 0) be = n + ' : cible de l\'appli à choisir parmi upgrade, my_cvs, templates, new_cv';
       else if ((b.action === 'copy') && !b.value) be = n + ' : indiquez le code à copier';
@@ -268,7 +273,7 @@
     return { name: a.name, priority: a.priority, format: a.format, media_type: a.media_type, media_url: a.media_type === 'none' ? null : (a.media_url || null), poster_url: a.media_type === 'video' ? (a.poster_url || null) : null,
       title: a.title || null, body: a.body || null, cta_label: a.cta_label, link_url: a.link_url || null, link_new_tab: a.link_new_tab, sponsor_label: a.sponsor_label, buttons: a.buttons || [],
       close_delay_s: a.close_delay_s, allow_close: a.allow_close, auto_close_s: a.auto_close_s, video_autoplay: a.video_autoplay, video_muted: a.video_muted, video_loop: a.video_loop,
-      theme: a.theme, audience: au, placement: a.placement, trigger_delay_s: a.trigger_delay_s, frequency: a.frequency, frequency_days: a.frequency_days,
+      theme: a.theme, audience: au, placement: a.placement, extra_placements: a.extra_placements || [], trigger_delay_s: a.trigger_delay_s, frequency: a.frequency, frequency_days: a.frequency_days,
       max_impressions: a.max_impressions, max_per_user: a.max_per_user, daily_cap: a.daily_cap, max_clicks: a.max_clicks, starts_at: a.starts_at, ends_at: a.ends_at };
   }
   async function save(publish) {

@@ -59,6 +59,7 @@
       '.adx-x.on{cursor:pointer;background:rgba(0,0,0,.78);font-size:18px;line-height:1}',
       '.adx-x.on:hover{background:#000}',
       '.adx-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--adx-ac,#4f46e5);transform-origin:left;transform:scaleX(0);z-index:3}',
+      '.adx-snd.hint{width:auto;border-radius:99px;padding:0 12px;font-size:12.5px;font-weight:700;animation:adxPulse 1.4s infinite}@keyframes adxPulse{50%{transform:scale(1.06)}}',
       '.adx-snd{position:absolute;left:10px;bottom:10px;z-index:3;width:34px;height:34px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:15px;cursor:pointer}',
       '@media (prefers-reduced-motion:reduce){.adx{animation:none!important}.adx-ov{transition:none}}'
     ].join('');
@@ -114,18 +115,22 @@
         vid = d.createElement('video');
         vid.src = safeUrl(ad.media_url); if (ad.poster_url && safeUrl(ad.poster_url)) vid.poster = safeUrl(ad.poster_url);
         vid.playsInline = true; vid.setAttribute('playsinline', ''); vid.preload = 'auto';
-        vid.muted = ad.video_muted !== false; vid.loop = !!ad.video_loop; vid.autoplay = ad.video_autoplay !== false;
+        vid.muted = ad.video_muted === true; vid.loop = !!ad.video_loop; vid.autoplay = ad.video_autoplay !== false;
         vid.addEventListener('ended', function () { emit('video_complete', true); });
-        if (vid.autoplay) { var pp = vid.play(); if (pp && pp.catch) pp.catch(function () { vid.muted = true; vid.play().catch(function () { }); }); }
         media.appendChild(vid);
         var snd = el('button', 'adx-snd', vid.muted ? '🔇' : '🔊'); snd.type = 'button'; snd.setAttribute('aria-label', 'Activer ou couper le son');
-        snd.onclick = function (e) { e.stopPropagation(); vid.muted = !vid.muted; snd.textContent = vid.muted ? '🔇' : '🔊'; if (!vid.paused) return; vid.play().catch(function () { }); };
+        function sndUi() { snd.textContent = vid.muted ? '🔇' : '🔊'; snd.classList.remove('hint'); }
+        snd.onclick = function (e) { e.stopPropagation(); vid.muted = !vid.muted; sndUi(); if (!vid.paused) return; vid.play().catch(function () { }); };
         media.appendChild(snd);
+        if (vid.autoplay) {
+          var pp = vid.play();
+          // le navigateur peut refuser un démarrage avec le son : on lance sans le son et on invite à l'activer
+          if (pp && pp.catch) pp.catch(function () { vid.muted = true; snd.textContent = '🔇 Activer le son'; snd.classList.add('hint'); vid.play().catch(function () { }); });
+        }
       } else {
         var im = d.createElement('img'); im.src = safeUrl(ad.media_url); im.alt = ad.title || ''; im.decoding = 'async';
         media.appendChild(im);
       }
-      if (link) media.addEventListener('click', go);
       box.appendChild(media);
     }
     if (th.sponsor !== false) box.appendChild(el('span', 'adx-sp', ad.sponsor_label || 'Sponsorisé'));
@@ -133,8 +138,8 @@
     // texte + boutons d'action
     var btns = Array.isArray(ad.buttons) ? ad.buttons.filter(function (x) { return x && x.label && x.action; }).slice(0, 3) : [];
     function act(bt, i, node) {
-      emit('button', false, (i + 1) + ':' + String(bt.label).slice(0, 40));
-      if (opt.preview) { if (bt.action === 'vote') { node.textContent = '✓ ' + bt.label; } return; }
+      emit('button', false, i < 0 ? 'annonce:' + bt.action : (i + 1) + ':' + String(bt.label).slice(0, 40));
+      if (opt.preview) { if (bt.action === 'vote' && node) { node.textContent = '✓ ' + bt.label; } return; }
       var v = String(bt.value || '');
       function copy(txt, done) {
         function ok() { if (done) done(); }
@@ -145,13 +150,13 @@
       switch (bt.action) {
         case 'link': var u = safeUrl(v); if (u) { var a = w.open(u, '_blank', 'noopener,noreferrer'); if (!a) w.location.href = u; } break;
         case 'app': try { if (opt.onAppAction) opt.onAppAction(v); } catch (e) { } close('action'); break;
-        case 'copy': copy(v, function () { node.textContent = '✓ Copié : ' + v.slice(0, 24); node.classList.add('done'); }); break;
-        case 'share': var txt = v || ad.title || 'CVxMaker'; try { if (w.navigator.share) { w.navigator.share({ text: txt, url: w.location.origin }).catch(function () { }); break; } } catch (e) { } copy(txt + ' ' + w.location.origin, function () { node.textContent = '✓ Lien copié'; }); break;
+        case 'copy': copy(v, function () { if (node) { node.textContent = '✓ Copié : ' + v.slice(0, 24); node.classList.add('done'); } else if (w.AdsRender.toast) w.AdsRender.toast('✓ Copié : ' + v.slice(0, 24)); }); break;
+        case 'share': var txt = v || ad.title || 'CVxMaker'; try { if (w.navigator.share) { w.navigator.share({ text: txt, url: w.location.origin }).catch(function () { }); break; } } catch (e) { } copy(txt + ' ' + w.location.origin, function () { if (node) node.textContent = '✓ Lien copié'; }); break;
         case 'whatsapp': var pr = v.split('|'), num = pr.length > 1 ? pr[0].replace(/\D/g, '') : '', msg = pr.length > 1 ? pr.slice(1).join('|') : v; w.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer'); break;
         case 'mailto': if (/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v)) w.location.href = 'mailto:' + v; break;
         case 'tel': if (/^\+?[0-9 ().-]{5,20}$/.test(v)) w.location.href = 'tel:' + v.replace(/[^0-9+]/g, ''); break;
         case 'vote':
-          var row = node.parentNode; if (row) { row.innerHTML = ''; row.appendChild(el('div', 'adx-thanks', v || 'Merci pour votre réponse !')); }
+          var row = node && node.parentNode; if (!node) { close('vote'); break; } if (row) { row.innerHTML = ''; row.appendChild(el('div', 'adx-thanks', v || 'Merci pour votre réponse !')); }
           timers.push(setTimeout(function () { close('vote'); }, 1600)); break;
         case 'close': close('btn'); break;
       }
@@ -175,6 +180,16 @@
         b.appendChild(cta);
       }
       box.appendChild(b);
+    }
+
+    // clic sur l'annonce (hors boutons, croix et haut-parleur) : action choisie, sinon le lien de destination
+    var ca = th.click_action && th.click_action !== 'none' ? { label: 'annonce', action: th.click_action, value: th.click_value || '' } : null;
+    if (ca || link) {
+      box.style.cursor = 'pointer';
+      box.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('button,a,.adx-x,.adx-snd')) return;
+        if (ca) act(ca, -1, null); else go();
+      });
     }
 
     // croix avec compte à rebours
@@ -226,15 +241,18 @@
   // ───────── moteur de diffusion (application) ─────────
   var E = { sb: null, session: null, current: null, last: 0, busy: false, opts: {} };
   function sid() {
+    if (E.opts && E.opts.guest) { // visiteur sans compte : identifiant anonyme persistant (fréquence « une fois par jour » possible)
+      try { var g = localStorage.getItem('adx_gid'); if (!g || g.length < 8) { g = 'g' + ((w.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)); localStorage.setItem('adx_gid', g.slice(0, 60)); } return g.slice(0, 60); } catch (e) { return 'g' + (E.session || (E.session = String(Date.now()) + Math.random().toString(36).slice(2))); }
+    }
     try { var s = sessionStorage.getItem('adx_sid'); if (!s) { s = (w.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); sessionStorage.setItem('adx_sid', s); } return s; }
     catch (e) { return E.session || (E.session = String(Date.now())); }
   }
   function device() { return w.matchMedia && w.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile'; }
-  E.init = function (o) { E.sb = o.sb; E.opts = o || {}; dbg('moteur démarré, Supabase ' + (o.sb ? 'connecté' : 'ABSENT (clé config.js ?)'), !o.sb); };
+  E.init = function (o) { E.sb = o.sb; E.opts = o || {}; dbg('moteur démarré (' + (o.guest ? 'visiteur sans compte' : 'compte connecté') + '), Supabase ' + (o.sb ? 'connecté' : 'ABSENT (clé config.js ?)'), !o.sb); };
   E.trigger = function (placement) {
     if (!E.sb || E.busy || E.current) { dbg('déclencheur « ' + placement + ' » ignoré (' + (!E.sb ? (/COLLEZ_ICI|^$/.test(String((w.__SC_CONFIG__ || {}).SUPABASE_ANON_KEY || '')) ? 'CLÉ SUPABASE NON RENSEIGNÉE dans config.js' : 'vous n\'êtes pas connecté à un compte, ou la connexion Supabase a échoué') : E.busy ? 'requête en cours' : 'annonce déjà affichée') + ')', true); return; }
     if (E.opts.canShow && !E.opts.canShow()) { dbg('déclencheur « ' + placement + ' » ignoré : fenêtre ouverte, visite guidée ou onglet masqué', true); return; }
-    if (!DBG && Date.now() - E.last < 150000 && placement !== 'after_export') return; // 1 annonce / 2,5 min max
+    if (!DBG && Date.now() - E.last < 150000 && placement !== 'after_export' && placement !== 'my_cvs') return; // 1 annonce / 2,5 min max
     E.busy = true;
     E.sb.rpc('ads_pick', { p_placement: placement, p_device: device(), p_session: sid() }).then(function (r) {
       E.busy = false;
@@ -263,7 +281,8 @@
   };
   P.stop = function () { clearInterval(P.t); P.t = null; };
 
-  w.AdsRender = { show: show };
+  function toast(msg) { try { var t = d.createElement('div'); t.textContent = msg; t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100001;background:#111827;color:#fff;padding:9px 16px;border-radius:99px;font:600 13px system-ui'; d.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); } catch (e) { } }
+  w.AdsRender = { show: show, toast: toast };
   w.AdsEngine = E;
   w.Presence = P;
 })(window);

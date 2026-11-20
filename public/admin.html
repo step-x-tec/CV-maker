@@ -11,7 +11,7 @@
 <link rel="icon" href="icons/favicon-32.png" type="image/png">
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<script src="config.js" onerror="void 0"></script>
+<script src="/config.js" onerror="void 0"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -922,7 +922,7 @@ async function changePw(){
   const { error } = await sb.auth.updateUser({password:a}); if(error) return toast(userMsg(error),'bad'); toast('Mot de passe mis à jour','ok'); $('pw1').value=$('pw2').value='';
 }
 </script>
-<script src="ads-render.js"></script>
-<script src="admin-ads.js"></script>
+<script src="/ads-render.js"></script>
+<script src="/admin-ads.js"></script>
 </body>
 </html>

@@ -206,3 +206,14 @@ Modèles français prêts à coller dans `supabase/templates/` (guide : `supabas
 - Exécuter dans Supabase (SQL Editor), dans l'ordre : `20261027000000_ads_and_presence.sql`, `20261028000000_fix_anon_is_admin.sql`, puis **`20261029000000_ads_interactive.sql`** (boutons, compteur par bouton).
 - Admin → Pubs → campagne → « Boutons d'action » : lien, aller dans l'appli (upgrade / my_cvs / templates / new_cv), copier un code, partager, WhatsApp, e-mail, appel, réponse/sondage, fermer.
 - Test : compte utilisateur normal (les admins sont exclus par défaut), statut Active, emplacement « À l'ouverture », fréquence « À chaque déclenchement ». `app.html?adsdebug` journalise les refus dans la console.
+
+## Pubs pour visiteurs sans compte + plusieurs emplacements (v22)
+- Exécuter dans Supabase, après les précédentes : **`20261030000000_ads_guests.sql`**.
+- Admin → Pubs → campagne : « Afficher aussi à… » (ex. app_open + Mes CV + après export) ; Ciblage → « guest (sans compte) » pour viser uniquement les visiteurs, ou ne rien cocher pour viser tout le monde (visiteurs inclus).
+- Les visiteurs sont identifiés par un identifiant anonyme stocké sur leur appareil (fréquence « une fois par jour » respectée), max 60 évènements/heure/appareil côté serveur.
+- La page de confidentialité doit mentionner cet identifiant (annonces et mesure d'audience).
+
+## Correctifs v24
+- Les liens publics `/cv/<jeton>` chargeaient `/cv/config.js` (introuvable) → « Service momentanément indisponible ». `config.js` et `ads-render.js` sont maintenant chargés en chemin absolu (`/config.js`).
+- CV locaux séparés par compte (espace local par utilisateur + espace invité). La 1re connexion d'un compte garde le travail fait en invité (hors fiches déjà liées à un autre compte).
+- Bouton « Continuer avec Google » aux couleurs et proportions de la charte Google (thème clair).

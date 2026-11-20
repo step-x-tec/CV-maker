@@ -24,12 +24,21 @@
 <meta name="msapplication-TileColor" content="#1B1640">
 <meta name="msapplication-TileImage" content="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Merriweather:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="config.js" onerror="void 0"></script>
+<link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@500&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Merriweather:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="/config.js" onerror="void 0"></script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-<script src="ads-render.js" defer></script>
+<script src="/ads-render.js" defer></script>
 <style>
+/* Bouton « Se connecter avec Google » — charte Google (thème clair) : fond #FFF, bordure #747775, texte #1F1F1F, Roboto Medium 14, logo G 4 couleurs */
+.gsi-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;padding:0 16px 0 12px;box-sizing:border-box;background:#FFFFFF;border:1px solid #747775;border-radius:99px;color:#1F1F1F;font-family:'Roboto',Arial,sans-serif;font-weight:500;font-size:14px;letter-spacing:.25px;line-height:20px;cursor:pointer;position:relative;overflow:hidden;transition:box-shadow .2s,border-color .2s}
+.gsi-btn .gsi-icon{display:flex;width:20px;height:20px;align-items:center;justify-content:center;flex:0 0 20px}
+.gsi-btn::after{content:'';position:absolute;inset:0;background:#303030;opacity:0;transition:opacity .2s;pointer-events:none}
+.gsi-btn:hover{box-shadow:0 1px 2px rgba(60,64,67,.30),0 1px 3px 1px rgba(60,64,67,.15)}
+.gsi-btn:hover::after{opacity:.08}
+.gsi-btn:focus-visible{outline:2px solid #1A73E8;outline-offset:2px}
+.gsi-btn:active::after{opacity:.12}
+.gsi-btn:disabled{background:#FFFFFF61;border-color:#1F1F1F1F;cursor:default}
 :root{
   color-scheme:only light;
   --bg:#F6F4EF;--panel:#FFFFFF;--ink:#211D2C;--ink2:#736E7D;
@@ -584,7 +593,7 @@ body.cx-on #pvBar{display:none !important}
       <button type="button" onclick="forgotPassword()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;padding:2px 0 10px;text-align:left;width:100%">Mot de passe oublié ?</button>
       <button id="authSubmit" onclick="doAuthSubmit()" style="width:100%;padding:14px;border:none;border-radius:99px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;margin-top:6px">Se connecter</button>
       <div style="text-align:center;font-size:11px;color:var(--ink2);margin:14px 0">ou</div>
-      <button onclick="doGoogleAuth()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:99px;background:#fff;font-weight:600;font-size:13.5px">Continuer avec Google</button>
+      <button type="button" class="gsi-btn" onclick="doGoogleAuth()"><span class="gsi-icon"><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></span><span class="gsi-text">Continuer avec Google</span></button>
     </div>
 
     <div id="authPanelPhone" style="display:none">
@@ -944,6 +953,7 @@ function promptNewPassword(){
 async function onAuthSuccess(data){
   currentUser = data.user || (data.session && data.session.user);
   if(!currentUser) return;
+  if(wsSwitch(currentUser.id)){ location.reload(); return; }   // autre compte que celui des données locales : on recharge avec les siennes
   updateAuthUI();
   try{ startAds(); }catch(e){}
   try{ await syncFromCloud(); await refreshPlanBadge(); }catch(e){}
@@ -959,6 +969,7 @@ function updateAuthUI(){
 async function logout(){
   if(sb) await sb.auth.signOut();
   currentUser = null; currentPlan = 'free';
+  if(wsSwitch('guest')){ location.reload(); return; }   // on met les CV de ce compte de côté : le suivant ne les verra pas
   const badge=document.getElementById('planBadge'); if(badge){ badge.textContent='Gratuit'; badge.className='plan-badge plan-free'; }
   updateAuthUI(); toast('Vous êtes déconnecté.');
 }
@@ -979,7 +990,9 @@ async function restoreSession(){
   }
   const { data } = await sb.auth.getSession();
   if(data && data.session){
-    currentUser = data.session.user; updateAuthUI();
+    currentUser = data.session.user;
+    if(wsSwitch(currentUser.id)){ location.reload(); return; }
+    updateAuthUI();
     try{ startAds(); }catch(e){}
     try{ await syncFromCloud(); await refreshPlanBadge(); }catch(e){}
     loadBroadcasts(); startAds();
@@ -1269,6 +1282,44 @@ function dismissBroadcast(id){
   const el=document.getElementById('bcBanner'); if(el) el.remove();
 }
 
+/* ---------------- Séparation des CV locaux par compte ----------------
+   Chaque compte (et le mode invité) a son propre espace local : on met l'ancien de côté et on charge le bon
+   quand l'identité change, pour ne jamais mélanger les CV de deux comptes sur le même appareil. */
+const WS_KEYS=['scv_saved','scv_data','scv_model','scv_accent','scv_ts','scv_current_id','scv_layout','scv_reference'];
+function wsOwner(){ try{ return localStorage.getItem('scv_owner')||'guest'; }catch(e){ return 'guest'; } }
+function wsSwitch(next){
+  try{
+    const prev=wsOwner(); if(!next || prev===next) return false;
+    const L=localStorage, P=function(o,k){ return 'scv_ws:'+o+':'+k; };
+    const stash=function(o){ WS_KEYS.forEach(function(k){ const v=L.getItem(k); if(v!=null) L.setItem(P(o,k),v); else L.removeItem(P(o,k)); }); };
+    const clear=function(){ WS_KEYS.forEach(function(k){ L.removeItem(k); }); };
+    const has=function(o){ return L.getItem(P(o,'scv_saved'))!=null || L.getItem(P(o,'scv_data'))!=null; };
+    const restore=function(o){ WS_KEYS.forEach(function(k){ const v=L.getItem(P(o,k)); if(v!=null) L.setItem(k,v); else L.removeItem(k); }); };
+    if(prev==='guest' && next!=='guest' && !has(next)){
+      // 1re connexion de ce compte sur cet appareil : on garde le travail fait en invité,
+      // sauf les fiches déjà liées à un compte (elles reviennent du cloud, et ne doivent pas passer chez un autre).
+      let list=[]; try{ list=JSON.parse(L.getItem('scv_saved')||'[]'); }catch(e){}
+      const keep=list.filter(function(it){ return !it.cloudId; });
+      L.setItem('scv_saved',JSON.stringify(keep));
+      const cid=L.getItem('scv_current_id');
+      if(cid && !keep.some(function(it){ return it.id===cid; })){ L.removeItem('scv_current_id'); L.removeItem('scv_data'); L.removeItem('scv_ts'); }
+    } else {
+      stash(prev); if(has(next)) restore(next); else clear();
+    }
+    L.setItem('scv_owner',next); window.__wsLock=true; return true;
+  }catch(e){ return false; }
+}
+(function(){
+  try{
+    if(typeof getPublicToken==='function' && getPublicToken()) return;     // simple lecture d'un lien public : on ne touche à rien
+    let uid=null;
+    for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i);
+      if(/^sb-.*-auth-token$/.test(k)){ try{ const o=JSON.parse(localStorage.getItem(k)); uid=(o&&o.user&&o.user.id)||(o&&o.currentSession&&o.currentSession.user&&o.currentSession.user.id)||null; }catch(e){} if(uid) break; } }
+    wsSwitch(uid||'guest');
+    window.__wsLock=false;     // changement fait avant le chargement des données : pas de rechargement nécessaire
+  }catch(e){}
+})();
+
 /* ---------------- state ---------------- */
 let cv = JSON.parse(localStorage.getItem('scv_data')||'null') || {
   p:{name:'',role:'',email:'',phone:'',address:'',linkedin:'',website:'',summary:'',social:[]},
@@ -1300,6 +1351,7 @@ function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&am
 let currentCvId = localStorage.getItem('scv_current_id') || null;
 function autoName(){ return (cv.p.name ? cv.p.name + ' — ' : '') + (cv.p.role || 'CV sans titre'); }
 function syncCurrentSaved(){
+  if(window.__wsLock) return;
   try{
     const list = getSaved(); const it = list.find(function(x){ return x.id===currentCvId; });
     if(!it){ currentCvId=null; localStorage.removeItem('scv_current_id'); return; }
@@ -1309,6 +1361,7 @@ function syncCurrentSaved(){
   }catch(e){}
 }
 function save(){
+  if(window.__wsLock) return;
   localStorage.setItem('scv_data', JSON.stringify(cv)); localStorage.setItem('scv_model', S.modelId); localStorage.setItem('scv_accent', S.accent);
   localStorage.setItem('scv_ts', String(Date.now()));
   if(currentCvId) syncCurrentSaved();
@@ -5505,7 +5558,10 @@ if(__pubToken){
 } else {
   renderForm();
   renderCV();
-  restoreSession();
+  Promise.resolve(restoreSession()).catch(function(){}).then(function(){
+    var go=function(){ if(!currentUser && typeof startGuestAds==='function') startGuestAds(); };
+    if(document.readyState==='complete') go(); else window.addEventListener('load', go);
+  });
   maybeShowOnboarding();
 }
 </script>
@@ -6220,10 +6276,24 @@ window.generateWithLocalModel = async function(userPrompt){
 
 /* ── Annonces + présence (connecté uniquement) ── */
 function adsCanShow(){
-  if(!currentUser) return false;
+  if(!currentUser && !(window.AdsEngine && AdsEngine.opts && AdsEngine.opts.guest)) return false;
   if(typeof TOUR!=='undefined' && TOUR.active) return false;
   if(document.visibilityState!=='visible') return false;
   return !document.querySelector('.modal-ov.open,#authModal[style*="flex"],#authModal[style*="block"]');
+}
+function adsAppAction(n){
+  try{
+    if(n==='upgrade'||n==='plans') toggleTarifs(true);
+    else if(n==='my_cvs') toggleMyCVs(true);
+    else if(n==='templates'||n==='new_cv') goStep(1);
+  }catch(e){}
+}
+function startGuestAds(){
+  if(currentUser || startGuestAds.done) return;
+  if(!sb || !window.AdsEngine){ startGuestAds.n=(startGuestAds.n||0)+1; if(startGuestAds.n<40) setTimeout(startGuestAds,600); return; }
+  startGuestAds.done=true;
+  AdsEngine.init({sb:sb, guest:true, canShow:adsCanShow, onAppAction:adsAppAction});
+  AdsEngine.trigger('app_open');
 }
 function startAds(){
   if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser){ startAds.n=(startAds.n||0)+1; if(startAds.n<40) setTimeout(startAds,600); else if(/adsdebug/.test(location.search)) alert('Annonces : ads-render.js ne s\'est pas chargé (cache ? déploiement ?)'); } else if(/adsdebug/.test(location.search) && !startAds.w){ startAds.w=1; setTimeout(function(){ if(!currentUser) alert('Annonces : vous n\'êtes pas connecté. Connectez-vous à un compte utilisateur.'); },3000); } return; }
