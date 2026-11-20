@@ -725,7 +725,7 @@ body.cx-on #pvBar{display:none !important}
     </div></div>
     <div class="lay-row"><label>Taille du texte</label><div class="seg3" id="segSize">
       <button onclick="setLayout('size','small')">Petit</button>
-      <button onclick="setLayout('size','normal')">Normal</button>
+      <button onclick="setLayout('size','normal')">Auto</button>
       <button onclick="setLayout('size','large')">Grand</button>
     </div></div>
     <div class="lay-row"><label>Police</label><select id="fontSel" onchange="setLayout('font',this.value)" style="width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:#FCFBF8;font-size:14px">
@@ -1220,10 +1220,21 @@ async function initPublicView(token){
     const over = { accent: data.accent_color || (tpl&&tpl.ac), photoData: (data.design && data.design.photo) || '' };
     const html = layHTML(renderTpl(tpl, pcv, over), pcv && pcv.lay && pcv.lay[tpl.id]);
     document.getElementById('pvBody').innerHTML =
-      '<div class="pv-card"><div id="pvCv" style="width:794px">'+html+'</div></div>'
+      '<div class="pv-card"><div id="pvCv" style="width:794px"><div id="pvZoom">'+html+'</div></div></div>'
       + '<div class="pv-actions"><button class="pv-dl" onclick="exportPublicPDF()">📄 Télécharger en PDF</button><a class="pv-dl2" href="/">Créer mon propre CV</a></div>';
-    document.getElementById('printArea').innerHTML = '<div id="cvPprint" style="width:794px">'+html+'</div>';
+    document.getElementById('printArea').innerHTML = '<div id="cvPprint" style="width:794px"><div id="cvPZoom">'+html+'</div></div>';
     document.title = (pcv.p.name||'CV') + ' — CV en ligne';
+    // même ajustement automatique que dans l'éditeur : texte adapté à la quantité de contenu, modèle pleine page
+    try{
+      const pz = document.getElementById('pvZoom'), pc = document.getElementById('pvCv');
+      if(pz && !pz.querySelector('.cvx-n')){
+        const r = cvAutoFit(pz, pc, 'normal', 'auto');
+        pz.style.setProperty('zoom', String(r.scale), 'important');
+        cvFillColumns(cvRootOf(pz), (FIT_PAGE_H-4)*r.pages/r.scale);
+        cvFillColumns(cvRootOf(document.getElementById('cvPZoom')), (FIT_PAGE_H-4)*r.pages/r.scale);
+        window.__pvFit = r;
+      }
+    }catch(e){ console.warn('ajustement public ignoré', e); }
     fitPublicPreview();
     window.addEventListener('resize', fitPublicPreview);
   }catch(e){ console.warn('initPublicView', e); showPublicError('Impossible de charger ce CV pour le moment.'); }
@@ -1252,12 +1263,12 @@ function exportPublicPDF(){
     const naturalH = src.offsetHeight || 1123;
     src.style.transform = prevTransform;
     const isNat = !!src.querySelector('.cvx-n');
-    const scale = isNat ? 1 : Math.max(FIT_MIN_SCALE, Math.min(1, 1123/naturalH));
+    const scale = isNat ? 1 : (window.__pvFit ? window.__pvFit.scale : Math.max(FIT_MIN_SCALE, Math.min(1, 1123/naturalH)));
     if(isNat) applyNaturalPageMargins();
     // 'zoom' (pas transform) : seul 'zoom' modifie la mise en page réelle, donc la pagination
     // d'impression de Chromium (calculée sur la taille non transformée) reste correcte.
     pp.style.setProperty('transform','none','important');
-    pp.style.setProperty('zoom', String(scale), 'important');
+    (document.getElementById('cvPZoom')||pp).style.setProperty('zoom', String(scale), 'important');   // le zoom va sur le contenu, la feuille garde ses 794 px
   }
   window.print();
 }
@@ -3267,7 +3278,7 @@ function refreshTplGrid(){ const g=document.getElementById('tplGrid'); if(g){ g.
 
 /* ---------------- Mise en page : densité, taille, police, pagination ---------------- */
 const LH_MAP = { compact:1.2, normal:1.42, comfortable:1.62 };
-const SIZE_SCALE = { small:0.92, normal:1, large:1.08 };
+const SIZE_SCALE = { small:0.92, normal:1, auto:1, large:1.08 };
 const FONT_STACKS = { inter:"'Inter',system-ui,sans-serif", merriweather:"'Merriweather',serif", poppins:"'Poppins',sans-serif" };
 let LAYOUT = Object.assign({ density:'normal', size:'normal', font:'auto', pages:'auto' }, (function(){ try{ return JSON.parse(localStorage.getItem('scv_layout')||'{}'); }catch(e){ return {}; } })());
 let FIT = { scale:1, pages:1 };
@@ -3299,36 +3310,103 @@ function applyFitStyle(zoomScale){
 // seuil de lisibilité minimal, plutôt que de laisser déborder un contenu non maîtrisé visuellement.
 // Le mode '2' explicite (choix volontaire de l'utilisateur) tient sur 2 pages avec le même principe.
 const FIT_MIN_SCALE = 0.55; // seuil de lisibilité minimal avant d'accepter une page supplémentaire
+const FIT_MAX_UP = 1.45;    // agrandissement maximal automatique d'un CV court (taille « Auto »)
+const FIT_PAGE_H = 1123;    // hauteur d'une page A4 à 794 px de large
+
+/* ---------- Ajustement automatique à la page ----------
+   • CV trop long  : le texte est réduit juste ce qu'il faut pour tenir (jusqu'à FIT_MIN_SCALE), sinon 2 pages.
+   • CV trop court : le texte est agrandi (jusqu'à FIT_MAX_UP) pour remplir la page au lieu de laisser la moitié vide.
+   • Dans tous les cas, le modèle occupe TOUTE la hauteur de la page : colonnes latérales et fonds colorés vont
+     jusqu'en bas, quel que soit le zoom appliqué. */
+function cvRootOf(el){ return el ? Array.prototype.find.call(el.children, function(c){ return c.tagName!=='STYLE' && c.tagName!=='SCRIPT'; }) : null; }
+function cvHasBg(cs){ return cs.backgroundColor!=='rgba(0, 0, 0, 0)' || (cs.backgroundImage && cs.backgroundImage!=='none'); }
+function cvFillColumns(root, pageLocalH){
+  if(!root) return;
+  try{
+    root.style.setProperty('min-height', (Math.floor(pageLocalH)-3)+'px', 'important');   // 3 px de marge : jamais une page blanche en trop
+    let el = root;
+    for(let d=0; d<4 && el; d++){
+      const cs = getComputedStyle(el);
+      if(cs.display==='flex' && cs.flexDirection.indexOf('column')<0){
+        // rangée de colonnes : celles qui ont un fond s'étirent sur toute la hauteur
+        Array.prototype.forEach.call(el.children, function(c){
+          if(c.tagName==='STYLE') return; const k = getComputedStyle(c);
+          if(k.position==='absolute' || k.position==='fixed') return;
+          if(cvHasBg(k) && /flex-start|start|center|baseline/.test(k.alignSelf==='auto' ? cs.alignItems : k.alignSelf)) c.style.setProperty('align-self','stretch','important');
+        });
+        break;
+      }
+      if(cs.display!=='block' && cs.display!=='flex') break;
+      // bloc empilé (bandeau + corps) : le dernier bloc en flux absorbe la hauteur restante
+      const kids = Array.prototype.filter.call(el.children, function(c){ if(c.tagName==='STYLE'||c.tagName==='SCRIPT') return false; const p = getComputedStyle(c).position; return p!=='absolute' && p!=='fixed'; });
+      if(!kids.length) break;
+      if(cs.display==='block'){ el.style.setProperty('display','flex','important'); el.style.setProperty('flex-direction','column','important'); }
+      const last = kids[kids.length-1]; last.style.setProperty('flex','1 1 auto','important');
+      el = last;
+    }
+  }catch(e){ try{ console.warn('[CVxMaker] remplissage de page ignoré', e); }catch(_){} }
+}
+// Cherche l'échelle de texte idéale pour le contenu de zoomEl (largeur de mise en page 794 px).
+// normEl : élément de 794 px dont la largeur affichée donne le facteur d'affichage (aperçu réduit à l'écran).
+function cvAutoFit(zoomEl, normEl, sizeKey, pagesKey){
+  const root = cvRootOf(zoomEl);
+  if(!root) return { scale:1, pages:1, naturalH:FIT_PAGE_H };
+  const kf = function(){ const w = normEl && normEl.getBoundingClientRect().width; return w>0 ? w/794 : 1; };
+  const H = function(s){ zoomEl.style.setProperty('zoom', String(s), 'important'); return zoomEl.getBoundingClientRect().height / kf(); };
+  root.style.setProperty('min-height','0px','important');       // mesure la hauteur réelle du contenu
+  const target = FIT_PAGE_H*0.985;
+  const manual = SIZE_SCALE[sizeKey];
+  const hi = (sizeKey==='normal' || sizeKey==='auto') ? FIT_MAX_UP : manual;
+  const search = function(lo, top, limit){
+    if(H(top)<=limit) return top;
+    if(H(lo)>limit) return lo;
+    for(let i=0;i<9;i++){ const m=(lo+top)/2; if(H(m)<=limit) lo=m; else top=m; }
+    return lo;
+  };
+  const naturalH = H(1);
+  let s;
+  if(pagesKey==='2') s = search(FIT_MIN_SCALE, Math.min(hi,1), target*2);
+  else {
+    s = search(FIT_MIN_SCALE, hi, target);
+    if(pagesKey!=='1' && H(s) > target+0.5) s = search(FIT_MIN_SCALE, Math.min(hi,1), target*2);   // même au minimum lisible : 2 pages
+  }
+  s = Math.max(FIT_MIN_SCALE, Math.floor(s*100)/100);
+  const pages = Math.max(1, Math.ceil(H(s)/FIT_PAGE_H - 1e-6));
+  zoomEl.style.removeProperty('zoom');
+  return { scale:s, pages:pages, naturalH:naturalH };
+}
 function computeContentFit(){
   applyFitStyle(1); // mesure la hauteur NATURELLE du contenu, sans zoom appliqué
   const el = document.getElementById('cvP'); if(!el) return FIT;
-  // On mesure #cvZoom (le contenu) et non #cvP, qui a un min-height:1123px pour garder l'aspect
-  // « page » même quand le CV est court : mesurer #cvP directement plafonnerait artificiellement
-  // la hauteur naturelle à 1123px et empêcherait « Taille : Grand » de zoomer un CV peu rempli.
   const zoomEl = document.getElementById('cvZoom');
+  const tplNow = TEMPLATES.find(function(t){ return t.id===S.modelId; }) || {};
+  if(zoomEl && !tplNow.natural){
+    const r = cvAutoFit(zoomEl, el, LAYOUT.size, LAYOUT.pages);
+    FIT = { scale:r.scale, pages:r.pages, naturalH:r.naturalH };
+    applyFitStyle(r.scale);
+    cvFillColumns(cvRootOf(zoomEl), (FIT_PAGE_H-4)*r.pages/r.scale);               // aperçu : le modèle remplit toute la page
+    const ppz = document.getElementById('cvPZoom');
+    if(ppz) cvFillColumns(cvRootOf(ppz), (FIT_PAGE_H-4)*r.pages/r.scale);          // impression / PDF : idem
+    return FIT;
+  }
+  // modèles « fidèles » (mise en page Word d'origine) : taille conservée, 2 pages si besoin
   const naturalH = (zoomEl ? zoomEl.offsetHeight : el.offsetHeight) || 1123;
-  const desired = SIZE_SCALE[LAYOUT.size];
+  const desired = SIZE_SCALE[LAYOUT.size] || 1;
   function scaleFor(nPages){ return Math.max(FIT_MIN_SCALE, Math.min(desired, (1123*nPages)/naturalH)); }
   let scale;
-  if(LAYOUT.pages==='2'){
-    scale = scaleFor(2);
-  } else if(LAYOUT.pages==='1'){
-    scale = scaleFor(1);
-  } else if(((TEMPLATES.find(function(t){ return t.id===S.modelId; })||{}).natural)){
-    scale = desired; // modèle « fidèle » : taille d'origine conservée, le contenu passe sur 2 pages si besoin
-  } else {
-    scale = scaleFor(1);
-    if((naturalH*scale) > 1123 + 0.5) scale = scaleFor(2); // même à taille minimale lisible, ça ne tient pas sur 1 page
-  }
+  if(LAYOUT.pages==='2'){ scale = scaleFor(2); }
+  else if(LAYOUT.pages==='1'){ scale = scaleFor(1); }
+  else { scale = desired; }
   const pages = Math.max(1, Math.ceil((naturalH*scale)/1123 - 1e-6));
   FIT = { scale:scale, pages:pages, naturalH:naturalH };
-  applyFitStyle(scale); // applique maintenant le zoom réel au contenu (#cvZoom), pas à la page (#cvP)
+  applyFitStyle(scale);
   return FIT;
 }
 function updateFitStatus(){
   const box = document.getElementById('fitStatus'); if(!box) return;
   if(FIT.pages>1){ box.className='fit-status two'; box.textContent='📄 CV sur '+FIT.pages+' pages — le contenu est trop long pour tenir sur une page à taille lisible.'; }
   else if(FIT.scale < 0.97){ box.className='fit-status warn'; box.textContent='⚠ Texte réduit à '+Math.round(FIT.scale*100)+'% pour tenir sur une page.'; }
+  else if(FIT.scale > 1.03){ box.className='fit-status ok'; box.textContent='✓ Texte agrandi à '+Math.round(FIT.scale*100)+'% pour remplir la page.'; }
   else { box.className='fit-status ok'; box.textContent='✓ Tient sur une page, à taille normale.'; }
 }
 function toggleLayout(open){
@@ -3770,7 +3848,7 @@ function renderCV(){
   // pagination (voir fitCSSText), jamais #cvP lui-même, pour que « la page » (fond blanc 794px)
   // garde une taille constante à l'écran pendant qu'on règle la mise en page.
   document.getElementById('cvP').innerHTML = '<div id="cvZoom">'+html+'</div>';
-  document.getElementById('printArea').innerHTML = '<div id="cvPprint" style="width:794px">'+html+'</div>';
+  document.getElementById('printArea').innerHTML = '<div id="cvPprint" style="width:794px"><div id="cvPZoom">'+html+'</div></div>';
   fitPreview();
   if(typeof enxSync==='function') enxSync();
 }
@@ -3865,7 +3943,7 @@ function exportPDF(){
   // d'impression de Chromium calcule les sauts de page sur la taille NON transformée : avec
   // transform:scale, une partie du contenu réduit déborde malgré tout sur une 2e page blanche.
   // 'zoom' provoque un vrai recalcul de mise en page, donc la pagination est ensuite correcte.
-  if(pp){ pp.style.setProperty('transform','none','important'); pp.style.setProperty('zoom', String(FIT.scale), 'important'); }
+  if(pp){ pp.style.setProperty('transform','none','important'); (document.getElementById('cvPZoom')||pp).style.setProperty('zoom', String(FIT.scale), 'important'); }
   if(pp && pp.querySelector('.cvx-n')) applyNaturalPageMargins();
   window.print();
 }

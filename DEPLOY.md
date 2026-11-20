@@ -217,3 +217,8 @@ Modèles français prêts à coller dans `supabase/templates/` (guide : `supabas
 - Les liens publics `/cv/<jeton>` chargeaient `/cv/config.js` (introuvable) → « Service momentanément indisponible ». `config.js` et `ads-render.js` sont maintenant chargés en chemin absolu (`/config.js`).
 - CV locaux séparés par compte (espace local par utilisateur + espace invité). La 1re connexion d'un compte garde le travail fait en invité (hors fiches déjà liées à un autre compte).
 - Bouton « Continuer avec Google » aux couleurs et proportions de la charte Google (thème clair).
+
+## Ajustement automatique des CV (v26)
+- Texte adapté à la quantité de contenu : réduit si le CV est long (jusqu'à 55 %), agrandi si le CV est court (jusqu'à 145 %) pour remplir la page. Réglage « Taille » → « Auto » (par défaut) ; Petit / Grand restent disponibles.
+- Les modèles occupent toute la hauteur de la page : colonnes latérales et fonds colorés jusqu'en bas (aperçu, PDF, lien public).
+- PDF : le zoom s'applique au contenu et non plus à la feuille entière (le CV ne se rétrécit plus dans un coin de la page).
