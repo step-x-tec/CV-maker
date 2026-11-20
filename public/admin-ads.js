@@ -16,10 +16,13 @@
   var FREQ = [['once', 'Une seule fois par utilisateur'], ['once_per_session', 'Une fois par session'], ['once_per_day', 'Une fois par jour'], ['every_n_days', 'Tous les N jours'], ['always', 'À chaque déclenchement']];
   var PLANS = ['free', 'starter', 'premium', 'pro'];
   var COLORS = [['#4f46e5', '#ffffff'], ['#0ea5e9', '#ffffff'], ['#10b981', '#ffffff'], ['#f59e0b', '#111827'], ['#ef4444', '#ffffff'], ['#111827', '#ffffff'], ['#ec4899', '#ffffff']];
+  var ACTIONS = [['link', '🔗 Ouvrir un lien'], ['app', '📱 Aller dans l\'appli'], ['copy', '🏷️ Copier un code promo'], ['share', '📤 Partager'], ['whatsapp', '💬 WhatsApp'], ['mailto', '✉️ Écrire un e-mail'], ['tel', '📞 Appeler'], ['vote', '🗳️ Réponse / sondage'], ['close', '✕ Fermer']];
+  var APP_TARGETS = [['upgrade', 'Tarifs / passer Premium'], ['my_cvs', 'Mes CV'], ['templates', 'Choisir un modèle'], ['new_cv', 'Créer un CV']];
+  var VAL_HINT = { link: 'https://…', app: 'upgrade · my_cvs · templates · new_cv', copy: 'Ex. CV20', share: 'Texte à partager (facultatif)', whatsapp: 'Message, ou 22890000000|Message', mailto: 'contact@exemple.com', tel: '+22890000000', vote: 'Message de remerciement', close: '' };
   var AD = null, AD_FILTER = 'all', PV = null;
 
   function blank() {
-    return { id: null, name: '', status: 'draft', priority: 5, format: 'popup', media_type: 'image', media_url: '', poster_url: '', title: '', body: '', cta_label: 'En savoir plus', link_url: '', link_new_tab: true, sponsor_label: 'Sponsorisé',
+    return { id: null, name: '', status: 'draft', priority: 5, format: 'popup', media_type: 'image', media_url: '', poster_url: '', title: '', body: '', cta_label: 'En savoir plus', link_url: '', link_new_tab: true, sponsor_label: 'Sponsorisé', buttons: [],
       close_delay_s: 5, allow_close: true, auto_close_s: null, video_autoplay: true, video_muted: true, video_loop: false,
       theme: { bg: '#ffffff', text: '', accent: '#4f46e5', overlay: 62, radius: 18, animation: 'zoom', align: 'left', sponsor: true },
       audience: { plans: [], countries: [], devices: [], min_account_days: '', max_account_days: '', has_exported: 'any', include_admins: false },
@@ -131,7 +134,15 @@
       f('Texte', '<textarea class="f" id="ad_body" maxlength="400" style="min-height:70px">' + esc(a.body || '') + '</textarea>') +
       '<div class="adg2">' + f('Texte du bouton', '<input class="f" id="ad_cta" maxlength="40" value="' + esc(a.cta_label) + '">') + f('Mention de transparence', '<input class="f" id="ad_sp" maxlength="24" value="' + esc(a.sponsor_label) + '">') + '</div>' +
       f('Lien de destination', '<input class="f" id="ad_link" value="' + esc(a.link_url || '') + '" placeholder="https://site-du-partenaire.com/offre">', 'Au clic sur l\'image ou le bouton, l\'utilisateur est redirigé vers ce lien. L\'annonce reste affichée jusqu\'à la croix.') +
-      '<div class="row" style="gap:16px">' + chk('ad_tab', 'Ouvrir dans un nouvel onglet', a.link_new_tab) + chk('ad_utm', 'Ajouter le suivi UTM automatiquement', false) + '</div></div>' +
+      '<div class="row" style="gap:16px">' + chk('ad_tab', 'Ouvrir dans un nouvel onglet', a.link_new_tab) + chk('ad_utm', 'Ajouter le suivi UTM automatiquement', false) + '</div>' +
+      '<div class="adf"><span class="adl">Boutons d\'action (jusqu\'à 3) — remplacent le bouton simple</span>' +
+      [0, 1, 2].map(function (i) { var b = (a.buttons || [])[i] || {}; return '<div class="adg2" style="grid-template-columns:1fr 1.1fr 1.4fr .8fr;gap:6px;margin-bottom:6px">' +
+        '<input class="f" id="ad_bl_' + i + '" maxlength="40" placeholder="Texte du bouton ' + (i + 1) + '" value="' + esc(b.label || '') + '">' +
+        '<select class="f" id="ad_ba_' + i + '">' + ACTIONS.map(function (x) { return '<option value="' + x[0] + '"' + ((b.action || 'link') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select>' +
+        '<input class="f" id="ad_bv_' + i + '" maxlength="300" placeholder="' + esc(VAL_HINT[b.action || 'link']) + '" value="' + esc(b.value || '') + '">' +
+        '<select class="f" id="ad_bs_' + i + '"><option value="primary"' + (b.style === 'primary' ? ' selected' : '') + '>Plein</option><option value="secondary"' + (b.style === 'secondary' ? ' selected' : '') + '>Contour</option><option value="ghost"' + (b.style === 'ghost' ? ' selected' : '') + '>Discret</option></select></div>'; }).join('') +
+      '<span class="muted small">Ex. « Passer Premium » → Aller dans l\'appli → upgrade · « Copier CV20 » → Copier un code · « Oui / Non » → Réponse (les clics sont comptés par bouton). Laissez le texte vide pour ne pas utiliser un bouton.</span></div>' +
+      '</div>' +
 
       '<div class="card" style="margin-bottom:14px"><h3>2 · Comportement</h3>' +
       f('Délai avant de pouvoir fermer : <b id="ad_cd_v">' + a.close_delay_s + ' s</b>', '<input type="range" id="ad_cd" min="0" max="30" value="' + a.close_delay_s + '">', 'La croix apparaît grisée avec un compte à rebours, puis devient active (5 à 10 s recommandé).') +
@@ -171,6 +182,7 @@
     if (!$('ad_name')) return;
     a.name = g('ad_name').trim(); a.title = g('ad_title').trim(); a.body = g('ad_body').trim(); a.cta_label = g('ad_cta').trim() || 'En savoir plus'; a.sponsor_label = g('ad_sp').trim() || 'Sponsorisé';
     a.link_url = g('ad_link').trim(); a.link_new_tab = c('ad_tab');
+    a.buttons = [0, 1, 2].map(function (i) { return { label: (g('ad_bl_' + i) || '').trim(), action: g('ad_ba_' + i) || 'link', value: (g('ad_bv_' + i) || '').trim(), style: g('ad_bs_' + i) || 'primary' }; }).filter(function (b) { return b.label; });
     if ($('ad_media')) a.media_url = g('ad_media').trim(); if ($('ad_poster')) a.poster_url = g('ad_poster').trim();
     if ($('ad_vauto')) { a.video_autoplay = c('ad_vauto'); a.video_muted = c('ad_vmute'); a.video_loop = c('ad_vloop'); }
     a.close_delay_s = +g('ad_cd'); a.allow_close = c('ad_allow'); a.auto_close_s = intOrNull(g('ad_auto'));
@@ -201,6 +213,7 @@
     root.querySelectorAll('input,select,textarea').forEach(function (e) {
       if (e.type === 'file') return;
       e.addEventListener(e.type === 'range' || e.type === 'text' || e.tagName === 'TEXTAREA' || e.type === 'number' ? 'input' : 'change', function () {
+        if (/^ad_ba_/.test(e.id)) { var vi = $(e.id.replace('ad_ba_', 'ad_bv_')); if (vi) vi.placeholder = VAL_HINT[e.value] || ''; }
         var m = { ad_cd: ['ad_cd_v', ' s'], ad_ov: ['ad_ov_v', ' %'], ad_rd: ['ad_rd_v', ' px'], ad_pr: ['ad_pr_v', ''] }[e.id]; if (m) $(m[0]).textContent = e.value + m[1];
         preview();
       });
@@ -232,6 +245,16 @@
     if (a.media_type !== 'none' && a.media_url && !/^https:\/\//i.test(a.media_url)) return 'L\'URL du média doit commencer par https://';
     if (a.poster_url && !/^https:\/\//i.test(a.poster_url)) return 'L\'URL de l\'aperçu vidéo doit commencer par https://';
     if (a.link_url && !/^https?:\/\//i.test(a.link_url)) return 'Le lien doit commencer par http:// ou https://';
+    var be = null;
+    (a.buttons || []).forEach(function (b, i) {
+      if (be) return; var n = 'Bouton ' + (i + 1);
+      if (b.action === 'link' && !/^https?:\/\//i.test(b.value)) be = n + ' : le lien doit commencer par http:// ou https://';
+      else if (b.action === 'app' && ['upgrade', 'plans', 'my_cvs', 'templates', 'new_cv'].indexOf(b.value) < 0) be = n + ' : cible de l\'appli à choisir parmi upgrade, my_cvs, templates, new_cv';
+      else if ((b.action === 'copy') && !b.value) be = n + ' : indiquez le code à copier';
+      else if (b.action === 'mailto' && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(b.value)) be = n + ' : adresse e-mail invalide';
+      else if (b.action === 'tel' && !/^\+?[0-9 ().-]{5,20}$/.test(b.value)) be = n + ' : numéro invalide';
+    });
+    if (be) return be;
     if (a.starts_at && a.ends_at && new Date(a.ends_at) <= new Date(a.starts_at)) return 'La date de fin doit être après le début.';
     if (publish) {
       if (a.media_type !== 'none' && !a.media_url) return 'Ajoutez une image ou une vidéo (ou choisissez « Texte seul »).';
@@ -243,7 +266,7 @@
   function row(a) {
     var au = Object.assign({}, a.audience); au.min_account_days = au.min_account_days === '' ? '' : String(au.min_account_days); au.max_account_days = au.max_account_days === '' ? '' : String(au.max_account_days);
     return { name: a.name, priority: a.priority, format: a.format, media_type: a.media_type, media_url: a.media_type === 'none' ? null : (a.media_url || null), poster_url: a.media_type === 'video' ? (a.poster_url || null) : null,
-      title: a.title || null, body: a.body || null, cta_label: a.cta_label, link_url: a.link_url || null, link_new_tab: a.link_new_tab, sponsor_label: a.sponsor_label,
+      title: a.title || null, body: a.body || null, cta_label: a.cta_label, link_url: a.link_url || null, link_new_tab: a.link_new_tab, sponsor_label: a.sponsor_label, buttons: a.buttons || [],
       close_delay_s: a.close_delay_s, allow_close: a.allow_close, auto_close_s: a.auto_close_s, video_autoplay: a.video_autoplay, video_muted: a.video_muted, video_loop: a.video_loop,
       theme: a.theme, audience: au, placement: a.placement, trigger_delay_s: a.trigger_delay_s, frequency: a.frequency, frequency_days: a.frequency_days,
       max_impressions: a.max_impressions, max_per_user: a.max_per_user, daily_cap: a.daily_cap, max_clicks: a.max_clicks, starts_at: a.starts_at, ends_at: a.ends_at };

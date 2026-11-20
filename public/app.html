@@ -6227,7 +6227,13 @@ function startAds(){
   if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser) setTimeout(startAds,600); return; }
   if(startAds.done===currentUser.id) return; startAds.done=currentUser.id;
   Presence.start(sb);
-  AdsEngine.init({sb:sb, canShow:adsCanShow});
+  AdsEngine.init({sb:sb, canShow:adsCanShow, onAppAction:function(n){
+    try{
+      if(n==='upgrade'||n==='plans') toggleTarifs(true);
+      else if(n==='my_cvs') toggleMyCVs(true);
+      else if(n==='templates'||n==='new_cv') goStep(1);
+    }catch(e){}
+  }});
   AdsEngine.trigger('app_open');
 }
 ['exportPDF','exportWord'].forEach(function(n){

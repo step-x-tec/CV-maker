@@ -200,3 +200,9 @@ Modèles français prêts à coller dans `supabase/templates/` (guide : `supabas
 - Étapes à faire de votre côté (Search Console, Bing, domaine, profils, liens) : voir `SEO-PLAN.md`.
 - Service worker : `cvxmaker-v17`.
 - v17 (passe 2) : hub `/guides` + 8 articles, vitesse/accessibilité de l'accueil, `tools/indexnow.py` (à lancer après chaque déploiement pour prévenir Bing).
+
+
+## Pubs interactives (v18)
+- Exécuter dans Supabase (SQL Editor), dans l'ordre : `20261027000000_ads_and_presence.sql`, `20261028000000_fix_anon_is_admin.sql`, puis **`20261029000000_ads_interactive.sql`** (boutons, compteur par bouton).
+- Admin → Pubs → campagne → « Boutons d'action » : lien, aller dans l'appli (upgrade / my_cvs / templates / new_cv), copier un code, partager, WhatsApp, e-mail, appel, réponse/sondage, fermer.
+- Test : compte utilisateur normal (les admins sont exclus par défaut), statut Active, emplacement « À l'ouverture », fréquence « À chaque déclenchement ». `app.html?adsdebug` journalise les refus dans la console.
