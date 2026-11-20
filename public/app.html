@@ -6224,7 +6224,7 @@ function adsCanShow(){
   return !document.querySelector('.modal-ov.open,#authModal[style*="flex"],#authModal[style*="block"]');
 }
 function startAds(){
-  if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser) setTimeout(startAds,600); return; }
+  if(!currentUser || !window.AdsEngine || !window.Presence) { if(currentUser){ startAds.n=(startAds.n||0)+1; if(startAds.n<40) setTimeout(startAds,600); else if(/adsdebug/.test(location.search)) alert('Annonces : ads-render.js ne s\'est pas chargé (cache ? déploiement ?)'); } else if(/adsdebug/.test(location.search) && !startAds.w){ startAds.w=1; setTimeout(function(){ if(!currentUser) alert('Annonces : vous n\'êtes pas connecté. Connectez-vous à un compte utilisateur.'); },3000); } return; }
   if(startAds.done===currentUser.id) return; startAds.done=currentUser.id;
   Presence.start(sb);
   AdsEngine.init({sb:sb, canShow:adsCanShow, onAppAction:function(n){

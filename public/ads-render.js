@@ -214,6 +214,15 @@
     return { el: ov, close: function () { close('api'); } };
   }
 
+  // ───────── diagnostic à l'écran (?adsdebug) ─────────
+  var DBG = /adsdebug/.test(w.location.search), dbgBox = null;
+  function dbg(msg, bad) {
+    try { console[bad ? 'warn' : 'info']('[Annonces] ' + msg); } catch (e) { }
+    if (!DBG) return;
+    if (!dbgBox) { dbgBox = d.createElement('div'); dbgBox.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;z-index:100000;max-height:42vh;overflow:auto;background:rgba(10,12,24,.94);color:#e5e7eb;font:12px/1.45 monospace;padding:8px 10px;border-radius:10px;white-space:pre-wrap'; dbgBox.innerHTML = '<b>Diagnostic annonces</b> (touchez pour masquer)\n'; dbgBox.onclick = function () { dbgBox.style.display = 'none'; }; d.body.appendChild(dbgBox); }
+    var l = d.createElement('div'); l.style.color = bad ? '#fca5a5' : '#a7f3d0'; l.textContent = (bad ? '✗ ' : '✓ ') + msg; dbgBox.appendChild(l);
+  }
+
   // ───────── moteur de diffusion (application) ─────────
   var E = { sb: null, session: null, current: null, last: 0, busy: false, opts: {} };
   function sid() {
@@ -221,16 +230,17 @@
     catch (e) { return E.session || (E.session = String(Date.now())); }
   }
   function device() { return w.matchMedia && w.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile'; }
-  E.init = function (o) { E.sb = o.sb; E.opts = o || {}; };
+  E.init = function (o) { E.sb = o.sb; E.opts = o || {}; dbg('moteur démarré, Supabase ' + (o.sb ? 'connecté' : 'ABSENT (clé config.js ?)'), !o.sb); };
   E.trigger = function (placement) {
-    if (!E.sb || E.busy || E.current) return;
-    if (E.opts.canShow && !E.opts.canShow()) return;
-    if (Date.now() - E.last < 150000 && placement !== 'after_export') return; // 1 annonce / 2,5 min max
+    if (!E.sb || E.busy || E.current) { dbg('déclencheur « ' + placement + ' » ignoré (' + (!E.sb ? 'pas de Supabase' : E.busy ? 'requête en cours' : 'annonce déjà affichée') + ')', true); return; }
+    if (E.opts.canShow && !E.opts.canShow()) { dbg('déclencheur « ' + placement + ' » ignoré : fenêtre ouverte, visite guidée ou onglet masqué', true); return; }
+    if (!DBG && Date.now() - E.last < 150000 && placement !== 'after_export') return; // 1 annonce / 2,5 min max
     E.busy = true;
     E.sb.rpc('ads_pick', { p_placement: placement, p_device: device(), p_session: sid() }).then(function (r) {
       E.busy = false;
-      if (r && r.error) { try { console.warn('[Annonces] ads_pick a échoué :', r.error.message || r.error, '→ la migration 20261027000000_ads_and_presence.sql est-elle appliquée dans Supabase ?'); } catch (e) { } return; }
-      var ad = r && r.data; if (!ad || !ad.id) { try { if (/adsdebug/.test(location.search)) console.info('[Annonces] aucune campagne éligible pour', placement, '(statut, dates, cible, fréquence, compte admin ?)'); } catch (e) { } return; }
+      if (r && r.error) { dbg('ads_pick a échoué : ' + (r.error.message || r.error.code || JSON.stringify(r.error)) + ' → migrations 20261027 / 20261029 non appliquées ?', true); return; }
+      var ad = r && r.data; if (!ad || !ad.id) { dbg('aucune campagne éligible pour « ' + placement + ' » : statut Active ? emplacement ? dates ? compte admin exclu ? fréquence (déjà vue < 20 h) ? plan ciblé ? appareil ? pays ?', true); return; }
+      dbg('campagne reçue : ' + (ad.title || ad.id) + ' (' + ad.format + ', ' + ((ad.buttons || []).length) + ' bouton(s)) — affichage dans ' + (ad.trigger_delay_s || 0) + ' s');
       setTimeout(function () {
         if (E.current || (E.opts.canShow && !E.opts.canShow())) return;
         E.last = Date.now();
@@ -240,7 +250,7 @@
           onClose: function () { E.current = null; }
         });
       }, Math.max(0, (ad.trigger_delay_s || 0)) * 1000);
-    }, function () { E.busy = false; });
+    }, function (e) { E.busy = false; dbg('appel ads_pick impossible : ' + (e && e.message || e), true); });
   };
 
   // ───────── présence (en ligne / actifs) ─────────
