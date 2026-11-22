@@ -5060,18 +5060,20 @@ async function aiRemote(task, payload, messages){
   try{ res = await sb.functions.invoke('ai-chat', { body: task==='chat' ? { task:'chat', messages:messages } : { task:task, payload:payload } }); }
   catch(e){ throw fail('DOWN'); }
   if(res.error){
-    let st=0; try{ st=res.error.context && res.error.context.status; }catch(e){}
-    throw fail(st===401?'AUTH':st===429?'QUOTA':'DOWN');
+    let st=0, msg=''; try{ st=res.error.context && res.error.context.status; }catch(e){}
+    try{ const j=await res.error.context.json(); msg=(j&&j.error)||''; }catch(e){ msg=String(res.error.message||res.error.name||''); }
+    const er=fail(st===401?'AUTH':st===429?'QUOTA':'DOWN'); er.detail=(st?('HTTP '+st+' — '):'')+msg; throw er;
   }
   const d=res.data||{};
-  if(d.error) throw fail(/QUOTA/i.test(d.error)?'QUOTA':'DOWN');
+  if(d.error){ const er=fail(/QUOTA/i.test(d.error)?'QUOTA':'DOWN'); er.detail=String(d.error); throw er; }
   return task==='chat' || task==='letter' || task==='summary' || task==='spelling' ? (d.reply||'') : (d.data||{});
 }
 function aiSkillsList(){ return (cv.sk||[]).map(function(x){return x.name;}).filter(Boolean).slice(0,15).join(', '); }
 function aiFallbackNote(e){
-  return e && e.code==='AUTH' ? 'Connectez-vous pour utiliser l\'IA avancée. En attendant, j\'utilise le moteur intégré :'
+  const dbg = (e && e.detail && /aidebug/.test(location.search)) ? '\n[diagnostic] '+e.detail+'\n' : '';
+  return dbg + (e && e.code==='AUTH' ? 'Connectez-vous pour utiliser l\'IA avancée. En attendant, j\'utilise le moteur intégré :'
        : e && e.code==='QUOTA' ? 'Vous avez atteint la limite quotidienne de l\'IA avancée. J\'utilise le moteur intégré :'
-       : 'L\'IA avancée est momentanément indisponible. J\'utilise le moteur intégré :';
+       : 'L\'IA avancée est momentanément indisponible. J\'utilise le moteur intégré :');
 }
 
 function aiAction(kind){

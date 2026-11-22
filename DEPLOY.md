@@ -266,3 +266,6 @@ Avant : le navigateur téléchargeait un modèle (110 Mo pour la traduction, ~40
 - Sans connexion, quota épuisé ou panne : bascule automatique sur le moteur intégré à règles (aucune fonction ne casse).
 - CSP durcie : plus aucun CDN autorisé (ni jsdelivr, ni Hugging Face, ni WebAssembly). Service worker v34.
 - Aucune migration SQL. Le quota IA gratuit reste celui de votre table (3/jour en plan gratuit).
+
+## v35 — Diagnostic de l'IA
+Ouvrez l'application avec `?aidebug` (ex. https://cvxmaker.netlify.app/app.html?aidebug) : quand l'IA hébergée échoue, le code d'erreur exact (HTTP 404 / 503 / 502…) s'affiche dans l'assistant.
