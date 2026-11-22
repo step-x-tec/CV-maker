@@ -26,9 +26,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@500&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Merriweather:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="/config.js" onerror="void 0"></script>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="/vendor/supabase.js"></script>
 <script src="/ads-render.js" defer></script>
+<script src="/career-kit.js" defer></script>
 <style>
 /* Bouton « Se connecter avec Google » — charte Google (thème clair) : fond #FFF, bordure #747775, texte #1F1F1F, Roboto Medium 14, logo G 4 couleurs */
 .gsi-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;padding:0 16px 0 12px;box-sizing:border-box;background:#FFFFFF;border:1px solid #747775;border-radius:99px;color:#1F1F1F;font-family:'Roboto',Arial,sans-serif;font-weight:500;font-size:14px;letter-spacing:.25px;line-height:20px;cursor:pointer;position:relative;overflow:hidden;transition:box-shadow .2s,border-color .2s}
@@ -615,14 +615,7 @@ body.cx-on #pvBar{display:none !important}
       <button onclick="toggleAI(false)" style="background:none;border:none;color:#fff;font-size:18px">✕</button>
     </div>
     <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-      <div style="font-size:10.5px;color:var(--ink2);margin-bottom:8px">Moteur local, aucune clé ni serveur. Un vrai modèle IA peut être téléchargé une fois dans votre navigateur pour de meilleures réponses.</div>
-      <div id="modelLoadBox" style="margin-bottom:10px">
-        <button id="loadModelBtn" class="ai-quick" style="background:#111827;color:#fff" onclick="loadLocalModel()">🧠 Charger le modèle IA (~400 Mo, une fois)</button>
-        <div id="modelProgress" style="display:none;margin-top:8px">
-          <div style="height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden"><div id="modelProgressBar" style="height:100%;width:0%;background:var(--accent);transition:width .2s"></div></div>
-          <div id="modelProgressText" style="font-size:10.5px;color:var(--ink2);margin-top:4px">Préparation…</div>
-        </div>
-      </div>
+      <div style="font-size:10.5px;color:var(--ink2);margin-bottom:10px">✨ IA intégrée : rien à télécharger ni à installer. Connectez-vous pour l'IA avancée ; sans connexion, un moteur de secours s'active automatiquement.</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         <button class="ai-quick" style="background:var(--accent);color:#fff" onclick="openJobMatch()">🎯 Comparer à une offre</button>
         <button class="ai-quick" onclick="aiAction('ats')">Analyser mon score ATS</button>
@@ -806,6 +799,24 @@ body.cx-on #pvBar{display:none !important}
 <div id="printArea" style="display:none"></div>
 
 <script>
+/* Chargement à la demande des modules lourds (lettres, import de CV) */
+window.__lz=window.__lz||{};
+function __lazy(src){
+  return window.__lz[src]||(window.__lz[src]=new Promise(function(ok,ko){
+    var t=document.createElement('script'); t.src=src+'?v=29'; t.onload=ok;
+    t.onerror=function(){ delete window.__lz[src]; ko(new Error('lazy')); };
+    document.head.appendChild(t);
+  }));
+}
+function __lazyStub(src,names){
+  names.forEach(function(n){
+    window[n]=function(){ var a=arguments;
+      return __lazy(src).then(function(){ return window[n].apply(null,a); })
+        .catch(function(){ try{ toast('Chargement impossible. Vérifiez votre connexion puis réessayez.'); }catch(e){} });
+    };
+  });
+}
+
 /* ---------------- Supabase / Auth ---------------- */
 const CFG = window.__SC_CONFIG__ || {};
 const SUPABASE_URL = (CFG.SUPABASE_URL || '').replace(/\/+$/,'');
@@ -1005,7 +1016,7 @@ let cloudTimer=null, cloudErrShown=false, cloudBusy=false;
 function hasContent(){ return !!(cv.p.name || cv.exp.length || cv.edu.length); }
 function scheduleCloudPush(){ clearTimeout(cloudTimer); cloudTimer=setTimeout(pushCloud, 3000); }
 function cloudFail(e,where){
-  if(!cloudErrShown){ cloudErrShown=true; toast('Sauvegarde cloud impossible pour le moment (vos CV restent enregistrés sur cet appareil).'); }
+  if(!cloudErrShown){ cloudErrShown=true; errBanner('Sauvegarde en ligne impossible pour le moment (vos CV restent enregistrés sur cet appareil).', function(){ cloudErrShown=false; pushCloud(); }, 'cloud'); }
   console.warn(where,e);
 }
 function entryPayload(it){
@@ -1116,7 +1127,7 @@ function cloudCvId(){ if(!currentUser) return null; const it=getSaved().find(fun
 function randomToken(){
   const bytes = new Uint8Array(16);
   (window.crypto||window.msCrypto).getRandomValues(bytes);
-  return Array.from(bytes, b=>b.toString(36)).join('').slice(0,20);
+  return Array.from(bytes, b=>b.toString(16).padStart(2,'0')).join('');   // 128 bits, 32 caractères
 }
 function publicCvUrl(token){ return window.location.origin + '/cv/' + token; }
 
@@ -1209,7 +1220,7 @@ async function initPublicView(token){
     + '<div class="pv-body" id="pvBody"><div class="pv-loading">Chargement du CV…</div></div>';
   if(!sb){ showPublicError('Service momentanément indisponible. Réessayez un peu plus tard.'); return; }
   try{
-    let { data, error } = await sb.from('cvs').select('model_id,accent_color,data,design,is_public,share_token').eq('share_token',token).eq('is_deleted',false).maybeSingle();
+    let { data, error } = await sb.rpc('get_public_cv',{ p_token: token });
     if(error) throw error;
     if(!data){ const g = await sb.rpc('get_guest_cv',{ p_token: token }); if(!g.error && g.data) data = Object.assign({ is_public:true }, g.data); }
     if(!data || !data.is_public){ showPublicError('Ce lien n\'existe pas ou n\'est plus actif.'); return; }
@@ -1373,13 +1384,17 @@ function syncCurrentSaved(){
 }
 function save(){
   if(window.__wsLock) return;
-  localStorage.setItem('scv_data', JSON.stringify(cv)); localStorage.setItem('scv_model', S.modelId); localStorage.setItem('scv_accent', S.accent);
-  localStorage.setItem('scv_ts', String(Date.now()));
+  try{
+    localStorage.setItem('scv_data', JSON.stringify(cv)); localStorage.setItem('scv_model', S.modelId); localStorage.setItem('scv_accent', S.accent);
+    localStorage.setItem('scv_ts', String(Date.now()));
+  }catch(e){
+    errBanner('Enregistrement sur cet appareil impossible (espace plein ou navigation privée). Exportez votre CV pour ne rien perdre.', function(){ save(); }, 'save');
+  }
   if(currentCvId) syncCurrentSaved();
   if(currentUser) scheduleCloudPush(); else scheduleGuestPush();
 }
 let debTimer=null;
-function onChange(){ save(); clearTimeout(debTimer); debTimer=setTimeout(renderCV, 250); }
+function onChange(){ save(); clearTimeout(debTimer); debTimer=setTimeout(function(){ renderCV(); try{refreshCompleteness();}catch(e){} }, 250); }
 
 /* ---------------- templates (lot 1 : 10 modèles reconstruits à partir des références) ---------------- */
 /* ---------------- Helpers partagés additionnels (lot 1) ---------------- */
@@ -1497,7 +1512,7 @@ const TEMPLATES = [
     +'<div style="flex:1">'
       +'<div style="padding:28px 34px 6px">'
       +'<h1 style="font-size:23px;margin:0 0 3px;color:#13343B;letter-spacing:.5px">'+esc((cv.p.name||'Prénom Nom').toUpperCase())+'</h1>'
-      +(cv.p.role?'<div style="font-size:11.5px;color:#64748B;letter-spacing:1px;margin-bottom:12px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:11.5px;color:#64748B;letter-spacing:1px;margin-bottom:12px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="display:flex;gap:4px;margin-bottom:12px">'+tabs.map(c=>'<span style="width:34px;height:5px;background:'+c+';border-radius:3px"></span>').join('')+'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:10.5px;color:#475569;margin-bottom:6px">'+[cv.p.address].concat(ecPairs(cv).map(r=>r[1])).concat([cv.p.phone,cv.p.email]).filter(Boolean).map(esc).join('<span style="color:#CBD5E1"> | </span>')+'</div>'
       +'</div>'
@@ -1545,7 +1560,7 @@ const TEMPLATES = [
     +'<div style="width:38%;padding:32px 26px;background:#fff">'
       +(S.photoData?'<img src="'+S.photoData+'" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:14px">':'')
       +'<h1 style="font-size:20px;margin:0 0 2px;color:#0F5132">'+esc(cv.p.name||'Prénom Nom')+'</h1>'
-      +(cv.p.role?'<div style="font-size:11px;letter-spacing:1px;color:#374151;margin-bottom:12px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:11px;letter-spacing:1px;color:#374151;margin-bottom:12px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +(cv.p.summary?'<p style="font-size:11px;color:#4B5563;line-height:1.6;margin:0 0 16px">'+esc(cv.p.summary)+'</p>':'')
       +((cv.quality&&cv.quality.length)||cv.sk.length?'<div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#0F5132;border-bottom:1px solid #B7E4D8;padding-bottom:6px;margin-bottom:12px">COMPÉTENCES</div>':'')
       +skillCol('Savoir-être',cv.quality||[])
@@ -1573,7 +1588,7 @@ const TEMPLATES = [
     const skillCol=(title,items)=>items.length?'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:'+S.accent+'">'+title+'</div>'+items.map(i=>'<div style="font-size:11px;color:#1F2937;margin-top:4px">'+esc(i.name)+'</div>').join('')+'</div>':'';
     return '<div style="font-family:Inter,sans-serif;min-height:1123px;background:#fff">'
     +'<div style="background:'+S.bg+';padding:28px 34px;display:flex;justify-content:space-between;align-items:center">'
-      +'<div><h1 style="font-size:28px;margin:0 0 4px;color:#1F2937;font-weight:800">'+esc(cv.p.name||'Prénom Nom')+'</h1>'+(cv.p.role?'<div style="font-size:13px;color:#374151;letter-spacing:1px">'+esc(cv.p.role.toUpperCase())+'</div>':'')+'</div>'
+      +'<div><h1 style="font-size:28px;margin:0 0 4px;color:#1F2937;font-weight:800">'+esc(cv.p.name||'Prénom Nom')+'</h1>'+(cv.p.role?'<div style="font-size:13px;color:#374151;letter-spacing:1px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')+'</div>'
       +(S.photoData?'<img src="'+S.photoData+'" style="width:82px;height:82px;border-radius:50%;object-fit:cover;border:3px solid #fff">':'')
     +'</div>'
     +'<div style="display:flex">'
@@ -1601,7 +1616,7 @@ const TEMPLATES = [
     return '<div style="font-family:Inter,sans-serif;min-height:1123px;background:#fff">'
     +'<div style="background:'+S.accent+';color:#fff;padding:30px 34px;display:flex;align-items:center;gap:26px">'
       +(S.photoData?'<div style="width:118px;height:118px;flex-shrink:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);overflow:hidden"><img src="'+S.photoData+'" style="width:100%;height:100%;object-fit:cover"></div>':'')
-      +'<div><h1 style="font-size:26px;margin:0 0 4px;font-weight:800;letter-spacing:.5px">'+esc(cv.p.name||'NOM Prénom')+'</h1>'+(cv.p.role?'<div style="font-size:14px;color:#9FB4CC;letter-spacing:2px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +'<div><h1 style="font-size:26px;margin:0 0 4px;font-weight:800;letter-spacing:.5px">'+esc(cv.p.name||'NOM Prénom')+'</h1>'+(cv.p.role?'<div style="font-size:14px;color:#9FB4CC;letter-spacing:2px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font-size:11px;color:#C9D6E3">'+[['☎',cv.p.phone],['✉',cv.p.email],['📍',cv.p.address]].concat(ecPairs(cv)).concat([['in',cv.p.linkedin]]).map(r=>r[1]?('<span>'+r[0]+'  '+esc(r[1])+'</span>'):'').join('')+'</div></div>'
     +'</div>'
     +'<div style="display:flex">'
@@ -1628,7 +1643,7 @@ const TEMPLATES = [
     +'<div style="height:190px;position:relative;background:'+S.accent+'">'
       +'<div style="position:absolute;inset:0;background:#fff;clip-path:polygon(0 88%,100% 48%,100% 100%,0 100%)"></div>'
       +(S.photoData?'<img src="'+S.photoData+'" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:5px solid #fff;position:absolute;left:36px;top:26px">':'')
-      +'<div style="position:absolute;left:170px;top:36px"><h1 style="font-size:23px;margin:0 0 4px;color:#fff;font-weight:800">'+esc(cv.p.name||'Prénom NOM')+'</h1>'+(cv.p.role?'<div style="font-size:12.5px;color:#DCE7F5;letter-spacing:1px">'+esc(cv.p.role.toUpperCase())+'</div>':'')+'</div>'
+      +'<div style="position:absolute;left:170px;top:36px"><h1 style="font-size:23px;margin:0 0 4px;color:#fff;font-weight:800">'+esc(cv.p.name||'Prénom NOM')+'</h1>'+(cv.p.role?'<div style="font-size:12.5px;color:#DCE7F5;letter-spacing:1px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')+'</div>'
     +'</div>'
     +'<div style="display:flex">'
     +'<div style="width:29%;background:'+S.bg+';padding:22px 22px 28px">'
@@ -1694,7 +1709,7 @@ const TEMPLATES = [
     +'</div>'
     +'<div style="flex:1;padding:30px 34px">'
       +'<h1 style="font-size:22px;margin:0 0 4px;font-weight:800;color:#111827">'+esc((cv.p.name||'Prénom NOM')).toUpperCase()+'</h1>'
-      +(cv.p.role?'<div style="font-size:11px;letter-spacing:.5px;color:#4B5563;margin-bottom:8px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:11px;letter-spacing:.5px;color:#4B5563;margin-bottom:8px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="width:50px;height:3px;background:'+S.accent+';margin-bottom:8px"></div>'
       +(cv.p.summary?hdMain('À PROPOS DE MOI')+'<p style="font-size:11.5px;color:#475569;line-height:1.6;margin:0">'+esc(cv.p.summary)+'</p>':'')
       +(cv.exp.length?hdMain('EXPÉRIENCE PRO')+cv.exp.map(e=>'<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px"><b style="font-size:12.5px;color:#111827">'+esc(e.title)+'</b><span style="font-size:10.5px;color:#9CA3AF;white-space:nowrap">'+esc(e.dates)+'</span></div><div style="font-size:11px;color:'+S.accent+';font-weight:600;margin:2px 0 4px">'+[e.company,e.loc].filter(Boolean).join(' | ')+'</div>'+descBlock(e.desc,'#475569')+'</div>').join(''):'')
@@ -1866,7 +1881,7 @@ const TEMPLATES = [
     +'</div>'
     +'<div style="flex:1;padding:40px 36px 36px 10px">'
       +'<h1 style="font-size:32px;margin:0;font-weight:400;color:'+S.accent+';line-height:1.1">'+esc(names[0]||'Prénom')+'<br>'+esc(names.slice(1).join(' ')||'Nom')+'</h1>'
-      +(cv.p.role?'<div style="font-family:Inter,sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:#1A1A1A;margin:10px 0">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-family:Inter,sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:#1A1A1A;margin:10px 0">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +(cv.p.summary?'<p style="font-family:Inter,sans-serif;font-size:11px;color:#374151;line-height:1.6;margin:0 0 6px">'+esc(cv.p.summary)+'</p>':'')
       +'<div style="font-family:Inter,sans-serif">'
       +(cv.exp.length?pill('EXPÉRIENCES')+cv.exp.map(e=>'<div style="display:flex;justify-content:space-between;margin-bottom:10px"><div><b style="font-size:11.5px;color:#1A1A1A">'+esc(e.title).toUpperCase()+'</b><div style="font-size:10.5px;font-style:italic;color:#6B7280">'+esc(e.company)+'</div></div><div style="font-size:11px;font-weight:700;color:#1A1A1A">'+esc(e.dates)+'</div></div>').join(''):'')
@@ -1885,7 +1900,7 @@ const TEMPLATES = [
       +'<div style="text-align:right">'
       +'<div style="font-size:14px;color:#D6E8F7;letter-spacing:4px;font-weight:600">'+esc((cv.p.name||'Prénom Nom').split(' ')[0]||'').toUpperCase()+'</div>'
       +'<div style="font-size:30px;color:#fff;font-weight:800;letter-spacing:1px">'+esc((cv.p.name||'Prénom Nom').split(' ').slice(1).join(' ')||'NOM').toUpperCase()+'</div>'
-      +(cv.p.role?'<div style="font-size:12px;color:#D6E8F7;letter-spacing:2px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:12px;color:#D6E8F7;letter-spacing:2px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'</div>'
     +'</div>'
     +'<div style="display:flex">'
@@ -1931,8 +1946,8 @@ const TEMPLATES = [
     +'<div style="flex:1;padding-left:26px;border-left:1px solid #E5E7EB">'
       +'<h1 style="font-size:24px;margin:0;font-weight:800;color:#111827">'+esc(cv.p.name||'Prénom Nom')+'</h1>'
       +(cv.p.role?'<div style="font-size:12px;color:'+S.accent+';font-weight:700;margin-bottom:6px">'+esc(cv.p.role)+'</div>':'')
-      +(cv.exp.length?hd('EXPÉRIENCES')+cv.exp.map(e=>'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:10px"><div style="width:150px;flex-shrink:0"><b style="font-size:10.5px;color:#111827">'+esc(e.title.toUpperCase())+'</b><div style="font-size:9.5px;color:#6B7280;font-style:italic">'+esc(e.dates)+'</div></div><div style="flex:1"><div style="font-size:10.5px;font-weight:700;color:#374151">'+esc(e.company.toUpperCase())+'</div>'+descBlock(e.desc,'#4B5563',10.5)+'</div></div>').join(''):'')
-      +(cv.edu.length?hd('FORMATION')+cv.edu.map(e=>'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:10px"><div style="width:150px;flex-shrink:0"><b style="font-size:10.5px;color:#111827">'+esc(e.school.toUpperCase())+'</b><div style="font-size:9.5px;color:#6B7280;font-style:italic">'+esc(e.dates)+'</div></div><div style="flex:1"><div style="font-size:10.5px;font-weight:700;color:#374151">'+esc(e.degree)+'</div></div></div>').join(''):'')
+      +(cv.exp.length?hd('EXPÉRIENCES')+cv.exp.map(e=>'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:10px"><div style="width:150px;flex-shrink:0"><b style="font-size:10.5px;color:#111827">'+esc(String(e.title||'').toUpperCase())+'</b><div style="font-size:9.5px;color:#6B7280;font-style:italic">'+esc(e.dates)+'</div></div><div style="flex:1"><div style="font-size:10.5px;font-weight:700;color:#374151">'+esc(String(e.company||'').toUpperCase())+'</div>'+descBlock(e.desc,'#4B5563',10.5)+'</div></div>').join(''):'')
+      +(cv.edu.length?hd('FORMATION')+cv.edu.map(e=>'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:10px"><div style="width:150px;flex-shrink:0"><b style="font-size:10.5px;color:#111827">'+esc(String(e.school||'').toUpperCase())+'</b><div style="font-size:9.5px;color:#6B7280;font-style:italic">'+esc(e.dates)+'</div></div><div style="flex:1"><div style="font-size:10.5px;font-weight:700;color:#374151">'+esc(e.degree)+'</div></div></div>').join(''):'')
       +((cv.ref&&cv.ref.length)?hd('RÉFÉRENCES')+'<div style="display:flex;gap:30px;flex-wrap:wrap">'+cv.ref.map(r=>'<div><b style="font-size:10.5px;color:#111827">'+esc(r.name)+'</b><div style="font-size:9.5px;color:#6B7280">'+esc(r.title||'')+(r.company?', '+esc(r.company):'')+'</div>'+(r.contact?'<div style="font-size:9.5px;color:#6B7280">'+esc(r.contact)+'</div>':'')+'</div>').join('')+'</div>':'')
       +extraSectionsHTML(cv,{head:'#111827',text:'#374151',ref:false,logiciel:!S.compactLogiciel,quality:!S.compactQuality})
     +'</div>'
@@ -2085,7 +2100,7 @@ const TEMPLATES = [
     return '<div style="font-family:Inter,sans-serif;min-height:1123px;background:#fff">'
     +'<div style="background:'+S.bg+';padding:26px 40px;text-align:center">'
       +'<h1 style="font-size:26px;margin:0;font-weight:800;color:#111827">'+esc((cv.p.name||'Prénom Nom').toUpperCase())+'</h1>'
-      +(cv.p.role?'<div style="font-size:12px;font-weight:700;color:#3F3F3F;margin-top:4px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:12px;font-weight:700;color:#3F3F3F;margin-top:4px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="width:60%;height:2px;background:'+S.accent+';margin:10px auto"></div>'
       +'<div style="font-size:10.5px;color:#4B5563">'+[cv.p.phone,cv.p.email,cv.p.address,cv.p.linkedin].filter(Boolean).map(esc).join('  •  ')+'</div>'
     +'</div>'
@@ -2110,7 +2125,7 @@ const TEMPLATES = [
     return '<div style="font-family:Inter,sans-serif;min-height:1123px;background:#fff;padding:40px 44px">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
       +'<div><h1 style="font-size:28px;margin:0;font-weight:700;color:#1F2937">'+esc((cv.p.name||'Prénom').split(' ')[0]||'Prénom')+' <span style="color:#9CA3AF">'+esc((cv.p.name||'').split(' ').slice(1).join(' ')||'Nom')+'</span></h1>'
-      +(cv.p.role?'<div style="font-size:11px;letter-spacing:1px;color:#6B7280;margin-top:4px">'+esc(cv.p.role.toUpperCase())+'</div>':'')+'</div>'
+      +(cv.p.role?'<div style="font-size:11px;letter-spacing:1px;color:#6B7280;margin-top:4px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')+'</div>'
       +'<div style="text-align:right;font-size:10.5px;color:#6B7280">'+[cv.p.phone,cv.p.address,cv.p.email].filter(Boolean).map(esc).join('<br>')+'</div>'
     +'</div>'
     +'<div style="font-size:10px;color:#9CA3AF;margin-bottom:10px">'+ecPairs(cv).map(r=>r[0]+' '+esc(r[1])).join('   ')+'</div>'
@@ -2222,7 +2237,7 @@ const TEMPLATES = [
     +'<div style="text-align:left">'
     +(cv.p.summary?hd('OBJECTIF DE CARRIÈRE')+'<p style="font-size:10.5px;color:#374151;line-height:1.6;margin:0">'+esc(cv.p.summary)+'</p>':'')
     +(cv.edu.length?hd('FORMATION ACADÉMIQUE')+cv.edu.map(e=>'<div style="display:flex;justify-content:space-between;margin-bottom:6px"><div><b style="font-size:11px;color:#1F2937">'+esc(e.degree)+'</b><div style="font-size:10px;font-style:italic;color:#4B5563">'+esc(e.school)+'</div></div><span style="font-size:10.5px;color:#374151">'+esc(e.dates)+'</span></div>').join(''):'')
-    +(cv.exp.length?hd('EXPÉRIENCES DE TRAVAIL')+cv.exp.map(e=>'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between"><b style="font-size:11px;color:#1F2937">'+esc(e.title.toUpperCase())+'</b><span style="font-size:10.5px;color:#374151">'+esc(e.dates)+'</span></div><div style="font-size:10px;font-style:italic;color:#4B5563">'+esc(e.company)+'</div>'+descBlock(e.desc,'#374151',10.5)+'</div>').join(''):'')
+    +(cv.exp.length?hd('EXPÉRIENCES DE TRAVAIL')+cv.exp.map(e=>'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between"><b style="font-size:11px;color:#1F2937">'+esc(String(e.title||'').toUpperCase())+'</b><span style="font-size:10.5px;color:#374151">'+esc(e.dates)+'</span></div><div style="font-size:10px;font-style:italic;color:#4B5563">'+esc(e.company)+'</div>'+descBlock(e.desc,'#374151',10.5)+'</div>').join(''):'')
     +((cv.logiciel&&cv.logiciel.length)?hd('CONNAISSANCES INFORMATIQUES')+'<div style="font-size:10.5px;color:#374151">'+cv.logiciel.map(l=>esc(l.name)).join(', ')+'</div>':'')
     +((cv.cert&&cv.cert.length)?hd('FORMATIONS ET ACTIVITÉS COMPLÉMENTAIRES')+cv.cert.map(c=>'<div style="font-size:10.5px;color:#374151;margin-bottom:4px"><b>'+esc(c.title)+'</b>'+(c.org?' : '+esc(c.org):'')+(c.date?' ('+esc(c.date)+')':'')+'</div>').join(''):'')
     +((cv.sk.length||cv.hobby.length||(cv.quality&&cv.quality.length))?hd('AUTRES')+'<div style="font-size:10.5px;color:#374151">'+cv.sk.map(s=>esc(s.name)).concat((cv.quality||[]).map(q=>esc(q.name))).concat(cv.hobby.map(h=>esc(h.name))).join(', ')+'</div>':'')
@@ -2275,7 +2290,7 @@ const TEMPLATES = [
       +'<h1 style="font-size:34px;margin:0;font-weight:800;color:'+S.accent+'">'+esc(cv.p.name||'Prénom Nom')+'</h1>'
       +(cv.p.role?'<div style="font-size:14px;color:'+navy+';margin-top:4px">'+esc(cv.p.role)+'</div>':'')
       +(cv.edu.length?pillMain('FORMATION')+cv.edu.map(e=>'<div style="display:flex;gap:12px;margin-bottom:16px"><div style="width:9px;height:9px;border-radius:50%;background:'+S.accent+';margin-top:7px;flex-shrink:0"></div><div><div style="font-size:12.5px;color:'+S.accent+';font-weight:700">'+esc(e.degree)+(e.dates?' | '+esc(e.dates):'')+'</div><div style="font-size:11px;font-weight:700;color:#1F2937;margin:2px 0 3px">'+esc(e.school)+'</div>'+descBlock(e.desc,'#4B5563')+'</div></div>').join(''):'')
-      +(cv.exp.length?pillMain('EXPÉRIENCES')+cv.exp.map(e=>'<div style="display:flex;gap:18px;margin-bottom:14px"><div style="width:130px;flex-shrink:0"><div style="font-size:11px;color:'+S.accent+';font-weight:700">'+esc(e.company)+'</div><div style="font-size:10px;color:#6B7280">'+esc(e.dates)+'</div></div><div style="flex:1"><b style="font-size:11.5px;color:#1F2937">'+esc(e.title.toUpperCase())+'</b>'+descBlock(e.desc,'#4B5563')+'</div></div>').join(''):'')
+      +(cv.exp.length?pillMain('EXPÉRIENCES')+cv.exp.map(e=>'<div style="display:flex;gap:18px;margin-bottom:14px"><div style="width:130px;flex-shrink:0"><div style="font-size:11px;color:'+S.accent+';font-weight:700">'+esc(e.company)+'</div><div style="font-size:10px;color:#6B7280">'+esc(e.dates)+'</div></div><div style="flex:1"><b style="font-size:11.5px;color:#1F2937">'+esc(String(e.title||'').toUpperCase())+'</b>'+descBlock(e.desc,'#4B5563')+'</div></div>').join(''):'')
       +(cv.sk.length?pillMain('COMPÉTENCES')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px">'+cv.sk.map(s=>'<div><b style="font-size:11.5px;color:#1F2937">'+esc(s.name)+'</b></div>').join('')+'</div>':'')
       +extraSectionsHTML(cv,{head:navy,text:'#4B5563'})
     +'</div>'
@@ -2294,9 +2309,9 @@ const TEMPLATES = [
     +'</div>'
     +'<div style="flex:1;padding:30px 34px">'
       +'<h1 style="font-size:28px;margin:0;font-weight:800;color:#111">'+esc((cv.p.name||'Prénom Nom').toUpperCase())+'</h1>'
-      +(cv.p.role?'<div style="display:inline-block;background:'+S.accent+';color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:6px 16px;border-radius:999px;margin-top:8px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="display:inline-block;background:'+S.accent+';color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:6px 16px;border-radius:999px;margin-top:8px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +(cv.p.summary?'<p style="font-size:11px;color:#374151;line-height:1.6;text-align:justify;margin:14px 0 0">'+esc(cv.p.summary)+'</p>':'')
-      +(cv.exp.length?pill('EXPERIENCES PROFESSIONNELLES')+cv.exp.map(e=>'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:#111">'+esc(e.title.toUpperCase())+'</div><div style="display:flex;justify-content:space-between"><b style="font-size:10.5px;color:#111">'+esc(e.company.toUpperCase())+' | '+esc(e.dates)+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.loc||'')+'</span></div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
+      +(cv.exp.length?pill('EXPERIENCES PROFESSIONNELLES')+cv.exp.map(e=>'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:#111">'+esc(String(e.title||'').toUpperCase())+'</div><div style="display:flex;justify-content:space-between"><b style="font-size:10.5px;color:#111">'+esc(String(e.company||'').toUpperCase())+' | '+esc(e.dates)+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.loc||'')+'</span></div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
       +(cv.edu.length?pill('FORMATIONS')+cv.edu.map(e=>'<div style="display:flex;gap:16px;margin-bottom:12px"><div style="width:72px;flex-shrink:0;font-size:10.5px;font-weight:700;color:#111">'+esc(e.dates)+'</div><div><b style="font-size:10.5px;color:#111">'+esc(e.school)+'</b><div style="font-size:10.5px;color:#374151;margin-top:2px">• '+esc(e.degree)+'</div></div></div>').join(''):'')
       +(cv.sk.length?pill('COMPETENCES')+cv.sk.map(s=>'<div style="font-size:10.5px;color:#374151;margin-bottom:6px">• <b>'+esc(s.name)+'</b></div>').join(''):'')
       +extraSectionsHTML(cv,{head:S.accent,text:'#374151',logiciel:false})
@@ -2319,8 +2334,8 @@ const TEMPLATES = [
       +'<h1 style="font-size:28px;margin:0;font-weight:800;color:#111"><span style="color:'+S.accent+'">'+esc((cv.p.name||'Prénom').split(' ')[0]||'')+'</span> '+esc((cv.p.name||'').split(' ').slice(1).join(' ')||'NOM')+'</h1>'
       +(cv.p.role?'<div style="font-size:12.5px;font-weight:700;color:#111;margin-top:8px">'+esc(cv.p.role)+'</div>':'')
       +(cv.p.summary?'<p style="font-size:11px;color:#374151;line-height:1.6;text-align:justify;margin:8px 0 0">'+esc(cv.p.summary)+'</p>':'')
-      +(cv.exp.length?mainHd('EXPERIENCE PROFESSIONNELLE')+cv.exp.map(e=>'<div style="margin-bottom:14px"><b style="font-size:11px;color:#111">'+esc(e.company.toUpperCase())+' | '+esc(e.title.toUpperCase())+'</b><div style="font-size:10px;font-weight:700;color:#374151;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
-      +(cv.edu.length?mainHd('FORMATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#111">'+esc(e.degree.toUpperCase())+'</b> / <b style="font-size:11px;color:#111">'+esc(e.school.toUpperCase())+'</b><div style="font-size:10px;font-weight:700;color:#374151;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
+      +(cv.exp.length?mainHd('EXPERIENCE PROFESSIONNELLE')+cv.exp.map(e=>'<div style="margin-bottom:14px"><b style="font-size:11px;color:#111">'+esc(String(e.company||'').toUpperCase())+' | '+esc(String(e.title||'').toUpperCase())+'</b><div style="font-size:10px;font-weight:700;color:#374151;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
+      +(cv.edu.length?mainHd('FORMATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#111">'+esc(String(e.degree||'').toUpperCase())+'</b> / <b style="font-size:11px;color:#111">'+esc(String(e.school||'').toUpperCase())+'</b><div style="font-size:10px;font-weight:700;color:#374151;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
       +extraSectionsHTML(cv,{head:S.accent,text:'#374151'})
     +'</div></div>';
   }},
@@ -2344,8 +2359,8 @@ const TEMPLATES = [
       +'<h1 style="font-size:28px;margin:0;font-weight:800;color:#111">'+esc((cv.p.name||'Prénom').split(' ')[0]||'')+' <span style="color:'+S.accent+'">'+esc((cv.p.name||'').split(' ').slice(1).join(' ')||'NOM')+'</span></h1>'
       +(cv.p.role?'<div style="font-size:12.5px;font-weight:700;color:#111;margin-top:8px">'+esc(cv.p.role)+'</div>':'')
       +(cv.p.summary?'<div style="font-size:11.5px;font-weight:800;color:#111;margin-top:12px">A PROPOS DE MOI</div><p style="font-size:11px;color:#374151;line-height:1.6;margin:6px 0 0">'+esc(cv.p.summary)+'</p>':'')
-      +(cv.exp.length?mainHd('EXPERIENCE PROFESSIONNELLE')+cv.exp.map(e=>'<div style="margin-bottom:14px"><b style="font-size:11px;color:#111">'+esc(e.company.toUpperCase())+' | '+esc(e.title.toUpperCase())+'</b><div style="font-size:10.5px;font-weight:700;color:'+S.accent+';margin:3px 0 4px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
-      +(cv.edu.length?mainHd('FORMATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#111">'+esc(e.degree.toUpperCase())+' / '+esc(e.school.toUpperCase())+'</b><div style="font-size:10.5px;font-weight:700;color:'+S.accent+';margin:3px 0 4px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
+      +(cv.exp.length?mainHd('EXPERIENCE PROFESSIONNELLE')+cv.exp.map(e=>'<div style="margin-bottom:14px"><b style="font-size:11px;color:#111">'+esc(String(e.company||'').toUpperCase())+' | '+esc(String(e.title||'').toUpperCase())+'</b><div style="font-size:10.5px;font-weight:700;color:'+S.accent+';margin:3px 0 4px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
+      +(cv.edu.length?mainHd('FORMATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#111">'+esc(String(e.degree||'').toUpperCase())+' / '+esc(String(e.school||'').toUpperCase())+'</b><div style="font-size:10.5px;font-weight:700;color:'+S.accent+';margin:3px 0 4px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#374151')+'</div>').join(''):'')
       +extraSectionsHTML(cv,{head:'#111',text:'#374151'})
     +'</div></div>';
   }},
@@ -2359,21 +2374,21 @@ const TEMPLATES = [
       +(S.photoData?'<img src="'+S.photoData+'" style="width:130px;height:130px;border-radius:50%;object-fit:cover;margin-bottom:18px">':'')
       +'<div style="font-size:20px;font-weight:300;color:#fff;letter-spacing:1px">'+esc((cv.p.name||'Prénom').split(' ')[0]||'')+'</div>'
       +'<div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:1px;margin-top:2px">'+esc((cv.p.name||'').split(' ').slice(1).join(' ').toUpperCase()||'NOM')+'</div>'
-      +(cv.p.role?'<div style="font-size:11px;color:'+S.accent+';letter-spacing:.5px;margin-top:6px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:11px;color:'+S.accent+';letter-spacing:.5px;margin-top:6px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="text-align:left;padding:0 26px">'
       +chevron('CONTACT')
       +[['☎',cv.p.phone],['✉',cv.p.email],['⌨',cv.p.website],['📍',cv.p.address]].map(r=>r[1]?'<div style="display:flex;align-items:center;gap:10px;font-size:10px;color:#D1D5DB;margin-bottom:11px"><span style="width:20px;height:20px;border-radius:50%;background:'+S.accent+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0">'+r[0]+'</span>'+esc(r[1])+'</div>':'').join('')
       +ecPairs(cv).map(r=>'<div style="display:flex;align-items:center;gap:10px;font-size:10px;color:#D1D5DB;margin-bottom:11px"><span style="width:20px;height:20px;border-radius:50%;background:'+S.accent+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0">'+r[0]+'</span>'+esc(r[1])+'</div>').join('')
       +(social.length?chevron('FOLLOW ME')+social.map(s=>'<div style="font-size:10px;color:#D1D5DB;margin-bottom:9px">'+(SOCIAL_LABELS[s.platform]||s.platform)+' / '+esc(s.handle)+'</div>').join(''):'')
-      +(cv.lang.length?chevron('LANGUAGE')+cv.lang.map(l=>'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:10.5px;color:#fff;letter-spacing:.3px">'+esc(l.lang.toUpperCase())+'</span>'+meterDots(Math.min(5,langLevelScore(l.level)),5,S.accent)+'</div>').join(''):'')
+      +(cv.lang.length?chevron('LANGUAGE')+cv.lang.map(l=>'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:10.5px;color:#fff;letter-spacing:.3px">'+esc(String(l.lang||'').toUpperCase())+'</span>'+meterDots(Math.min(5,langLevelScore(l.level)),5,S.accent)+'</div>').join(''):'')
       +(cv.hobby.length?chevron('HOBBIES')+'<div style="display:flex;flex-wrap:wrap;gap:0 18px">'+cv.hobby.map(h=>'<div style="font-size:10px;color:#D1D5DB;margin-bottom:9px;width:45%">'+esc(h.name)+'</div>').join('')+'</div>':'')
       +'</div>'
     +'</div>'
     +'<div style="flex:1;padding:30px 36px">'
       +(cv.p.summary?mainHd('👤','ABOUT ME')+'<p style="font-size:11px;color:#4B5563;line-height:1.7;margin:0">'+esc(cv.p.summary)+'</p>':'')
-      +(cv.edu.length?mainHd('🎓','EDUCATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b style="font-size:11.5px;color:#111">› '+esc(e.school.toUpperCase())+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</span></div><div style="font-size:10.5px;color:#374151;margin:2px 0 0 14px">'+esc(e.degree)+'</div>'+descBlock(e.desc,'#6B7280')+'</div>').join(''):'')
-      +(cv.exp.length?mainHd('💼','EXPERIENCE')+cv.exp.map(e=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b style="font-size:11.5px;color:#111">› '+esc(e.company.toUpperCase())+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</span></div><div style="font-size:10.5px;color:#374151;margin:2px 0 0 14px">'+esc(e.title)+'</div>'+descBlock(e.desc,'#6B7280')+'</div>').join(''):'')
-      +(cv.sk.length?mainHd('⚙','SKILLS')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 30px">'+cv.sk.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10.5px;color:#111;font-weight:700">'+esc(s.name.toUpperCase())+'</span>'+meterDots(s.level,5,S.accent)+'</div>').join('')+'</div>':'')
+      +(cv.edu.length?mainHd('🎓','EDUCATION')+cv.edu.map(e=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b style="font-size:11.5px;color:#111">› '+esc(String(e.school||'').toUpperCase())+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</span></div><div style="font-size:10.5px;color:#374151;margin:2px 0 0 14px">'+esc(e.degree)+'</div>'+descBlock(e.desc,'#6B7280')+'</div>').join(''):'')
+      +(cv.exp.length?mainHd('💼','EXPERIENCE')+cv.exp.map(e=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b style="font-size:11.5px;color:#111">› '+esc(String(e.company||'').toUpperCase())+'</b><span style="font-size:10px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</span></div><div style="font-size:10.5px;color:#374151;margin:2px 0 0 14px">'+esc(e.title)+'</div>'+descBlock(e.desc,'#6B7280')+'</div>').join(''):'')
+      +(cv.sk.length?mainHd('⚙','SKILLS')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 30px">'+cv.sk.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10.5px;color:#111;font-weight:700">'+esc(String(s.name||'').toUpperCase())+'</span>'+meterDots(s.level,5,S.accent)+'</div>').join('')+'</div>':'')
       +extraSectionsHTML(cv,{head:'#111',text:'#4B5563'})
     +'</div></div>';
   }},
@@ -2427,10 +2442,10 @@ const TEMPLATES = [
     +'</div>'
     +'<div style="flex:1;padding:34px 36px 30px">'
       +'<h1 style="font-size:28px;margin:0;font-weight:800;color:#1A2130">'+esc((cv.p.name||'Prénom Nom').toUpperCase())+'</h1>'
-      +(cv.p.role?'<div style="font-size:14px;font-weight:800;color:'+S.accent+';letter-spacing:.5px;margin-top:4px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:14px;font-weight:800;color:'+S.accent+';letter-spacing:.5px;margin-top:4px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +'<div style="height:2px;background:'+S.accent+';width:100%;margin-top:10px"></div>'
-      +(cv.edu.length?pill('🎓','EDUCATION')+cv.edu.map(e=>'<div style="display:flex;gap:12px;margin-bottom:14px"><div style="width:9px;height:9px;border-radius:50%;background:'+S.accent+';margin-top:6px;flex-shrink:0"></div><div><div style="font-size:11px;color:#1A2130;font-weight:700">'+esc(e.dates)+' / <span style="color:'+S.accent+'">'+esc(e.school.toUpperCase())+'</span></div><div style="font-size:10.5px;color:#4B5563;margin:2px 0 0">'+esc(e.degree)+'</div>'+descBlock(e.desc,'#6B7280')+'</div></div>').join(''):'')
-      +(cv.exp.length?pill('💼','WORK EXPERIENCE')+cv.exp.map(e=>'<div style="border-left:2px solid '+S.accent+';padding-left:12px;margin-bottom:14px"><div style="font-size:10.5px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</div><div style="font-size:10.5px;font-weight:700;color:'+S.accent+'">'+esc(e.title.toUpperCase())+'</div><b style="font-size:11.5px;color:#1A2130">'+esc(e.company)+'</b>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
+      +(cv.edu.length?pill('🎓','EDUCATION')+cv.edu.map(e=>'<div style="display:flex;gap:12px;margin-bottom:14px"><div style="width:9px;height:9px;border-radius:50%;background:'+S.accent+';margin-top:6px;flex-shrink:0"></div><div><div style="font-size:11px;color:#1A2130;font-weight:700">'+esc(e.dates)+' / <span style="color:'+S.accent+'">'+esc(String(e.school||'').toUpperCase())+'</span></div><div style="font-size:10.5px;color:#4B5563;margin:2px 0 0">'+esc(e.degree)+'</div>'+descBlock(e.desc,'#6B7280')+'</div></div>').join(''):'')
+      +(cv.exp.length?pill('💼','WORK EXPERIENCE')+cv.exp.map(e=>'<div style="border-left:2px solid '+S.accent+';padding-left:12px;margin-bottom:14px"><div style="font-size:10.5px;color:#6B7280;font-weight:700">'+esc(e.dates)+'</div><div style="font-size:10.5px;font-weight:700;color:'+S.accent+'">'+esc(String(e.title||'').toUpperCase())+'</div><b style="font-size:11.5px;color:#1A2130">'+esc(e.company)+'</b>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
       +(cv.sk.length?pill('🔧','MY SKILLS')+cv.sk.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><span style="font-size:10.5px;color:#374151">'+esc(s.name)+'</span>'+meterSquares(s.level,5,S.accent)+'</div>').join(''):'')
       +extraSectionsHTML(cv,{head:'#1A2130',text:'#4B5563',quality:false})
     +'</div></div>';
@@ -2452,15 +2467,15 @@ const TEMPLATES = [
       +sideHd('PERSONAL')
       +ecLabelPairs(cv).concat(cv.lang.length?[['Languages',cv.lang.map(l=>l.lang).join(', ')]]:[]).map(r=>'<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#D1D5DB;margin-bottom:8px"><span style="color:#9CA3AF">'+r[0]+'</span><span>'+esc(r[1])+'</span></div>').join('')
       +(cv.sk.length?sideHd('SKILLS')+cv.sk.map(s=>'<div style="font-size:10px;color:#D1D5DB;margin-bottom:8px">'+esc(s.name)+meterBars(s.level,5,S.accent,true)+'</div>').join(''):'')
-      +(cv.logiciel&&cv.logiciel.length?sideHd('SOFTWARE')+cv.logiciel.map(l=>'<div style="font-size:10px;color:#D1D5DB;margin-bottom:8px">'+esc(l.name.toUpperCase())+meterBars(l.level,5,S.accent,true)+'</div>').join(''):'')
+      +(cv.logiciel&&cv.logiciel.length?sideHd('SOFTWARE')+cv.logiciel.map(l=>'<div style="font-size:10px;color:#D1D5DB;margin-bottom:8px">'+esc(String(l.name||'').toUpperCase())+meterBars(l.level,5,S.accent,true)+'</div>').join(''):'')
       +(cv.hobby.length?sideHd('HOBBIES')+'<div style="display:flex;flex-wrap:wrap;gap:12px 10px">'+cv.hobby.map(h=>'<div style="width:46px;text-align:center"><div style="font-size:16px;margin-bottom:4px">'+hobbyIcon(h.name)+'</div><div style="font-size:8.5px;color:#D1D5DB">'+esc(h.name)+'</div></div>').join('')+'</div>':'')
     +'</div>'
     +'<div style="flex:1;padding:36px 36px 30px">'
       +'<div style="font-size:18px;font-weight:300;color:#1F2937;letter-spacing:1px">'+esc((cv.p.name||'Prénom').split(' ')[0]||'').toUpperCase()+'</div>'
       +'<h1 style="font-size:28px;margin:0;font-weight:800;color:#1F2937;letter-spacing:1px">'+esc((cv.p.name||'').split(' ').slice(1).join(' ').toUpperCase()||'NOM')+'</h1>'
-      +(cv.p.role?'<div style="font-size:13px;color:#6B7280;letter-spacing:2px;margin-top:4px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:13px;color:#6B7280;letter-spacing:2px;margin-top:4px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +(cv.p.summary?dotHd('ABOUT')+'<p style="font-size:11px;color:#4B5563;line-height:1.7;margin:0">'+esc(cv.p.summary)+'</p>':'')
-      +(cv.exp.length?dotHd('EXPERIENCE')+cv.exp.map(e=>'<div style="display:flex;gap:18px;margin-bottom:14px"><div style="width:110px;flex-shrink:0"><div style="font-size:10.5px;color:#1F2937;font-weight:700">'+esc(e.title)+'</div><div style="font-size:9.5px;color:#9CA3AF">'+esc(e.dates)+'</div></div><div style="flex:1;border-left:1px solid #E5E7EB;padding-left:16px"><b style="font-size:10.5px;color:'+S.bg+'">'+esc(e.company.toUpperCase())+'</b>'+descBlock(e.desc,'#6B7280')+'</div></div>').join(''):'')
+      +(cv.exp.length?dotHd('EXPERIENCE')+cv.exp.map(e=>'<div style="display:flex;gap:18px;margin-bottom:14px"><div style="width:110px;flex-shrink:0"><div style="font-size:10.5px;color:#1F2937;font-weight:700">'+esc(e.title)+'</div><div style="font-size:9.5px;color:#9CA3AF">'+esc(e.dates)+'</div></div><div style="flex:1;border-left:1px solid #E5E7EB;padding-left:16px"><b style="font-size:10.5px;color:'+S.bg+'">'+esc(String(e.company||'').toUpperCase())+'</b>'+descBlock(e.desc,'#6B7280')+'</div></div>').join(''):'')
       +(cv.edu.length?dotHd('EDUCATION')+cv.edu.map(e=>'<div style="display:flex;gap:18px;margin-bottom:12px"><div style="width:110px;flex-shrink:0"><div style="font-size:10.5px;color:#1F2937;font-weight:700">'+esc(e.school)+'</div><div style="font-size:9.5px;color:#9CA3AF">'+esc(e.dates)+'</div></div><div style="flex:1;border-left:1px solid #E5E7EB;padding-left:16px">'+esc(e.degree)+descBlock(e.desc,'#6B7280')+'</div></div>').join(''):'')
       +extraSectionsHTML(cv,{head:S.bg,text:'#4B5563'})
     +'</div></div>';
@@ -2477,7 +2492,7 @@ const TEMPLATES = [
         +'<div style="position:absolute;inset:0;background:'+S.accent+';clip-path:polygon(22% 0,100% 0,100% 100%,0 100%)"></div>'
         +'<div style="position:absolute;right:0;top:0;bottom:0;left:30%;display:flex;flex-direction:column;justify-content:center;padding-left:26px">'
         +'<h1 style="font-size:22px;margin:0;font-weight:800;color:#fff">'+esc((cv.p.name||'Prénom Nom').toUpperCase())+'</h1>'
-        +(cv.p.role?'<div style="font-size:11px;font-weight:700;color:#fff;margin-top:4px;letter-spacing:.3px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+        +(cv.p.role?'<div style="font-size:11px;font-weight:700;color:#fff;margin-top:4px;letter-spacing:.3px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
         +'</div>'
       +'</div>'
     +'</div>'
@@ -2507,7 +2522,7 @@ const TEMPLATES = [
       +(S.photoData?'<img src="'+S.photoData+'" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid '+S.accent+';flex-shrink:0">':'')
       +'<div>'
       +'<h1 style="font-size:24px;margin:0;font-weight:800;color:#E5E7EB">'+esc((cv.p.name||'Prénom').split(' ')[0]||'')+' <span style="color:'+S.accent+'">'+esc((cv.p.name||'').split(' ').slice(1).join(' ').toUpperCase()||'NOM')+'</span></h1>'
-      +(cv.p.role?'<div style="font-size:11px;font-weight:700;color:'+S.accent+';letter-spacing:.5px;margin-top:3px">'+esc(cv.p.role.toUpperCase())+'</div>':'')
+      +(cv.p.role?'<div style="font-size:11px;font-weight:700;color:'+S.accent+';letter-spacing:.5px;margin-top:3px">'+esc(String(cv.p.role||'').toUpperCase())+'</div>':'')
       +(cv.p.summary?'<p style="font-size:10.5px;color:#D1D5DB;line-height:1.6;margin:10px 0 0">'+esc(cv.p.summary)+'</p>':'')
       +'</div>'
     +'</div>'
@@ -2521,7 +2536,7 @@ const TEMPLATES = [
         +(cv.hobby.length?sideHd('CENTRES D\'INTERET')+'<div style="font-size:10.5px;color:#374151">'+cv.hobby.map(h=>esc(h.name)).join(', ')+'</div>':'')
       +'</div>'
       +'<div style="flex:1;padding:22px 30px 30px 10px">'
-        +(cv.exp.length?mainHd('EXPERIENCES PROFESSIONNELLES')+cv.exp.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#1F2937">'+esc(e.company)+' | '+esc(e.title.toUpperCase())+'</b><div style="font-size:10px;color:'+S.accent+';font-weight:700;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
+        +(cv.exp.length?mainHd('EXPERIENCES PROFESSIONNELLES')+cv.exp.map(e=>'<div style="margin-bottom:12px"><b style="font-size:11px;color:#1F2937">'+esc(e.company)+' | '+esc(String(e.title||'').toUpperCase())+'</b><div style="font-size:10px;color:'+S.accent+';font-weight:700;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
         +(cv.edu.length?mainHd('FORMATIONS ET PERFECTIONNEMENTS')+cv.edu.map(e=>'<div style="margin-bottom:10px"><b style="font-size:11px;color:#1F2937">'+esc(e.degree)+' / '+esc(e.school)+'</b><div style="font-size:10px;color:'+S.accent+';font-weight:700;margin:2px 0 3px">'+esc(e.dates)+'</div>'+descBlock(e.desc,'#4B5563')+'</div>').join(''):'')
         +extraSectionsHTML(cv,{head:'#1F2937',text:'#4B5563'})
       +'</div>'
@@ -2889,6 +2904,26 @@ function toast(msg){
   setTimeout(function(){ d.style.opacity='0'; setTimeout(function(){ d.remove(); },300); }, Math.min(6000, 2500+msg.length*30));
 }
 
+/* ---------------- Erreurs claires avec « Réessayer » ---------------- */
+function errBanner(msg, retry, id){
+  id='errb_'+(id||'x');
+  var old=document.getElementById(id); if(old) old.remove();
+  var d=document.createElement('div'); d.id=id; d.setAttribute('role','alert');
+  d.style.cssText='position:fixed;left:12px;right:12px;bottom:84px;z-index:9999;background:#7f1d1d;color:#fff;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;gap:10px;align-items:center;max-width:520px;margin:0 auto';
+  var t=document.createElement('div'); t.style.flex='1'; t.textContent='⚠️ '+msg; d.appendChild(t);
+  if(retry){ var b=document.createElement('button'); b.textContent='Réessayer'; b.style.cssText='background:#fff;color:#7f1d1d;border:0;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px';
+    b.onclick=function(){ d.remove(); try{ retry(); }catch(e){ console.warn(e); errBanner(msg,retry,id.slice(5)); } }; d.appendChild(b); }
+  var x=document.createElement('button'); x.textContent='✕'; x.setAttribute('aria-label','Fermer'); x.style.cssText='background:none;border:0;color:#fff;font-size:16px'; x.onclick=function(){ d.remove(); }; d.appendChild(x);
+  document.body.appendChild(d);
+}
+function withRetry(name,label,id){
+  var orig=window[name];
+  window[name]=function(){ try{ return orig.apply(this,arguments); }
+    catch(e){ console.warn(name,e); errBanner(label+' n\'a pas pu aboutir. Vérifiez votre connexion ou l\'espace disponible, puis réessayez.', function(){ window[name](); }, id); } };
+}
+withRetry('exportPDF','L\'export PDF','pdf');
+withRetry('exportWord','L\'export Word','word');
+
 /* ---------------- render helpers ---------------- */
 // Rend un modèle avec ses couleurs propres (S.bg = couleur de fond du modèle).
 // Les 10 modèles du lot 1 (reconstruction par lots) gèrent individuellement, directement
@@ -3014,7 +3049,7 @@ function projectsHTML(cv,headColor,textColor,size){
    Le CV français n'est JAMAIS modifié. cv.vl==='en' affiche une vue anglaise : chaque texte libre est remplacé par sa
    traduction mémorisée dans cv.en (dictionnaire « texte français → texte anglais »), les valeurs courantes (niveaux,
    nationalités, état civil, mois…) passent par un dictionnaire, et les titres de sections des 51 modèles sont traduits
-   à l'affichage. La traduction automatique tourne dans le navigateur (modèle opus-mt fr→en, ~110 Mo, téléchargé une fois),
+   à l'affichage. La traduction automatique passe par l'IA hébergée (fonction ai-chat, rien à télécharger),
    aucun texte du CV n'est envoyé à un serveur. */
 var ENX = (function(){
   var N=function(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’]/g,"'").replace(/\s+/g,' ').trim(); };
@@ -3100,39 +3135,11 @@ var ENX = (function(){
     }catch(e){ return html; }
   }
 
-  /* ---- Traduction automatique locale ---- */
-  var eng={ pipe:null, loading:null };
-  function loadEngine(onProg){
-    if(eng.pipe) return Promise.resolve(eng.pipe);
-    if(eng.loading) return eng.loading;
-    eng.loading=(async function(){
-      var mod=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
-      var files={};
-      var p=await mod.pipeline('translation','Xenova/opus-mt-fr-en',{ dtype:'q8', progress_callback:function(e){
-        if(e && e.status==='progress' && e.file){ files[e.file]={l:e.loaded||0,t:e.total||0}; var L=0,T=0; Object.keys(files).forEach(function(k){ L+=files[k].l; T+=files[k].t; }); if(onProg && T) onProg(Math.min(99,Math.round(L/T*100))); }
-      }});
-      eng.pipe=p; return p;
-    })();
-    eng.loading.catch(function(){ eng.loading=null; });
-    return eng.loading;
-  }
+  /* ---- Traduction automatique : IA hébergée (aucun téléchargement) ---- */
   function fixOut(src, out){
     out=String(out||'').trim();
     if(/^(licen[cs]e)\b/i.test(out) && /^licence/i.test(N(src))) out=out.replace(/^licen[cs]e( degree)?/i,"Bachelor's degree");
     return out;
-  }
-  /* Une chaîne (peut contenir des lignes / puces) → traduction ligne par ligne, puces conservées */
-  async function translateText(pipe, s){
-    var lines=String(s).split('\n'), res=[];
-    for(var i=0;i<lines.length;i++){
-      var raw=lines[i], m=/^(\s*(?:[•\-–*]\s*)?)(.*?)(\s*)$/.exec(raw), pre=m[1], body=m[2];
-      if(!body){ res.push(raw); continue; }
-      var d=dictVal(body); if(d){ res.push(pre+d); continue; }
-      var r=await pipe(body,{ max_new_tokens:Math.min(512,Math.max(48,body.length*2)) });
-      var t=(r && r[0] && (r[0].translation_text||r[0].generated_text))||body;
-      res.push(pre+fixOut(body,t));
-    }
-    return res.join('\n');
   }
   /* Textes à traduire : champs libres non vides, non déjà mémorisés, non couverts par le dictionnaire */
   function pending(cv){
@@ -3146,15 +3153,21 @@ var ENX = (function(){
   }
   async function translateAll(cv, onProg, onStep){
     var todo=pending(cv); if(!todo.length) return {done:0,total:0};
-    var pipe=await loadEngine(onProg);
     if(!cv.en || typeof cv.en!=='object') cv.en={};
-    for(var i=0;i<todo.length;i++){
-      cv.en[todo[i]]=await translateText(pipe,todo[i]);
-      if(onStep) onStep(i+1,todo.length);
+    var i=0, done=0;
+    while(i<todo.length){
+      var chunk=[], size=0;
+      while(i<todo.length && chunk.length<30 && size+todo[i].length<=9000){ chunk.push(todo[i]); size+=todo[i].length; i++; }
+      if(!chunk.length){ chunk.push(todo[i].slice(0,1500)); i++; }
+      var r=await aiRemote('translate',{texts:chunk});
+      var t=r && r.t;
+      if(!Array.isArray(t) || t.length!==chunk.length){ var er=new Error('BAD'); er.code='DOWN'; throw er; }
+      chunk.forEach(function(src,k){ cv.en[src]=fixOut(src, String(t[k]==null?src:t[k]).slice(0,3000)); });
+      done+=chunk.length; if(onStep) onStep(done,todo.length);
     }
-    return {done:todo.length,total:todo.length};
+    return {done:done,total:todo.length};
   }
-  return { view:view, labels:labels, pending:pending, translateAll:translateAll, loadEngine:loadEngine, dict:dictVal, _N:N, _label:labelText };
+  return { view:view, labels:labels, pending:pending, translateAll:translateAll, dict:dictVal, _N:N, _label:labelText };
 })();
 
 /* Bascule FR / EN : à la première bascule en anglais, traduit ce qui manque (téléchargement du traducteur une fois). */
@@ -3169,14 +3182,15 @@ async function setCvLang(lang, silent){
   var todo=ENX.pending(cv);
   if(todo.length){
     ENX_BUSY=true; enxSync();
-    enxStatus('Préparation du traducteur… (une seule fois, environ 110 Mo)');
+    enxStatus('Traduction en cours…');
     try{
-      await ENX.translateAll(cv, function(p){ enxStatus('Téléchargement du traducteur… '+p+' %'); }, function(i,n){ enxStatus('Traduction… '+i+' / '+n); });
+      await ENX.translateAll(cv, null, function(i,n){ enxStatus('Traduction… '+i+' / '+n); });
     }catch(e){
       ENX_BUSY=false; enxSync(); try{ console.warn('[CVxMaker] traduction', e); }catch(_){}
       cv.vl='en'; onChange(); renderCV();
-      enxStatus('Traducteur indisponible (connexion ?). Les titres et valeurs courantes sont en anglais ; les textes libres restent en français. Réessayez avec Internet.','bad');
-      if(!silent) toast('Traduction complète impossible pour le moment : vérifiez votre connexion.');
+      var why = e && e.code==='AUTH' ? 'Connectez-vous pour traduire aussi les textes libres.' : e && e.code==='QUOTA' ? 'Limite quotidienne de l\'IA atteinte : les textes libres seront traduits demain ou avec un plan supérieur.' : 'Traduction indisponible (connexion ?). Réessayez.';
+      enxStatus('Les titres et valeurs courantes sont en anglais ; les textes libres restent en français. '+why,'bad');
+      if(!silent) toast(why);
       return false;
     }
     ENX_BUSY=false;
@@ -3199,10 +3213,43 @@ function enxSync(){
 function renderTpl(tpl, data, over){
   if(!tpl) return '<div style="min-height:1123px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-family:Inter,sans-serif;font-size:13px;text-align:center;padding:40px">Modèles en cours de mise à jour.<br>Revenez dans un instant.</div>';
   const S2 = Object.assign({}, S, { bg: (data && data.theme && /^#[0-9a-f]{6}$/i.test(data.theme[tpl.id]||'') ? data.theme[tpl.id] : tpl.bg) }, over||{});
+  // Couleurs : uniquement un code hexadécimal valide (une valeur piégée venant du cloud ne doit jamais atteindre le HTML).
+  if(!/^#[0-9a-f]{3,8}$/i.test(String(S2.accent||''))) S2.accent='#2563EB';
+  if(S2.bg!=null && !/^#[0-9a-f]{3,8}$/i.test(String(S2.bg))) S2.bg=tpl.bg;
+  let html;
   if(data && data.vl==='en' && typeof ENX!=='undefined'){
-    try{ return ENX.labels(tpl.render(ENX.view(data), S2)); }catch(e){ try{ console.warn('[CVxMaker] vue anglaise ignorée', e); }catch(_){} }
+    try{ html = ENX.labels(tpl.render(ENX.view(data), S2)); }catch(e){ try{ console.warn('[CVxMaker] vue anglaise ignorée', e); }catch(_){} }
   }
-  return tpl.render(data, S2);
+  if(html==null) html = tpl.render(data, S2);
+  return data===SAMPLE_CV ? html : cvxSanitize(html);   // le CV d'exemple est notre contenu ; tout le reste est filtré
+}
+/* Filtre de sécurité : retire tout ce qui pourrait exécuter du code (scripts, gestionnaires on*, liens javascript:, etc.)
+   dans le HTML d'un CV, quelle que soit son origine (compte, lien public, import, base de données). */
+const __SAN_DROP='script,iframe,frame,frameset,object,embed,applet,meta,link,base,form,noscript,template,foreignobject,animate,set,animatetransform,animatemotion,audio,video,source,track,portal,dialog';
+const __SAN_URL=/^(?:javascript|vbscript|livescript|mocha):/i;
+function __safeUrl(v,attr){
+  v=String(v||'').replace(/[\u0000-\u0020\u007f-\u009f\u200b-\u200f\u2028\u2029\ufeff]+/g,'');
+  if(__SAN_URL.test(v)) return false;
+  if(/^data:/i.test(v)) return (attr==='src' && /^data:image\/(png|jpe?g|gif|webp|svg\+xml|avif|bmp);/i.test(v));
+  return true;
+}
+function cvxSanitize(html){
+  html=String(html==null?'':html);
+  if(html.indexOf('<')<0) return html;
+  let doc; try{ doc=new DOMParser().parseFromString('<!DOCTYPE html><html><body>'+html+'</body></html>','text/html'); }catch(e){ return ''; }
+  const body=doc.body;
+  body.querySelectorAll(__SAN_DROP).forEach(function(n){ n.remove(); });
+  body.querySelectorAll('style').forEach(function(n){ n.textContent=n.textContent.replace(/@import[^;]*;?/gi,'').replace(/expression\s*\(/gi,'x(').replace(/javascript:/gi,'').replace(/-moz-binding|behavior\s*:/gi,'x:'); });
+  body.querySelectorAll('*').forEach(function(el){
+    Array.prototype.slice.call(el.attributes).forEach(function(a){
+      const n=a.name.toLowerCase(), v=a.value;
+      if(n.indexOf('on')===0 || n==='srcdoc' || n==='formaction' || n==='action' || n==='ping'){ el.removeAttribute(a.name); return; }
+      if(n==='href'||n==='src'||n==='xlink:href'||n==='poster'||n==='background'||n==='data'||n==='srcset'){ if(!__safeUrl(v,n)) el.removeAttribute(a.name); return; }
+      if(n==='style' && /expression\s*\(|javascript:|vbscript:|@import|behavior\s*:|-moz-binding/i.test(v)) el.removeAttribute(a.name);
+    });
+    if(el.tagName==='A'){ if(el.getAttribute('target')==='_blank') el.setAttribute('rel','noopener noreferrer'); }
+  });
+  return body.innerHTML;
 }
 const SAMPLE_PHOTO = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#D9C3A5"/><circle cx="50" cy="38" r="18" fill="#7A4B2E"/><path d="M14 100c2-24 18-36 36-36s34 12 36 36z" fill="#7A4B2E"/></svg>');
 // CV d'exemple COMPLET (toutes les sections) : sert de référence visuelle pour tous les modèles.
@@ -4026,7 +4073,40 @@ function field(label, val, oninput, type, ph){
   return '<div class="field"><label>'+label+'</label><input type="'+type+'" value="'+esc(val)+'" placeholder="'+esc(ph||'')+'" oninput="'+oninput+'"></div>';
 }
 function ta(label, val, oninput, ph){
-  return '<div class="field"><label>'+label+'</label><textarea placeholder="'+esc(ph||'')+'" oninput="'+oninput+'">'+esc(val)+'</textarea></div>';
+  var kind=/mission|r[ée]alisation|description/i.test(label)?'list':'text';
+  return '<div class="field"><label>'+label+'</label><textarea placeholder="'+esc(ph||'')+'" oninput="'+oninput+'" onblur="if(cleanTA(this,\''+kind+'\'))this.oninput()">'+esc(val)+'</textarea></div>';
+}
+/* ---------------- Nettoyage automatique du texte (à la sortie du champ) ---------------- */
+function cleanText(src,kind){
+  var t=String(src||'').replace(/\r/g,'').replace(/\t/g,' ').replace(/[\u00a0\u200b]/g,' ');
+  if(!t.trim()) return '';
+  // tout en majuscules -> casse normale
+  var L=t.replace(/[^A-Za-zÀ-ÿ]/g,'');
+  if(L.length>12 && L.replace(/[^A-ZÀ-Ý]/g,'').length/L.length>0.7) t=t.toLowerCase();
+  // liste collée sur une seule ligne : « - a - b - c »
+  var bul=/(^|\s)[-–—•·*▪►]\s+(?=\S)/g;
+  if(t.indexOf('\n')<0 && (t.match(bul)||[]).length>=2) t=t.replace(bul,'\n');
+  var lines=t.split('\n').map(function(l){
+    var isB=/^\s*[-–—•·*▪►]\s*(?=\S)/.test(l);
+    l=l.replace(/^\s*[-–—•·*▪►]\s*/,'').replace(/ {2,}/g,' ').trim();
+    l=l.replace(/\s+([,.;:)\]])/g,'$1').replace(/([,;])(?=[A-Za-zÀ-ÿ])/g,'$1 ').replace(/\(\s+/g,'(').replace(/([.!?])(?=[A-ZÀ-Ý][a-zà-ÿ])/g,'$1 ');
+    l=l.replace(/\s+([?!:;])/g,'\u00a0$1'.replace('\u00a0',' ')); // espace simple avant ? ! : ;
+    l=l.replace(/^[a-zà-ÿ]/,function(c){return c.toUpperCase();}).replace(/([.!?]\s+)([a-zà-ÿ])/g,function(m,a,b){return a+b.toUpperCase();});
+    return {t:l,b:isB};
+  }).filter(function(o){return o.t;});
+  if(!lines.length) return '';
+  var anyB=lines.some(function(o){return o.b;});
+  if(kind==='list'){
+    return lines.map(function(o){ var x=o.t.replace(/[;,]+$/,''); return (anyB||lines.length>1?'• ':'')+x; }).join('\n');
+  }
+  // texte courant (résumé) : une liste devient des phrases
+  return lines.map(function(o){ var x=o.t.replace(/[;,]+$/,''); return /[.!?…]$/.test(x)?x:x+'.'; }).join(anyB||lines.length>1?' ':'\n').replace(/\.\.$/,'.');
+}
+function cleanTA(el,kind){
+  var v=cleanText(el.value,kind);
+  if(kind==='text' && v && !/[.!?…]$/.test(el.value.trim()) && el.value.trim().indexOf('\n')<0 && !/^\s*[-–•*]/.test(el.value)) v=v.replace(/\.$/,'');
+  if(v===el.value) return false;
+  el.value=v; return true;
 }
 const LISTS={'dl-jobs':JOBS,'dl-skills':SKILLS,'dl-degrees':DEGREES,'dl-cities':CITIES,'dl-langs':LANGS,'dl-hobbies':HOBBIES};
 function normS(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
@@ -4145,13 +4225,78 @@ function setCur(kind,i,c){
   e.dates=buildDates(e,kind); openState[kind+i]=true; onChange(); renderForm();
 }
 
+/* ---------------- Indicateur de complétude ---------------- */
+function completeness(){
+  var p=cv.p||{}, items=[], add=function(w,got,label,st){ items.push({w:w,got:Math.max(0,Math.min(1,got)),label:label,step:st}); };
+  var has=function(x){ return String(x||'').trim().length>0; };
+  add(8,has(p.name)?1:0,'Votre nom complet',3);
+  add(8,has(p.role)?1:0,'Le poste recherché',3);
+  add(6,has(p.email)?1:0,'Votre email',3);
+  add(6,has(p.phone)?1:0,'Votre téléphone',3);
+  add(3,has(p.address)?1:0,'Votre ville',3);
+  add(14,String(p.summary||'').trim().length/80,'Un résumé professionnel (2-3 phrases)',3);
+  var ex=cv.exp.filter(function(e){ return has(e.title)&&has(e.company); }).length;
+  add(12,ex?1:0,'Une expérience professionnelle',5);
+  var lines=0; cv.exp.forEach(function(e){ lines=Math.max(lines,String(e.desc||'').split('\n').filter(has).length); });
+  add(12,lines/3,'Des missions détaillées (3 lignes ou plus)',5);
+  add(8,cv.edu.filter(function(e){ return has(e.degree)||has(e.school); }).length?1:0,'Votre formation',6);
+  add(12,cv.sk.filter(function(x){ return has(x.name); }).length/5,'Au moins 5 compétences',6);
+  add(4,cv.lang.length?1:0,'Vos langues',7);
+  add(4,S.photoData?1:0,'Une photo de profil',2);
+  add(3,(cv.cert.length||cv.logiciel.length||cv.hobby.length)?1:0,'Certifications, logiciels ou centres d\'intérêt',7);
+  var tot=0,got=0; items.forEach(function(i){ tot+=i.w; got+=i.w*i.got; });
+  var next=items.filter(function(i){ return i.got<1; }).sort(function(a,b){ return b.w*(1-b.got)-a.w*(1-a.got); }).slice(0,3);
+  return {pct:Math.round(got/tot*100), next:next};
+}
+function completenessHTML(){
+  var c=completeness(), col=c.pct>=80?'#16a34a':c.pct>=50?'#d97706':'#dc2626';
+  return '<div id="cmpCard" style="border:1px solid var(--line,#e5e7eb);border-radius:12px;padding:10px 12px;margin:0 0 14px">'
+   +'<div style="display:flex;justify-content:space-between;font-size:12.5px"><b>Votre CV est complet à '+c.pct+' %</b></div>'
+   +'<div style="height:6px;background:#e5e7eb;border-radius:4px;margin:6px 0 8px;overflow:hidden"><i style="display:block;height:100%;width:'+c.pct+'%;background:'+col+';transition:width .3s"></i></div>'
+   +(c.next.length?'<div class="chips"><span>À ajouter :</span>'+c.next.map(function(n){ return '<button class="chip" onclick="goStep('+n.step+')">'+esc(n.label)+'</button>'; }).join('')+'</div>':'<div style="font-size:12px;color:#16a34a">Excellent : rien d\'essentiel ne manque.</div>')
+   +'</div>';
+}
+function refreshCompleteness(){ var el=document.getElementById('cmpCard'); if(el) el.outerHTML=completenessHTML(); }
+
+/* ---------------- Assistant de contenu (CareerKit, 100 % local) ---------------- */
+window.__sumOpen=false; window.__sumSeed=0;
+function profilePickerHTML(){
+  if(!window.__sumOpen||!window.CareerKit) return '';
+  var opts=window.CareerKit.summaries(cv, window.__sumSeed);
+  window.__sumOpts=opts;
+  var role=(cv.p.role||'').trim();
+  return '<div class="hint" style="margin:12px 0 6px">'+(role?'Propositions pour « '+esc(role)+' » — touchez pour utiliser :':'Astuce : renseignez d\'abord le « Poste recherché » pour des propositions plus précises.')+'</div>'
+    + opts.map(function(o,i){ return '<div style="border:1px solid var(--line,#e5e7eb);border-radius:12px;padding:10px 12px;margin:0 0 8px"><b style="font-size:12px">'+esc(o.style)+'</b><div style="font-size:13px;line-height:1.5;margin:4px 0 8px">'+esc(o.text)+'</div><button class="mini" onclick="useProfile('+i+')">Utiliser ce profil</button></div>'; }).join('')
+    + '<button class="mini" onclick="window.__sumSeed++;renderForm()">🔄 Autres propositions</button> <button class="mini" onclick="window.__sumOpen=false;renderForm()">Fermer</button>';
+}
+function openProfilePicker(){ window.__sumOpen=true; renderForm(); }
+function useProfile(i){ var o=(window.__sumOpts||[])[i]; if(!o) return; cv.p.summary=o.text; window.__sumOpen=false; onChange(); renderForm(); try{toast('Profil ajouté — pensez à le personnaliser');}catch(e){} }
+function missionIdeasHTML(i,e){
+  if(!window.CareerKit) return '';
+  var role=e.title||cv.p.role||'';
+  if(!role.trim()) return '';
+  var have=(e.desc||'').toLowerCase();
+  var list=window.CareerKit.bullets(role,cv).filter(function(b){ return have.indexOf(b.toLowerCase().slice(0,25))<0; });
+  window.__mIdeas=window.__mIdeas||{}; window.__mIdeas[i]=list;
+  if(!list.length) return '';
+  return '<div class="chips"><span>Idées de missions :</span>'+list.slice(0,5).map(function(b,j){ return '<button class="chip" onclick="addMissionIdea('+i+','+j+')">+ '+esc(b)+'</button>'; }).join('')+'</div>';
+}
+function addMissionIdea(i,j){ var b=((window.__mIdeas||{})[i]||[])[j]; if(!b) return; var e=cv.exp[i]; e.desc=(e.desc?e.desc.replace(/\s+$/,'')+'\n':'')+'• '+b; openState['exp'+i]=true; onChange(); renderForm(); }
+
 /* ---------------- Suggestions rapides (puces) ---------------- */
 function chipsHTML(arr,taken,handler){
   const c=arr.map(function(x,i){ return [x,i]; }).filter(function(p){ return taken.indexOf(p[0])<0; }).slice(0,8);
   if(!c.length) return '';
   return '<div class="chips"><span>Suggestions :</span>'+c.map(function(p){ return '<button class="chip" onclick="'+handler+'('+p[1]+')">+ '+esc(p[0])+'</button>'; }).join('')+'</div>';
 }
-function addSkillQuick(i){ cv.sk.push({name:SKILLS[i],level:3}); openState['sk'+(cv.sk.length-1)]=false; onChange(); renderForm(); }
+function skChips(){
+  var list=SKILLS, tools=false;
+  try{ if(window.CareerKit){ var k=window.CareerKit.skills(cv); if(k.length){ list=k; tools=true; } } }catch(e){}
+  window.__skList=list;
+  var h=chipsHTML(list, cv.sk.map(function(s){return s.name;}), 'addSkillQuick');
+  return tools&&h ? h.replace('Suggestions :','Pour votre métier :') : h;
+}
+function addSkillQuick(i){ var L=window.__skList||SKILLS; cv.sk.push({name:L[i],level:3}); openState['sk'+(cv.sk.length-1)]=false; onChange(); renderForm(); }
 function addHobbyQuick(i){ cv.hobby.push({name:HOBBIES[i]}); openState['hobby'+(cv.hobby.length-1)]=false; onChange(); renderForm(); }
 
 function renderForm(){
@@ -4191,7 +4336,9 @@ function renderForm(){
     + comboField('Adresse', cv.p.address, "cv.p.address=this.value;onChange()", 'dl-cities', 'Ville, Pays')
     + '<div class="row2">' + field('LinkedIn', cv.p.linkedin, "cv.p.linkedin=this.value;onChange()") + field('Site web', cv.p.website, "cv.p.website=this.value;onChange()") + '</div>'
     + ta('Résumé professionnel', cv.p.summary, "cv.p.summary=this.value;onChange()", '2 à 3 phrases : votre métier, votre expérience, vos points forts.')
-    + '<button class="mini" onclick="toggleAI(true);aiAction(\'summary\')">✨ Améliorer ce résumé</button>'
+    + '<button class="mini" onclick="toggleAI(true);aiAction(\'summary\')">✨ Améliorer ce résumé</button> '
+    + '<button class="mini" onclick="openProfilePicker()">💡 Proposer un profil</button>'
+    + profilePickerHTML()
     + '<h2 class="display" style="margin:26px 0 12px;font-size:18px">Réseaux sociaux</h2>'
     + '<div class="hint" style="margin:-6px 0 14px">Optionnel — pour les modèles qui affichent vos réseaux sociaux.</div>'
     + (cv.p.social||[]).map((s,i)=>'<div class="row2">'
@@ -4211,7 +4358,8 @@ function renderForm(){
       + field('Entreprise', e.company, "cv.exp["+i+"].company=this.value;onChange()")
       + field('Lieu', e.loc, "cv.exp["+i+"].loc=this.value;onChange()", 'text', 'Ville, Pays')
       + periodHTML('exp',i,e)
-      + ta('Missions & réalisations', e.desc, "cv.exp["+i+"].desc=this.value;onChange()", 'Une ligne par mission. Commencez par un verbe d\'action : « Piloté… », « Optimisé… »'),
+      + ta('Missions & réalisations', e.desc, "cv.exp["+i+"].desc=this.value;onChange()", 'Une ligne par mission. Commencez par un verbe d\'action : « Piloté… », « Optimisé… »')
+      + missionIdeasHTML(i,e),
         !e.title && !e.company)).join('')
     + '<button class="btn-add" onclick="addItem(\'exp\',{title:\'\',company:\'\',dates:\'\',loc:\'\',desc:\'\'})">+ Ajouter une expérience</button>';
   } else if(step===6){
@@ -4223,7 +4371,7 @@ function renderForm(){
         !e.degree && !e.school)).join('')
     + '<button class="btn-add" onclick="addItem(\'edu\',{degree:\'\',school:\'\',dates:\'\',desc:\'\'})">+ Ajouter une formation</button>'
     + '<h2 class="display" style="margin:26px 0 12px;font-size:18px">Compétences</h2>'
-    + chipsHTML(SKILLS, cv.sk.map(s=>s.name), 'addSkillQuick')
+    + skChips()
     + cv.sk.map((s,i)=>accCard('sk',i, s.name||'Nouvelle compétence', (SK_LEVELS.filter(l=>l.v===String(s.level))[0]||{}).l||'',
         comboField('Compétence', s.name, "cv.sk["+i+"].name=this.value;onChange()", 'dl-skills', 'Choisissez ou saisissez')
       + selectField('Niveau', String(s.level||3), SK_LEVELS, "cv.sk["+i+"].level=+this.value;onChange()"),
@@ -4300,7 +4448,7 @@ function renderForm(){
     + '</div>';
 
   const fp = document.getElementById('formPane');
-  fp.innerHTML = prog + nav + '<div id="stepBody">'+body+'</div>' + navBtns;
+  fp.innerHTML = prog + nav + (step>=2?completenessHTML():'') + '<div id="stepBody">'+body+'</div>' + navBtns;
   // L'étape « Modèle » est une galerie de vignettes : elle profite d'une colonne plus large que les
   // étapes de saisie de texte (plus de modèles visibles par ligne = moins de défilement pour
   // comparer), donc on l'élargit spécifiquement sur desktop plutôt que de forcer toutes les étapes
@@ -4621,7 +4769,7 @@ async function activateLicense(){
     const { data, error } = await sb.rpc('activate_license_key', { p_key: key, p_user_id: currentUser.id });
     if(error) return fail(userMsg(error,'Activation impossible pour le moment. Réessayez plus tard.'));
     if(data && data.error){
-      const map={KEY_NOT_FOUND:'Clé introuvable. Vérifiez la saisie.',KEY_USED:'Cette clé a déjà été utilisée.',KEY_REVOKED:'Cette clé a été révoquée.',KEY_EXPIRED:'Cette clé a expiré.',KEY_MAX_USES:'Cette clé a atteint son nombre maximal d\'utilisations.',FORBIDDEN:'Action non autorisée.'};
+      const map={KEY_NOT_FOUND:'Clé introuvable. Vérifiez la saisie.',TOO_MANY_ATTEMPTS:'Trop d\'essais. Réessayez dans 10 minutes.',KEY_USED:'Cette clé a déjà été utilisée.',KEY_REVOKED:'Cette clé a été révoquée.',KEY_EXPIRED:'Cette clé a expiré.',KEY_MAX_USES:'Cette clé a atteint son nombre maximal d\'utilisations.',FORBIDDEN:'Action non autorisée.'};
       return fail(map[data.error] || 'Cette clé ne peut pas être activée. Vérifiez-la ou contactez le support.');
     }
     msg.style.color='var(--ok)'; msg.textContent='✓ Licence activée : plan '+(data&&data.plan?data.plan:'')+' actif.';
@@ -4903,6 +5051,29 @@ function jmAddSkill(i,btn){
   toast('Ajouté à vos compétences');
 }
 
+/* ---------------- IA hébergée (rien à télécharger) ---------------- */
+async function aiRemote(task, payload, messages){
+  const fail=function(code){ const e=new Error(code); e.code=code; return e; };
+  if(!sb) throw fail('DOWN');
+  if(!currentUser) throw fail('AUTH');
+  let res;
+  try{ res = await sb.functions.invoke('ai-chat', { body: task==='chat' ? { task:'chat', messages:messages } : { task:task, payload:payload } }); }
+  catch(e){ throw fail('DOWN'); }
+  if(res.error){
+    let st=0; try{ st=res.error.context && res.error.context.status; }catch(e){}
+    throw fail(st===401?'AUTH':st===429?'QUOTA':'DOWN');
+  }
+  const d=res.data||{};
+  if(d.error) throw fail(/QUOTA/i.test(d.error)?'QUOTA':'DOWN');
+  return task==='chat' || task==='letter' || task==='summary' || task==='spelling' ? (d.reply||'') : (d.data||{});
+}
+function aiSkillsList(){ return (cv.sk||[]).map(function(x){return x.name;}).filter(Boolean).slice(0,15).join(', '); }
+function aiFallbackNote(e){
+  return e && e.code==='AUTH' ? 'Connectez-vous pour utiliser l\'IA avancée. En attendant, j\'utilise le moteur intégré :'
+       : e && e.code==='QUOTA' ? 'Vous avez atteint la limite quotidienne de l\'IA avancée. J\'utilise le moteur intégré :'
+       : 'L\'IA avancée est momentanément indisponible. J\'utilise le moteur intégré :';
+}
+
 function aiAction(kind){
   const labels = { summary:'Améliorer le résumé', missions:'Améliorer les missions', letter:'Lettre de motivation', translate:'Traduire en anglais', spelling:'Corriger l\'orthographe', ats:'Analyser mon score ATS' };
   aiBubble('user', '[Action rapide] ' + labels[kind]);
@@ -4911,30 +5082,50 @@ function aiAction(kind){
 
 async function runLocalAI(kind, freeText){
   if(kind==='translate'){
-    aiBubble('bot','Traduction en cours sur votre appareil… La première fois, un petit traducteur (environ 110 Mo) est téléchargé, puis il fonctionne sans envoyer votre CV nulle part.');
+    aiBubble('bot','Traduction en cours par l\'IA… Seuls les textes libres de votre CV sont envoyés, uniquement pour être traduits (rien n\'est conservé).');
     const ok = await setCvLang('en', true);
     aiBubble('bot', ok ? 'Version anglaise prête ✓ Votre CV français reste intact : pour revenir, touchez « Voir en français » ou ouvrez 🎚️ Mise en page → Langue du CV. L\'export PDF et Word suit la langue affichée.' : 'La traduction complète n\'a pas pu aboutir (connexion ?). Les titres de sections et les valeurs courantes sont en anglais ; réessayez avec Internet pour les textes libres.');
     return;
   }
-  // Si le vrai modèle IA est chargé, on l'utilise pour les tâches de rédaction libre.
-  if(window.localModelReady && ['summary','missions','letter','translate','spelling','chat'].includes(kind)){
+  // IA hébergée (aucun téléchargement) ; le moteur à règles prend le relais si elle est indisponible.
+  if(['summary','missions','letter','spelling','chat'].includes(kind)){
     const wrap = document.getElementById('aiMessages');
-    const thinking = document.createElement('div'); thinking.className='ai-thinking'; thinking.textContent='Le modèle génère une réponse…';
+    const thinking = document.createElement('div'); thinking.className='ai-thinking'; thinking.textContent='L\'IA rédige votre réponse…';
     wrap.appendChild(thinking); wrap.scrollTop = wrap.scrollHeight;
     try{
-      const prompts = {
-        summary: 'Réécris ce résumé de CV en français, professionnel, 3 phrases maximum: "'+cv.p.summary+'" (poste: '+cv.p.role+')',
-        missions: 'Réécris ces descriptions de poste avec des verbes d\'action, en français, liste à puces: '+cv.exp.map(e=>e.title+': '+e.desc).join(' | '),
-        letter: 'Rédige une courte lettre de motivation en français pour un poste de '+cv.p.role+', à partir de ce profil: '+JSON.stringify(cv.p),
-        translate: 'Traduis ce texte de CV en anglais professionnel: "'+cv.p.summary+'"',
-        spelling: 'Corrige l\'orthographe et la grammaire de ce texte en français, renvoie uniquement le texte corrigé: "'+cv.p.summary+'"',
-        chat: freeText
-      };
-      const reply = await window.generateWithLocalModel(prompts[kind]);
-      thinking.remove();
-      aiBubble('bot', reply || '(réponse vide, réessayez)');
-      return;
-    }catch(e){ thinking.remove(); aiBubble('bot','⚠️ Erreur du modèle local, bascule sur le moteur à règles.'); console.warn(e); }
+      if(kind==='summary'){
+        const r = await aiRemote('summary',{ role:cv.p.role, years:(typeof localYearsOfExperience==='function'?localYearsOfExperience():''), skills:aiSkillsList(), summary:cv.p.summary });
+        thinking.remove(); if(!r.trim()) throw Object.assign(new Error('x'),{code:'DOWN'});
+        cv.p.summary = cleanText(r,'text'); onChange(); renderForm(); renderCV();
+        aiBubble('bot','Résumé amélioré par l\'IA ✓\n\n"'+cv.p.summary+'"'); return;
+      } else if(kind==='missions'){
+        if(!cv.exp.length){ thinking.remove(); aiBubble('bot','Ajoutez d\'abord au moins une expérience (étape 5) pour que je puisse l\'améliorer.'); return; }
+        const r = await aiRemote('missions',{ items: cv.exp.map(function(e){ return {title:e.title,company:e.company,desc:e.desc}; }) });
+        thinking.remove();
+        if(!r || !Array.isArray(r.items) || r.items.length!==cv.exp.length) throw Object.assign(new Error('x'),{code:'DOWN'});
+        cv.exp.forEach(function(e,i){ const t=cleanText(String(r.items[i]||''),'list'); if(t) e.desc=t; });
+        onChange(); renderForm(); renderCV();
+        aiBubble('bot','Descriptions d\'expérience réécrites par l\'IA ✓ Relisez-les et ajustez les chiffres si besoin.'); return;
+      } else if(kind==='letter'){
+        const r = await aiRemote('letter',{ name:cv.p.name, role:cv.p.role, summary:cv.p.summary, skills:aiSkillsList(), exp:cv.exp.slice(0,3).map(function(e){return e.title+' chez '+e.company;}).join(' ; ') });
+        thinking.remove(); if(!r.trim()) throw Object.assign(new Error('x'),{code:'DOWN'});
+        aiBubble('bot', r); return;
+      } else if(kind==='spelling'){
+        if(!(cv.p.summary||'').trim()){ thinking.remove(); aiBubble('bot','Le résumé est vide : rien à corriger.'); return; }
+        const r = await aiRemote('spelling',{ text:cv.p.summary });
+        thinking.remove(); if(!r.trim()) throw Object.assign(new Error('x'),{code:'DOWN'});
+        cv.p.summary = r.trim(); onChange(); renderForm(); renderCV();
+        aiBubble('bot','Orthographe et grammaire du résumé corrigées par l\'IA ✓'); return;
+      } else {
+        const ctx = 'Contexte du CV — poste visé : '+(cv.p.role||'non précisé')+'. Question : '+freeText;
+        const r = await aiRemote('chat',null,[{role:'user',content:ctx}]);
+        thinking.remove(); if(!r.trim()) throw Object.assign(new Error('x'),{code:'DOWN'});
+        aiBubble('bot', r); return;
+      }
+    }catch(e){
+      thinking.remove(); console.warn('[CVxMaker] IA hébergée', e);
+      aiBubble('bot', aiFallbackNote(e));
+    }
   }
   if(kind==='summary'){
     cv.p.summary = localImproveSummary(); onChange(); renderForm(); renderCV();
@@ -5091,462 +5282,7 @@ async function deleteGuestData(){
 }
 
 
-/* ---------------- Import d'un CV existant (PDF, Word, texte) : lecture 100 % locale ---------------- */
-/* Lecture par rubriques puis par blocs datés. Aucune donnée n'est envoyée : tout se passe dans le navigateur. */
-const IMP_N=function(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); };
-/* Rubriques : expressions d'en-tête (normalisées) ; les mots suivants doivent appartenir à IMP_TAIL (ex. « compétences clés ») */
-const IMP_HEADS=[
- ['cert',['formations complementaires','formation complementaire','formations continues','formation continue','autres formations','formations et certifications','certifications','certification','certificats','certificat','attestations','attestation','training','courses','stages et formations']],
- ['edu',['parcours academique','parcours scolaire','parcours universitaire','formations','formation','etudes','etude','diplomes','diplome','education','academic background','scolarite','cursus']],
- ['exp',['experiences professionnelles','experience professionnelle','work experience','work history','professional experience','employment history','employment','experiences','experience','parcours professionnel','parcours','emplois','emploi','historique professionnel']],
- ['summary',['profil professionnel','professional summary','career objective','a propos','profil','profile','resume','objectifs','objectif','presentation','summary','about me','about']],
- ['logiciel',['competences informatiques','connaissances informatiques','logiciels','logiciel','outils informatiques','outils','informatique','software','tools','technologies']],
- ['sk',['domaines de competences','savoir faire','competences','competence','skills','aptitudes','expertise','expertises']],
- ['lang',['langues etrangeres','langues','langue','languages','language']],
- ['hobby',['centres d interet','centre d interet','loisirs','loisir','hobbies','interets','interet','interests','passions','activites extra professionnelles']],
- ['quality',['qualites personnelles','savoir etre','soft skills','qualites','qualite','atouts']],
- ['award',['distinctions','distinction','awards','award','prix','recompenses']],
- ['projects',['projets','projet','projects','project','realisations']],
- ['ref',['references','reference']],
- ['pers',['informations personnelles','infos personnelles','etat civil','coordonnees','contacts','contact','identite']]
-];
-const IMP_TAIL=new Set('professionnel professionnelle professionnels professionnelles cle cles techniques technique academiques academique initiale initiales complementaire complementaires supplementaires personnel personnelle personnels personnelles linguistiques linguistique informatiques informatique principales principaux de du des la le les et d l a au aux moi me mes travail carriere mene menes bien extra pro divers generales scolaire universitaire cv etrangeres continue continues en'.split(' '));
-const IMP_HEAD_LIST=(function(){ const l=[]; IMP_HEADS.forEach(function(h){ h[1].forEach(function(p){ l.push([h[0],p.split(' ')]); }); }); return l.sort(function(a,b){ return b[1].length-a[1].length; }); })();
-function impHeading(line){
-  const raw=String(line||'').trim(); if(raw.length<3||raw.length>52||/^[•\-–—*]/.test(raw)) return null;
-  const t=raw.replace(/[:：]+$/,''); if(/\d{3,}|@|https?:/.test(t)) return null;
-  const toks=IMP_N(t).split(' ').filter(Boolean); if(!toks.length||toks.length>7) return null;
-  for(let i=0;i<IMP_HEAD_LIST.length;i++){
-    const h=IMP_HEAD_LIST[i][1], k=IMP_HEAD_LIST[i][0];
-    if(toks.length<h.length) continue;
-    let ok=true; for(let j=0;j<h.length;j++){ if(toks[j]!==h[j]){ ok=false; break; } }
-    if(!ok) continue;
-    const rest=toks.slice(h.length);
-    if(rest.length<=4 && rest.every(function(w){ return IMP_TAIL.has(w); })) return k;
-  }
-  return null;
-}
-
-/* Dates : « 25 mars 2026 – sept. 2026 », « 03/2019 - 05/2021 », « 2018 – Présent », « depuis 2021 », « 2022 » en tête de ligne */
-const IMP_MON='janv(?:ier)?|f[ée]vr?(?:ier)?|mars|avr(?:il)?|mai|juin|juil(?:let)?|ao[uû]t?|sept?(?:embre)?|oct(?:obre)?|nov(?:embre)?|d[ée]c(?:embre)?|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
-const IMP_PT='(?:(?:0?[1-9]|[12]\\d|3[01])\\s+)?(?:(?:'+IMP_MON+')\\.?\\s+)?(?:19|20)\\d{2}|(?:0?[1-9]|1[0-2])\\s?[\\/.]\\s?(?:19|20)\\d{2}';
-const IMP_END='pr[ée]sent|aujourd.?hui|actuel(?:lement)?|en cours|now|current|present|ce jour|date';
-const IMP_RANGE=new RegExp('^\\s*(?:du\\s+|from\\s+)?('+IMP_PT+')\\s*(?:[-–—]|\\bà\\b|\\bau\\b|\\bto\\b|jusqu.?[àa])\\s*(?:au\\s+|to\\s+)?('+IMP_PT+'|'+IMP_END+')\\b\\.?\\s*(.*)$','i');
-const IMP_SINCE=new RegExp('^\\s*(?:depuis|since)\\s+('+IMP_PT+')\\b\\s*(.*)$','i');
-const IMP_YEAR1=/^\s*((?:19|20)\d{2})\b(?!\s*[-–—\/])\s*[-–—:|]?\s+(\S.*)$/;
-const IMP_YEAR_ONLY=/^\s*((?:19|20)\d{2})\s*$/;
-function impNormDate(s){ return String(s).replace(/\s+/g,' ').replace(/\s*\/\s*/g,'/').replace(/^\s+|\s+$/g,'').replace(new RegExp('^('+IMP_END+')$','i'),'Présent'); }
-function impDateAnchor(l){
-  let m=IMP_RANGE.exec(l);
-  if(m) return { dates:impNormDate(m[1])+' - '+impNormDate(m[2]), rest:(m[3]||'').replace(/^[\s|·,\-–—:]+/,'').trim() };
-  m=IMP_SINCE.exec(l); if(m) return { dates:impNormDate(m[1])+' - Présent', rest:(m[2]||'').replace(/^[\s|·,\-–—:]+/,'').trim() };
-  m=IMP_YEAR1.exec(l); if(m) return { dates:m[1], rest:m[2].trim() };
-  m=IMP_YEAR_ONLY.exec(l); if(m) return { dates:m[1], rest:'' };
-  return null;
-}
-
-function impLines(raw){
-  return String(raw||'').replace(/\r/g,'').replace(/[   ]/g,' ').split('\n')
-    .map(function(l){ return l.replace(/[\t ]+/g,' ').trim(); }).filter(Boolean)
-    .map(function(l){ return l.replace(/(\p{Ll}) - (?=\p{Ll})/gu,'$1-'); })
-    .map(function(l){ return l.replace(/^[•▪●◦·▸►■□✓✔➢➤◆❖❯›*]+\s*/,'• ').replace(/^[-–—]\s+(?=\S)/,'• ').replace(/^•\s*•\s*/,'• '); });
-}
-const impIsB=function(l){ return l.indexOf('• ')===0; };
-const impStrip=function(l){ return String(l).replace(/^•\s*/,'').trim(); };
-/* Ligne qui prolonge la précédente (retour à la ligne automatique d'un PDF) */
-function impCont(prev,l){
-  if(!prev||!l||impIsB(l)) return false;
-  const t=impStrip(l);
-  if(/^[a-zà-ÿ(,;:)\-–—&]/.test(t)) return true;
-  if(/[,–—&(\-]$/.test(impStrip(prev)) ) return true;
-  return false;
-}
-/* Fusionne les lignes qui se prolongent (non datées, non-titres) */
-function impMerge(arr){
-  const out=[];
-  arr.forEach(function(l){
-    const prev=out[out.length-1];
-    if(prev!==undefined && !impHeading(l) && !impDateAnchor(l) && impCont(prev,l)) out[out.length-1]=prev+' '+impStrip(l);
-    else out.push(l);
-  });
-  return out;
-}
-function impLeadsToAnchor(arr,k){
-  for(let j=k+1;j<=k+2&&j<arr.length;j++){
-    if(impIsB(arr[j])) return false;
-    const a=impDateAnchor(arr[j]); if(a) return !a.rest;
-  }
-  return false;
-}
-const IMP_SEP1=/\s+(?:[–—|@]|chez|at)\s+/i, IMP_SEP2=/\s+-\s+/;
-function impSplitHead(h){
-  h=String(h||'').replace(/\s+/g,' ').replace(/[\s–—|,\-:]+$/,'').replace(/^[\s–—|,\-:]+/,'').trim();
-  const m=IMP_SEP1.exec(h)||IMP_SEP2.exec(h);
-  if(m && m.index>2) return [h.slice(0,m.index).trim(), h.slice(m.index+m[0].length).trim()];
-  const c=h.indexOf(', ');
-  if(c>2){ const L=h.slice(0,c).trim(), R=h.slice(c+2).trim();
-    if(/(universit|university|school|[ée]cole|institut|coll[eè]ge|lyc[ée]e|facult|academy|campus|ltd|inc\b|sarl|corp|group|bank|banque|cabinet|\bong\b|ngo)/i.test(R) || (L.split(/\s+/).length<=4 && R.split(/\s+/).length<=6 && /^[A-ZÀ-Ý]/.test(R) && !/\d/.test(R))) return [L,R]; }
-  return [h,''];
-}
-/* Blocs « date + intitulé + puces » (expériences, formations) ; gère les dates en tête de ligne ou sur leur propre ligne */
-function impBlocks(arr){
-  const blocks=[]; let cur=null, pend=[];
-  const newBlock=function(dates,head){ cur={dates:dates||'',head:head,bullets:[],notes:[],refs:[],mode:'head'}; blocks.push(cur); return cur; };
-  for(let k=0;k<arr.length;k++){
-    const l=arr[k]; const an=impDateAnchor(l);
-    if(an && !impIsB(l)){ newBlock(an.dates, pend.concat(an.rest?[an.rest]:[])); pend=[]; continue; }
-    if(!impIsB(l) && impLeadsToAnchor(arr,k)){ pend.push(l); continue; }
-    if(!cur){ newBlock('',[impStrip(l)]); if(impIsB(l)){ cur.head=[]; cur.bullets.push(impStrip(l)); cur.mode='bul'; } continue; }
-    const t=impStrip(l);
-    if(impIsB(l)){ cur.bullets.push(t); cur.mode='bul'; continue; }
-    if(/^r[ée]f[ée]rences?\s*:/i.test(t)){ cur.refs.push(t.replace(/^r[ée]f[ée]rences?\s*:\s*/i,'')); cur.mode='ref'; continue; }
-    if(cur.mode==='ref'){ cur.refs[cur.refs.length-1]+=' '+t; continue; }
-    if(cur.mode==='bul'){ cur.bullets[cur.bullets.length-1]+=' '+t; continue; }
-    if(cur.mode==='head'){
-      const last=cur.head.length? cur.head[cur.head.length-1] : '';
-      if(cur.head.length && cur.head.length<3 && (impCont(last,t) || (last.length>=95 && t.length<60 && !/:/.test(t)))){ cur.head[cur.head.length-1]=last+' '+t; continue; }
-      if(!cur.head.length){ cur.head.push(t); continue; }
-      cur.notes.push(t); cur.mode='note'; continue;
-    }
-    // note
-    if(/^[a-zà-ÿ(,;]/.test(t)) cur.notes[cur.notes.length-1]+=' '+t; else cur.notes.push(t);
-  }
-  return blocks;
-}
-
-/* Langues : « Français : lu, parlé, écrit – excellent Anglais : … Ewe : parlé, lu » (souvent sur une seule ligne dans un PDF) */
-const IMP_LANGNAMES=['Français','Francais','Anglais','Espagnol','Portugais','Arabe','Allemand','Italien','Chinois','Mandarin','Wolof','Éwé','Ewe','Kabiyè','Kabiye','Mina','Bambara','Dioula','Lingala','Swahili','Haoussa','Hausa','Fon','Yoruba','Peul','Mooré','Moore','Kikongo','Malgache','Berbère','Russe','Japonais','Turc','Néerlandais','French','English','Spanish','Portuguese','Arabic','German','Italian','Chinese','Russian'];
-function impLevel(s){
-  const n=IMP_N(s);
-  if(/natif|maternelle|native|mother/.test(n)) return 'Natif';
-  if(/bilingue|courant|fluent|c2|c1|excellent|tres bien|parfait/.test(n)) return 'Courant';
-  if(/avance|advanced|professionnel|bien\b|bon\b|good|b2/.test(n)) return 'Avancé';
-  if(/intermediaire|intermediate|moyen|b1/.test(n)) return 'Intermédiaire';
-  if(/debutant|beginner|a1|elementaire/.test(n)) return 'Débutant';
-  if(/notion|scolaire|basic|basique|a2/.test(n)) return 'Notions';
-  return '';
-}
-function impLangs(text){
-  const out=[]; const t=String(text||'').replace(/•/g,' ');
-  const re=new RegExp('(^|[\\s,;|])('+IMP_LANGNAMES.join('|')+')\\s*(?:[:(–—\\-]|\\s)','gi');
-  const hits=[]; let m;
-  while((m=re.exec(t))){ hits.push({name:m[2],start:m.index+m[1].length,end:re.lastIndex}); }
-  if(!hits.length) return out;
-  const canon={francais:'Français',ewe:'Éwé',kabiye:'Kabiyè',moore:'Mooré',french:'Français',english:'Anglais',spanish:'Espagnol',portuguese:'Portugais',arabic:'Arabe',german:'Allemand',italian:'Italien',chinese:'Chinois',russian:'Russe'};
-  hits.forEach(function(h,i){
-    const seg=t.slice(h.end, i+1<hits.length?hits[i+1].start:t.length).replace(/^[\s:(–—\-]+|[\s,;)\.]+$/g,'');
-    const key=IMP_N(h.name);
-    const name=canon[key]||(h.name.charAt(0).toUpperCase()+h.name.slice(1).toLowerCase());
-    if(out.some(function(x){ return x.lang===name; })) return;
-    let lv=impLevel(seg);
-    if(!lv){ lv= seg ? (/^(?:lu|parl|[ée]crit|oral|read|spoken|written)/i.test(seg) ? 'Intermédiaire' : '') : ''; }
-    out.push({lang:name, level:lv||'Courant'});
-  });
-  return out;
-}
-
-function impItems(arr,max,rej){
-  const seen=new Set(), out=[];
-  (arr||[]).join(',').replace(/•/g,',').split(/[,;|\n]+/).forEach(function(x){
-    x=x.replace(/^[\s\-–—:]+|[\s.]+$/g,'').trim(); if(!x) return; if(x.length>45||x.split(/\s+/).length>6){ if(rej&&x.length>=8) rej(x); return; }
-    const k=x.toLowerCase(); if(seen.has(k)) return; seen.add(k); if(out.length<(max||20)) out.push(x);
-  });
-  return out;
-}
-const impCap=function(s){ s=String(s||'').trim(); return s? s.charAt(0).toUpperCase()+s.slice(1) : s; };
-
-const IMP_MONTHS={janv:1,janvier:1,fev:2,fevr:2,fevrier:2,mars:3,avr:4,avril:4,mai:5,juin:6,juil:7,juillet:7,aout:8,sept:9,sep:9,septembre:9,oct:10,octobre:10,nov:11,novembre:11,dec:12,decembre:12};
-function impBirth(s){
-  let m=/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*((?:19|20)\d{2})/.exec(s);
-  if(m){ const d=+m[1], mo=+m[2]; if(mo>=1&&mo<=12&&d>=1&&d<=31) return m[3]+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
-  m=/(\d{1,2})\s+([A-Za-zéûè.]+)\s+((?:19|20)\d{2})/.exec(s);
-  if(m){ const mo=IMP_MONTHS[IMP_N(m[2]).replace(/ /g,'')]; if(mo) return m[3]+'-'+String(mo).padStart(2,'0')+'-'+String(+m[1]).padStart(2,'0'); }
-  return '';
-}
-
-
-/* ---- Textes « en bloc » : tout sur une seule ligne, retours à la ligne arbitraires, pas de règles ---- */
-function impIsUpperTok(w){ const L=w.replace(/[^A-Za-zÀ-ÿ]/g,''); return L.length>=2 && L===L.toUpperCase(); }
-function impInlineHeadings(line){
-  const w=line.split(/\s+/).filter(Boolean), out=[]; let buf=[];
-  const flush=function(){ if(buf.length){ out.push(buf.join(' ')); buf=[]; } };
-  for(let i=0;i<w.length;){
-    let hit=0;
-    for(let n=Math.min(6,w.length-i);n>=1&&!hit;n--){
-      const cand=w.slice(i,i+n).join(' ').replace(/^[|•·\-–—]+\s*|\s*[|•·\-–—]+$/g,'');
-      const letters=cand.replace(/[^A-Za-zÀ-ÿ]/g,'');
-      if(letters.length>=3 && letters===letters.toUpperCase() && impHeading(cand)) hit=n;
-    }
-    if(hit){ flush(); out.push('\n'+w.slice(i,i+hit).join(' ').replace(/^[|•·\-–—]+\s*|\s*[|•·\-–—]+$/g,'')+'\n'); i+=hit; }
-    else { buf.push(w[i]); i++; }
-  }
-  flush(); return out.join(' ').replace(/ ?\n ?/g,'\n');
-}
-function impPrepare(raw){
-  let t=String(raw||'').replace(/\r/g,'').replace(/[   ]/g,' ');
-  let lines=impLines(t);
-  const nStand=function(a){ return a.filter(function(l){ return impHeading(l); }).length; };
-  if(nStand(lines)>=3) return {lines:lines,blob:false,first:''};
-  const nl=(t.match(/\n/g)||[]).length, pipes=(t.match(/\s\|\s/g)||[]).length;
-  if(pipes>=8 && nl<=3){ const l2=impLines(t.replace(/\s+\|\s+/g,'\n')); if(nStand(l2)>=3) return {lines:l2,blob:false,first:''}; }
-  const first=(t.split('\n').map(function(x){ return x.trim(); }).filter(Boolean)[0])||'';
-  let f=t.replace(/\s*\n+\s*/g,' ').replace(/[\t ]+/g,' ').trim();
-  f=f.replace(/\s+([•▪●◦■➢➤❖])\s*/g,'\n• ').replace(/\s+(R[ée]f[ée]rences?\s*:|M[ée]moire\s*:)/g,'\n$1');
-  f=f.split('\n').map(function(x){ return x.length>40? impInlineHeadings(x) : x; }).join('\n');
-  return {lines:impLines(f),blob:true,first:first};
-}
-/* Entrées collées sur une même ligne (expériences / formations) : on coupe avant chaque période datée */
-function impSplitEntries(arr,kind){
-  const out=[];
-  const rg=new RegExp('(^|[\\s.;:)\\]])((?:'+IMP_PT+')\\s*(?:[-–—]|\\bà\\b|\\bau\\b|\\bto\\b)\\s*(?:'+IMP_PT+'|'+IMP_END+')\\b)','gi');
-  const rgB=new RegExp('(^|[\\s.;:)\\]])((?:'+IMP_PT+')\\s*(?:[-–—]|\\bà\\b|\\bau\\b|\\bto\\b)\\s*(?:'+IMP_PT+'|'+IMP_END+')\\b)(?=\\s+[A-ZÀ-ÝŒ])','gi');
-  (arr||[]).forEach(function(l){
-    if(l.length<110){ out.push(l); return; }
-    let s=l.replace(impIsB(l)?rgB:rg,function(m,pre,rng){ return pre+'\n'+rng; });
-    if(kind==='edu') s=s.replace(/([)\].])\s+((?:19|20)\d{2})\s+(?=[A-ZÀ-Ý])/g,'$1\n$2 ');
-    s.split('\n').forEach(function(x){ x=x.trim(); if(x) out.push(x); });
-  });
-  return out;
-}
-/* Nom : jamais deviné. Ligne courte « Prénom NOM », ou « Prénom(s) NOM » au tout début d'un texte en bloc. */
-function impNameOk(l){
-  l=String(l||'').trim(); if(!l||l.length>50) return false;
-  const w=l.split(/\s+/); if(w.length<2||w.length>5) return false;
-  if(/[:@\d.;()]/.test(l.replace(/\b[A-ZÀ-Ý]\./g,''))) return false;
-  return w.every(function(x){ return /^[A-ZÀ-ÝŒ][\p{L}'’\-]*$/u.test(x)||/^(de|du|des|la|le|van|von|ben|ould|el|al|dit)$/i.test(x); });
-}
-function impNameFromStart(str){
-  const w=String(str||'').trim().split(/\s+/).slice(0,6); if(w.length<2) return '';
-  if(!/^[A-ZÀ-ÝŒ][\p{L}'’\-]+$/u.test(w[0])||impIsUpperTok(w[0])) return '';
-  let u=-1; for(let i=1;i<Math.min(4,w.length);i++){ if(impIsUpperTok(w[i])&&/^[A-ZÀ-ÝŒ'’\-]+$/.test(w[i])){ u=i; break; } if(!/^[A-ZÀ-ÝŒ][\p{L}'’\-]+$/u.test(w[i])) return ''; }
-  if(u<1) return '';
-  let e=u; while(e+1<w.length&&e<3&&impIsUpperTok(w[e+1])&&/^[A-ZÀ-ÝŒ'’\-]+$/.test(w[e+1])) e++;
-  return w.slice(0,e+1).join(' ');
-}
-const IMP_SOFT=['Microsoft Word','Word','Excel','PowerPoint','Outlook','Access','Photoshop','Illustrator','InDesign','Figma','Canva','Sage','Ciel','QuickBooks','SAP','Odoo','Power BI','Tableau','SPSS','Stata','Python','SQL','AutoCAD','Jira','Trello','Slack','Notion','WordPress','Google Forms','Kobo','Zotero','ArcGIS','QGIS','Git','Docker'];
-
-function parseCVTextCore(raw){
-  const prep=impPrepare(raw), lines=prep.lines, out=blankCV(), un=[]; if(!lines.length) return out;
-  const addUn=function(t,hint){ t=String(t||'').replace(/\s+/g,' ').trim(); if(t.length>=3 && t.length<=900 && un.length<30 && !un.some(function(u){ return u.t===t; })) un.push({t:t,hint:hint||''}); };
-  /* 1) découpe en rubriques */
-  let first=lines.findIndex(function(l){ return impHeading(l); }); if(first<0) first=lines.length;
-  const head=lines.slice(0,first); const secs={}; let cur=null;
-  for(let i=first;i<lines.length;i++){ const h=impHeading(lines[i]); if(h){ cur=h; secs[cur]=(secs[cur]||[]); continue; } if(cur) secs[cur].push(lines[i]); }
-  /* 2) en-tête : contacts, nom, poste */
-  const headTxt=head.join('\n');
-  const email=(headTxt.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)||[])[0]||((lines.join('\n').match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)||[])[0]); if(email) out.p.email=email;
-  const li=(lines.join('\n').match(/(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s,;|)]+/i)||[])[0]; if(li) out.p.linkedin=li.replace(/^https?:\/\//,'').replace(/[.\/]+$/,'');
-  const phones=(headTxt.match(/\+?\d[\d ().\-]{6,}\d/g)||[]).map(function(x){ return x.trim(); }).filter(function(x){ const d=x.replace(/\D/g,''); return d.length>=8&&d.length<=15&&!/^(19|20)\d{2}\s*[-–]/.test(x); });
-  if(phones.length) out.p.phone=phones[0];
-  const web=(headTxt.match(/(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?:\/[^\s,;|]*)?/gi)||[]).find(function(u){ return !/linkedin|@/.test(u)&&!out.p.email.endsWith(u)&&!/gmail|yahoo|hotmail|outlook/i.test(u); });
-  if(web) out.p.website=web.replace(/^https?:\/\//,'').replace(/[.\/]+$/,'');
-  const isContact=function(l){ return /@|linkedin\.com|^\+?[\d ().\-]{8,}$|(?:tel|t[ée]l|mobile|email|e-mail|adresse|www\.)/i.test(l) || (/\d{2}[ .]\d{2}[ .]\d{2}/.test(l)&&/[|,]/.test(l)); };
-  const body=head.filter(function(l){ return !/^(curriculum vitae|cv)$/i.test(l.trim()); });
-  if(prep.blob){
-    const nm0=impNameOk(prep.first)? prep.first : impNameFromStart(prep.first||head.join(' '));
-    if(nm0) out.p.name=nm0;
-  } else {
-    let ni=body.findIndex(function(l){ return !isContact(l) && !/\d{4,}/.test(l); });
-    if(ni>=0){
-      const cand=body[ni].replace(/^(cv|curriculum vitae)\s*[:\-–]?\s*/i,'').trim();
-      if(impNameOk(cand)){
-        out.p.name=cand;
-        let role=(body[ni+1]&&!isContact(body[ni+1]))?body[ni+1]:'';
-        for(let j=ni+2;j<body.length&&role;j++){ const open=(role.match(/\(/g)||[]).length>(role.match(/\)/g)||[]).length; if(isContact(body[j])||!(open||impCont(role,body[j]))) break; role+=' '+body[j]; }
-        role=role.replace(/\s+/g,' ').trim();
-        const sp=/^(.{3,60}?)\s+[–—|]\s+(?:candidature|poste|recherche|objectif|[àa] la recherche|en recherche|stage|stagiaire)/i.exec(role);
-        if(sp) role=sp[1];
-        if(role.length<=90 && !/[.!?]$/.test(role)) out.p.role=role; else if(role) addUn(role,'summary');
-      } else addUn(cand,'');
-    }
-  }
-  const contactLines=head.filter(function(l){ return /[|•·]/.test(l)||/,/.test(l); }).concat(head);
-  for(let j=0;j<contactLines.length&&!out.p.address;j++){
-    contactLines[j].split(/\s*[|•·]\s*/).forEach(function(part){
-      part=part.trim(); if(out.p.address||!part) return;
-      if(/@|linkedin|www\.|https?:|\d{6,}/.test(part)||part===out.p.name||part===out.p.role) return;
-      if(/^[A-Za-zÀ-ÿ' .\-]+(?:,\s*[A-Za-zÀ-ÿ' .\-]+)+$/.test(part) && part.length<60) out.p.address=part;
-    });
-  }
-  if(!out.p.address){ const am=/([A-ZÀ-ÝŒ][\p{L}'’-]+(?: [A-ZÀ-ÝŒ][\p{L}'’-]+)?, [A-ZÀ-ÝŒ][\p{L}'’-]+)(?=\s*[|•·]|\s+\+?\d)/u.exec(headTxt); if(am) out.p.address=am[1]; }
-  /* 3) résumé */
-  if(secs.summary) out.p.summary=secs.summary.map(impStrip).join(' ').replace(/\s+/g,' ').trim().slice(0,900);
-  /* 4) expériences */
-  const refs=[];
-  impBlocks(impMerge(impSplitEntries(secs.exp||[],'exp'))).forEach(function(b){
-    const sp=impSplitHead(b.head.join(' ')); let desc=b.bullets.concat(b.notes).join('\n');
-    if(sp[0].length>120){ if(!desc && !b.dates){ addUn(b.head.join(' '),''); return; } desc=(sp[0]+(desc?'\n'+desc:'')).slice(0,1500); sp[0]=''; }
-    if(out.exp.length<15 && (sp[0]||sp[1]||desc)) out.exp.push({title:sp[0],company:sp[1].slice(0,140),dates:b.dates,loc:'',desc:desc.slice(0,1500)});
-    b.refs.forEach(function(r){
-      const parts=r.split(/\s+[–—]\s+/).map(function(x){ return x.trim(); }).filter(Boolean);
-      const person=(parts[0]||'').split(/,\s*/);
-      const contact=parts.slice(1).join(' · ');
-      refs.push({name:(person[0]||'').trim(), title:person.slice(1).join(', ').trim(), company:sp[1]||'', contact:contact});
-    });
-  });
-  /* 5) formations */
-  impBlocks(impMerge(impSplitEntries(secs.edu||[],'edu'))).forEach(function(b){
-    const sp=impSplitHead(b.head.join(' '));
-    const desc=b.bullets.concat(b.notes).join(' ; ').slice(0,300);
-    if(sp[0].length>140){ addUn(b.head.join(' '),''); return; }
-    if(out.edu.length<12 && /[A-Za-zÀ-ÿ]{3}/.test(sp[0]+sp[1])) out.edu.push({degree:sp[0],school:sp[1].slice(0,160),dates:b.dates,desc:desc});
-  });
-  /* 6) formations complémentaires / certifications */
-  (function(){
-    const arr=secs.cert||[]; const hasB=arr.some(impIsB); const items=[]; let last=null;
-    arr.forEach(function(l,idx){
-      const t=impStrip(l);
-      if(impIsB(l)||(!hasB&&!impCont(arr[idx-1],l))){ const an=impDateAnchor(t); last={text:an?an.rest:t,date:an?an.dates:''}; items.push(last); return; }
-      if(last && (impCont(arr[idx-1],l) || (arr[idx-1] && impStrip(arr[idx-1]).length>=92 && t.length<45))){ last.text+=' '+t; }
-      /* sinon : intitulé de groupe (ex. « Animation, approche communautaire ») ignoré */
-    });
-    items.forEach(function(it){
-      const sp=impSplitHead(it.text); let date=it.date;
-      const ym=/\(((?:19|20)\d{2})\)/.exec(it.text); if(!date&&ym) date=ym[1];
-      if(it.text.length>220){ addUn(it.text,'cert'); return; }
-      if(!hasB && !IMP_SEP1.test(it.text) && !it.date){ addUn(it.text,'cert'); return; }
-      if(sp[0] && out.cert.length<40) out.cert.push({title:sp[0].slice(0,140),org:sp[1].slice(0,120),date:date});
-    });
-  })();
-  /* 7) compétences / logiciels / qualités / loisirs / langues */
-  const seenSk=new Set(); const addSk=function(n){ n=n.trim(); const k=n.toLowerCase(); if(!n||seenSk.has(k)||out.sk.length>=20) return; seenSk.add(k); out.sk.push({name:n,level:3}); };
-  const seenLg=new Set(); const addLg=function(n){ n=n.trim().replace(/[\s.]+$/,''); const k=n.toLowerCase(); if(!n||seenLg.has(k)||out.logiciel.length>=20) return; seenLg.add(k); out.logiciel.push({name:n,level:3}); };
-  impMerge(secs.sk||[]).forEach(function(l){
-    const t=impStrip(l), m=/^([^:]{2,40}?)\s*:\s*(.+)$/.exec(t);
-    if(m && (impIsB(l)||m[2].length>20)){
-      if(/outils?|logiciels?|informatique|software|tools|technolog|bureautique/i.test(m[1])) m[2].split(/[,;]+/).forEach(addLg);
-      else if(m[2].length>60 || m[2].split(',').length<3) addSk(m[1]);
-      else { addSk(m[1]); }
-    } else impItems([t],20,function(x){ addUn(x,'sk'); }).forEach(addSk);
-  });
-  impItems(secs.logiciel||[],20,function(x){ addUn(x,'logiciel'); }).forEach(addLg);
-  impItems(secs.quality||[],12,function(x){ addUn(x,'quality'); }).forEach(function(x){ out.quality.push({name:impCap(x)}); });
-  impItems(secs.hobby||[],12,function(x){ addUn(x,'hobby'); }).forEach(function(x){ out.hobby.push({name:impCap(x)}); });
-  out.lang=impLangs((secs.lang||[]).join(' '));
-  if(!out.lang.length && secs.lang) impItems(secs.lang,8).forEach(function(x){ const m=/^([A-Za-zÀ-ÿ' ]+?)\s*[:(\-–]\s*(.+?)\)?$/.exec(x); out.lang.push(m?{lang:m[1].trim(),level:impLevel(m[2])||'Courant'}:{lang:x,level:'Courant'}); });
-  /* 8) distinctions, projets, références */
-  impMerge(secs.award||[]).forEach(function(l){ const t=impStrip(l); if(t.length>2) out.award.push({title:t.slice(0,140),org:'',date:(/((?:19|20)\d{2})/.exec(t)||[])[1]||'',desc:''}); });
-  impMerge(secs.projects||[]).forEach(function(l){ const t=impStrip(l); const m=/^(.{3,80}?)\s*(?::|\s[–—]\s)\s*(.+)$/.exec(t); out.projects.push(m?{title:m[1].trim(),desc:m[2].trim()}:{title:t.slice(0,120),desc:''}); });
-  (secs.ref||[]).forEach(function(l){ const t=impStrip(l); if(/@|\d{6,}/.test(t)){ const parts=t.split(/\s+[–—|]\s+/); out.ref.push({name:(parts[0]||'').split(/,\s*/)[0],title:(parts[0]||'').split(/,\s*/).slice(1).join(', '),company:'',contact:parts.slice(1).join(' · ')}); } });
-  refs.forEach(function(r){ if(r.name && out.ref.length<5) out.ref.push(r); });
-  /* 9) état civil : uniquement dans l'en-tête, la rubrique « informations personnelles » ou une ligne qui l'annonce */
-  const all=lines.join('\n');
-  const pers=head.join('\n')+'\n'+(secs.pers||[]).join('\n')+'\n'+lines.filter(function(l){ return /situation|[ée]tat civil|nationalit|permis|n[ée]e? le/i.test(l); }).join('\n');
-  const bm=/N[ée]e?(?:\(e\))?\s+le\s+([^\n|,;]+?)(?:\s+[àa]\s+([A-ZÀ-Ý][\p{L}' \-]+))?(?=\s*[|,;\n]|$)/iu.exec(all);
-  if(bm){ const bd=impBirth(bm[1]); if(bd){ out.ec.birthDate=bd; if(bm[2]) out.ec.birthPlace=bm[2].trim(); } }
-  const nm=/Nationalit[ée]\s*[:\-]\s*([A-Za-zÀ-ÿ\-]+(?:\s*\([^)]*\))?)/i.exec(pers); if(nm) out.ec.nationality=impCap(nm[1].trim());
-  const ms=/\b(c[ée]libataire|mari[ée](?:\(e\))?|divorc[ée](?:\(e\))?|veu[fv]e?)\b/i.exec(pers);
-  if(ms){ const v=IMP_N(ms[1]); out.ec.marital=/^celib/.test(v)?'Célibataire':/^mari/.test(v)?'Marié(e)':/^divorc/.test(v)?'Divorcé(e)':'Veuf(ve)'; }
-  const pm=/Permis(?:\s+de\s+conduire)?\s*(?::|cat[ée]gorie|cat\.)?\s*([A-D](?:\s*(?:,|et|\/)\s*[A-D])*)\b/i.exec(pers);
-  if(pm){ const c=pm[1].toUpperCase().replace(/\s*(,|\/)\s*/g,',').replace(/\s*ET\s*/g,','); const cand={ 'A':'Permis A','B':'Permis B','C':'Permis C','D':'Permis D','A,B':'Permis A et B' }[c]; if(cand) out.ec.license=cand; }
-  (secs.pers||[]).forEach(function(l){ const t=impStrip(l); if(!/@|linkedin|nationalit|n[ée]e? le|c[ée]libataire|mari[ée]|divorc|veu[fv]|permis|^\+?[\d ().\-]{8,}$|t[ée]l|adresse/i.test(t)) addUn(t,''); });
-  /* 10) secours pour un texte sans rubriques : langues avec niveau explicite, logiciels cités en liste */
-  if(!out.lang.length){
-    const lm=new RegExp('('+IMP_LANGNAMES.join('|')+')\\s*(?::|\\()\\s*([^,;|•\\n)]{2,40})','gi'); let m2; const seenL=new Set();
-    while((m2=lm.exec(all))){ const lv=impLevel(m2[2]); const nm2=impLangs(m2[1]+' : '+m2[2])[0]; if(lv && nm2 && !seenL.has(nm2.lang)){ seenL.add(nm2.lang); out.lang.push({lang:nm2.lang,level:lv}); } }
-  }
-  if(!out.logiciel.length){
-    const found=IMP_SOFT.filter(function(w){ return new RegExp('(^|[^\\p{L}])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\p{L}])','u').test(all); });
-    const uniq=found.filter(function(w){ return !(w==='Word'&&found.indexOf('Microsoft Word')>=0); });
-    if(uniq.length>=3) uniq.slice(0,12).forEach(function(w){ out.logiciel.push({name:w,level:3}); });
-  }
-  /* 11) texte sans aucune rubrique reconnue : rien n'est deviné, on propose le texte à classer */
-  if(!out.p.summary && !out.exp.length && !out.edu.length && !out.cert.length && !out.sk.length && lines.length){
-    const rest=lines.map(impStrip).join(' ').replace(/\s+/g,' ').trim(); if(rest.length>=40) addUn(rest.slice(0,900),'summary');
-  }
-  out.__un=un;
-  return out;
-}
-
-/* Ne casse jamais l'import : en cas d'erreur inattendue, on rend au moins les coordonnées sûres. */
-function parseCVText(raw){
-  try{ return parseCVTextCore(raw); }
-  catch(e){
-    try{ console.warn('[CVxMaker] import', e); }catch(_){}
-    const o=blankCV(), t=String(raw||'');
-    const em=t.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/); if(em) o.p.email=em[0];
-    o.__un=[{t:t.replace(/\s+/g,' ').trim().slice(0,900),hint:'summary'}];
-    return o;
-  }
-}
-
-async function impReadFile(file){
-  const n=(file.name||'').toLowerCase();
-  if(n.endsWith('.txt')||file.type==='text/plain') return await file.text();
-  const load=(src)=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('network')); document.head.appendChild(s); });
-  if(n.endsWith('.pdf')){
-    if(!window.pdfjsLib){ await load('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'); window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }
-    const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let txt='';
-    for(let p=1;p<=Math.min(pdf.numPages,4);p++){ const c=await (await pdf.getPage(p)).getTextContent(); let y=null,line='';
-      c.items.forEach(it=>{ const yy=Math.round(it.transform[5]); if(y!==null && Math.abs(yy-y)>3){ txt+=line.trim()+'\n'; line=''; } y=yy; line+=it.str+' '; }); txt+=line.trim()+'\n'; }
-    return txt;
-  }
-  if(n.endsWith('.docx')){
-    if(!window.mammoth) await load('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
-    return (await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;
-  }
-  throw new Error('format');
-}
-function openCvImport(){
-  let o=document.getElementById('impOverlay'); if(o) o.remove();
-  o=document.createElement('div'); o.id='impOverlay';
-  o.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center';
-  o.innerHTML='<div role="dialog" aria-label="Importer un CV" style="background:#fff;width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 24px;box-sizing:border-box">'
-   +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:16px">Importer mon CV existant</b><button onclick="document.getElementById(\'impOverlay\').remove()" style="border:0;background:#F1F5F9;border-radius:99px;width:32px;height:32px;font-size:16px" aria-label="Fermer">✕</button></div>'
-   +'<div style="font-size:12px;color:#64748B;margin-bottom:10px">Choisissez un fichier PDF, Word ou texte, ou collez le contenu. La lecture se fait sur votre appareil : votre fichier n\'est envoyé nulle part. Vous pourrez tout corriger ensuite.</div>'
-   +'<label style="display:block;border:2px dashed #CBD5E1;border-radius:12px;padding:16px;text-align:center;font-weight:700;font-size:14px;cursor:pointer">📄 Choisir un fichier<input id="impFile" type="file" accept=".pdf,.docx,.txt,text/plain,application/pdf" style="display:none" onchange="impFromFile(this.files[0])"></label>'
-   +'<div style="text-align:center;font-size:12px;color:#94A3B8;margin:8px 0">ou</div>'
-   +'<textarea id="impText" rows="6" placeholder="Collez ici le texte de votre CV…" style="width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:12px;padding:10px;font:14px/1.4 inherit;resize:vertical"></textarea>'
-   +'<button onclick="impAnalyze(document.getElementById(\'impText\').value)" style="margin-top:10px;width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:700;font-size:15px">Lire ce texte</button>'
-   +'<div id="impOut" style="margin-top:14px"></div></div>';
-  o.addEventListener('click',e=>{ if(e.target===o) o.remove(); });
-  document.body.appendChild(o);
-}
-async function impFromFile(f){
-  if(!f) return; const out=document.getElementById('impOut');
-  if(f.size>8*1024*1024){ out.innerHTML='<div style="color:#B45309;font-size:13px">Ce fichier est trop volumineux (8 Mo maximum).</div>'; return; }
-  out.innerHTML='<div style="font-size:13px;color:#64748B">Lecture du fichier…</div>';
-  try{ const t=await impReadFile(f); if(!t||t.trim().length<40) throw new Error('empty'); document.getElementById('impText').value=t; impAnalyze(t); }
-  catch(e){ const m=String(e&&e.message); out.innerHTML='<div style="color:#B45309;font-size:13px">'+(m==='network'?'Impossible de charger le lecteur de fichiers (connexion). Collez plutôt le texte de votre CV ci-dessus.':m==='format'?'Format non pris en charge. Utilisez un PDF, un fichier Word (.docx) ou du texte.':'Aucun texte lisible dans ce fichier (PDF scanné ?). Collez plutôt le texte de votre CV ci-dessus.')+'</div>'; }
-}
-function impAnalyze(t){
-  const out=document.getElementById('impOut'); if(!t||t.trim().length<40){ out.innerHTML='<div style="color:#B45309;font-size:13px">Collez le contenu de votre CV (quelques lignes au minimum).</div>'; return; }
-  const r=parseCVText(t); window.__impCV=r;
-  const row=(a,b)=>'<div style="display:flex;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #F1F5F9"><span style="width:96px;color:#64748B;flex-shrink:0">'+a+'</span><b style="word-break:break-word">'+(b?esc(b):'<span style="color:#B45309;font-weight:600">non trouvé</span>')+'</b></div>';
-  out.innerHTML='<div style="font-weight:800;font-size:14px;margin-bottom:6px">Ce que nous avons reconnu</div>'
-   +row('Nom',r.p.name)+row('Poste visé',r.p.role)+row('Email',r.p.email)+row('Téléphone',r.p.phone)+row('Résumé',r.p.summary?r.p.summary.slice(0,90)+'…':'')
-   +row('Expériences',r.exp.length?r.exp.length+' ('+r.exp.map(e=>e.title).filter(Boolean).slice(0,2).join(', ')+')':'')+row('Formations',r.edu.length?r.edu.length+' ('+r.edu.map(e=>e.degree).filter(Boolean).slice(0,2).join(', ')+')':'')+row('Certifications',r.cert.length?String(r.cert.length):'')+row('Compétences',r.sk.length?r.sk.length+' ('+r.sk.slice(0,3).map(s=>s.name).join(', ')+'…)':'')+row('Logiciels',r.logiciel.length?r.logiciel.length+' ('+r.logiciel.slice(0,3).map(s=>s.name).join(', ')+'…)':'')+row('Langues',r.lang.length?r.lang.map(l=>l.lang).join(', '):'')+row('Loisirs',r.hobby.length?r.hobby.map(h=>h.name).join(', '):'')+row('Références',r.ref.length?String(r.ref.length):'')
-   +impUnHTML(r)
-   +'<div style="font-size:11.5px;color:#64748B;margin:8px 0">Nous ne devinons rien : ce qui n\'est pas sûr reste vide ou « à classer ». Relisez chaque étape après l\'import.</div>'
-   +'<button onclick="impApply()" style="width:100%;background:#059669;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:700;font-size:15px">Utiliser ces informations</button>';
-}
-const IMP_UN_OPTS=[['','Ne pas utiliser'],['summary','Résumé du profil'],['sk','Compétence'],['logiciel','Logiciel'],['hobby','Loisir'],['quality','Qualité'],['cert','Certification / formation']];
-function impUnHTML(r){
-  const un=(r&&r.__un)||[]; if(!un.length) return '';
-  return '<div style="margin:12px 0 4px;padding:10px;border:1.5px dashed #F59E0B;border-radius:12px;background:#FFFBEB"><div style="font-weight:800;font-size:13px;margin-bottom:2px">À classer ('+un.length+')</div><div style="font-size:11.5px;color:#92400E;margin-bottom:8px">Ces passages n\'ont pas pu être rangés avec certitude. Choisissez où les mettre, ou laissez « Ne pas utiliser ».</div>'
-   +un.map(function(u,i){ return '<div style="margin-bottom:8px"><div style="font-size:12px;word-break:break-word;margin-bottom:3px">'+esc(u.t.length>160?u.t.slice(0,160)+'…':u.t)+'</div><select data-imp-un="'+i+'" style="width:100%;padding:7px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px">'+IMP_UN_OPTS.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join('')+'</select></div>'; }).join('')+'</div>';
-}
-function impPlaceUnassigned(r){
-  const un=(r&&r.__un)||[]; const sels=document.querySelectorAll('select[data-imp-un]');
-  sels.forEach(function(sel){
-    const u=un[+sel.getAttribute('data-imp-un')]; const k=sel.value; if(!u||!k) return;
-    const t=u.t.trim();
-    if(k==='summary') r.p.summary=((r.p.summary?r.p.summary+' ':'')+t).slice(0,1200);
-    else if(k==='sk') r.sk.push({name:t.slice(0,60),level:3});
-    else if(k==='logiciel') r.logiciel.push({name:t.slice(0,60),level:3});
-    else if(k==='hobby') r.hobby.push({name:t.slice(0,60)});
-    else if(k==='quality') r.quality.push({name:t.slice(0,60)});
-    else if(k==='cert') r.cert.push({title:t.slice(0,140),org:'',date:''});
-  });
-  delete r.__un;
-}
-function impApply(){
-  const r=window.__impCV; if(!r) return;
-  impPlaceUnassigned(r);
-  const go=function(){ cv=r; onChange(); renderForm(); renderCV(); const o=document.getElementById('impOverlay'); if(o) o.remove(); toast('CV importé. Relisez chaque étape.'); cvxTrack('cv_import',{}); };
-  const has=cv.p.name||cv.exp.length||cv.edu.length;
-  if(has) appConfirm('Remplacer le CV en cours par le CV importé ?',go); else go();
-}
+__lazyStub("/import-cv.js",["openCvImport"]);
 
 /* ---------------- Bientôt disponible + « Me prévenir » ---------------- */
 const SOON_FEATURES = [
@@ -5643,714 +5379,9 @@ if(__pubToken){
 }
 </script>
 <script>
-/* =========================================================================
-   LETTRES & DEMANDES — lettre de motivation, demande d'emploi, demande de
-   stage, candidature spontanée.
-   - Texte composé à partir du CV (aucune IA externe, rien n'est envoyé).
-   - 4 mises en page, mêmes couleurs que le CV, export PDF / Word / copie.
-   - Enregistrement local + synchronisation du compte (table « documents »).
-   ========================================================================= */
-const DOC_KEY = 'scv_docs';
-const DOC_TYPES = {
-  lettre:    { label:'Lettre de motivation',  ic:'✉️', hint:'Pour répondre à une offre précise' },
-  emploi:    { label:'Demande d\'emploi',     ic:'📝', hint:'Solliciter un emploi auprès d\'une structure' },
-  stage:     { label:'Demande de stage',      ic:'🎓', hint:'Pour étudiants et jeunes diplômés' },
-  spontanee: { label:'Candidature spontanée', ic:'🚀', hint:'Sans offre publiée' }
-};
-const DOC_TEMPLATES = [
-  { id:'classic', name:'Classique' }, { id:'modern', name:'Moderne' },
-  { id:'band', name:'Bandeau' },      { id:'minimal', name:'Épuré' }
-];
-const DOC_ACCENTS = ['#2563EB','#10B981','#F59E0B','#EF4444','#7C3AED','#16215C','#B0691E','#111827'];
-const DOC_SALUTATIONS = [
-  'Madame, Monsieur,', 'Monsieur le Directeur,', 'Madame la Directrice,',
-  'Monsieur le Directeur des Ressources Humaines,', 'Madame la Directrice des Ressources Humaines,',
-  'Monsieur le Responsable du recrutement,', 'Madame, Monsieur les membres du jury,'
-];
-const DOC_CLOSINGS = {
-  distinguees: { label:'Salutations distinguées', f:function(b){ return 'je vous prie d\'agréer, '+b+', l\'expression de mes salutations distinguées.'; } },
-  respectueuses: { label:'Salutations respectueuses', f:function(b){ return 'veuillez agréer, '+b+', l\'expression de mes salutations respectueuses.'; } },
-  considerations: { label:'Considération distinguée', f:function(b){ return 'je vous prie de croire, '+b+', à l\'assurance de ma considération distinguée.'; } }
-};
-const DOC_FONTS = { auto:'', inter:"'Inter',system-ui,sans-serif", merriweather:"'Merriweather',Georgia,serif", poppins:"'Poppins',sans-serif", georgia:"Georgia,'Times New Roman',serif" };
-const DOC_SIZES = { small:14, normal:15, large:16 };
-const NB = ' ';
-
-let DOCS = [];            // documents enregistrés (local + compte)
-let DOC = null;           // document en cours d'édition
-let docView = 'home';     // 'home' | 'edit'
-let docTab = 'edit';      // mobile : 'edit' | 'preview'
-let docSaveTimer = null, docCloudTimer = null;
-
-/* ---------------- Utilitaires de langue ---------------- */
-function dcGender(){
-  const g = (cv.ec && cv.ec.gender || '').toLowerCase();
-  return g.indexOf('fé')===0 || g.indexOf('fe')===0 ? 'F' : (g.indexOf('masc')===0 ? 'M' : '');
-}
-// accord : mot + terminaison féminine (« étudiant » + « e »), ou « (e) » si le genre est inconnu
-function dcAg(word, fem){ const g=dcGender(); fem = fem==null ? 'e' : fem; return g==='F' ? word+fem : (g==='M' ? word : word+'('+fem+')'); }
-function dcLowerFirst(s){ s=String(s||'').trim(); if(!s) return s; return (s.length>1 && s[1]===s[1].toLowerCase() && /[a-zà-ÿ]/i.test(s[1])) ? s.charAt(0).toLowerCase()+s.slice(1) : s; }
-function dcUpperFirst(s){ s=String(s||'').trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
-function dcDe(word){ word=String(word||'').trim(); return /^[aeiouyàâäéèêëîïôöùûü]/i.test(word) ? 'd\''+word : 'de '+word; }
-function dcList(arr){ arr=arr.filter(Boolean); if(arr.length<=1) return arr.join(''); return arr.slice(0,-1).join(', ')+' et '+arr[arr.length-1]; }
-function dcSentence(s){ s=String(s||'').trim(); if(!s) return ''; s=dcUpperFirst(s); return /[.!?…]$/.test(s) ? s : s+'.'; }
-function dcFirstLine(t){ return String(t||'').split(/\r?\n/).map(function(x){ return x.replace(/^[\s•\-–*·]+/,'').trim(); }).filter(Boolean)[0] || ''; }
-function dcDateFR(iso, place){
-  let d = iso ? new Date(iso+'T12:00:00') : new Date();
-  if(isNaN(d)) d = new Date();
-  const day = d.getDate()===1 ? '1er' : String(d.getDate());
-  const txt = day+' '+d.toLocaleDateString('fr-FR',{month:'long'})+' '+d.getFullYear();
-  return (place ? place.trim()+', le ' : 'Le ')+txt.replace(/^Le /,'');
-}
-function dcToday(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function dcNewId(){ return 'doc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-
-/* ---------------- Modèle de document ---------------- */
-function dcBlank(type){
-  const p = cv.p || {};
-  const d = {
-    id: dcNewId(), cloudId:null, type: type||'lettre', name:'',
-    template:'classic', accent: S.accent || '#2563EB', font:'auto', size:'normal',
-    sender:{ name:p.name||'', role:p.role||'', address:p.address||'', phone:p.phone||'', email:p.email||'' },
-    place: (p.address||'').split(',')[0].trim(), date: dcToday(),
-    recipient:{ salutation:'Madame, Monsieur,', name:'', title:'', org:'', address:'' },
-    job:{ title:(type==='stage' ? '' : (p.role||'')), ref:'', source:'', why:'', duration:'', start:'', availability:'' },
-    tone:'formel', variant:0, closingId:'distinguees', attach:true,
-    object:'', body:[], signature:p.name||'',
-    auto:{ body:true, object:true }, savedAt:new Date().toISOString()
-  };
-  dcRegen(d, true);
-  return d;
-}
-
-/* ---------------- Composition du texte à partir du CV ---------------- */
-function dcContext(d){
-  const e0 = (cv.exp||[])[0] || null, ed0 = (cv.edu||[])[0] || null;
-  const skills = (cv.sk||[]).map(function(s){ return (s.name||'').trim(); }).filter(Boolean).slice(0,4);
-  return {
-    poste: (d.job.title||'').trim(), co: (d.recipient.org||'').trim(),
-    years: (typeof localYearsOfExperience==='function') ? localYearsOfExperience() : 0,
-    e0:e0, ed0:ed0, skills:skills, tone:d.tone, v:(d.variant||0)%3
-  };
-}
-function dcObject(d){
-  const poste = (d.job.title||'').trim(), ref = (d.job.ref||'').trim();
-  if(d.type==='lettre')    return 'Candidature au poste de '+(poste||'…')+(ref?' (réf.'+NB+ref+')':'');
-  if(d.type==='emploi')    return 'Demande d\'emploi'+(poste?' — '+poste:'');
-  if(d.type==='stage')     return 'Demande de stage'+(poste?' — '+poste:'');
-  return 'Candidature spontanée'+(poste?' — '+poste:'');
-}
-function dcCompose(d){
-  const c = dcContext(d), co = c.co, poste = c.poste, v = c.v, dyn = c.tone==='dynamique';
-  const atCo = co ? ' au sein '+dcDe(co) : '';
-  const src = (d.job.source||'').trim();
-  const posteL = dcLowerFirst(poste);
-  const yearsTxt = c.years>=1 ? c.years+' an'+(c.years>1?'s':'')+' d\'expérience' : '';
-  const degree = c.ed0 && c.ed0.degree ? '« '+c.ed0.degree.trim()+' »' : '';
-  const school = c.ed0 && c.ed0.school ? c.ed0.school.trim() : '';
-  const e0t = c.e0 && c.e0.title ? dcLowerFirst(c.e0.title) : '';
-  const e0co = c.e0 && c.e0.company ? c.e0.company.trim() : '';
-  const win = dcFirstLine(c.e0 && c.e0.desc).replace(/[.;]+$/,'');
-  const skillTxt = c.skills.length ? dcList(c.skills) : '';
-  const why = dcSentence(d.job.why);
-  const avail = (d.job.availability||'').trim();
-  const out = [];
-
-  // Qualités mises en avant (neutres en genre, pour éviter les erreurs d'accord)
-  const qualities = dyn
-    ? 'Mon énergie, mon sens de l\'initiative et ma capacité à apprendre vite sont les atouts que je mettrai à votre service.'
-    : 'Rigueur, sens de l\'organisation et goût du travail en équipe sont les qualités que je mettrai à votre service.';
-
-  if(d.type==='lettre' || d.type==='spontanee'){
-    // 1. Accroche
-    let a;
-    if(d.type==='spontanee'){
-      a = 'Même si aucune offre n\'est actuellement publiée'+(co?' par '+co:'')+', je me permets de vous adresser ma candidature spontanée'+(poste?' pour un poste de '+posteL:'')+'.';
-    } else if(v===1){
-      a = 'C\'est avec un vif intérêt que je me porte '+dcAg('candidat')+' au poste de '+(posteL||'…')+atCo+(src?', publié '+src:'')+'.';
-    } else if(v===2){
-      a = 'Votre '+(src?'annonce '+src:'offre')+' pour le poste de '+(posteL||'…')+atCo+' a immédiatement retenu mon attention, et je souhaite vous proposer ma candidature.';
-    } else {
-      a = (src?'Suite à votre annonce '+src+', j':'J')+'e vous adresse ma candidature pour le poste de '+(posteL||'…')+atCo+'.';
-    }
-    if(degree) a += ' Titulaire de la formation '+degree+(school?' ('+school+')':'')+', je souhaite mettre mes compétences au service '+(co?dcDe(co):'de votre équipe')+'.';
-    out.push(a);
-    // 2. Parcours
-    let b = '';
-    if(e0t){
-      b = (yearsTxt ? 'Avec '+yearsTxt+', j' : 'J')+'\'ai notamment occupé le poste de '+e0t+(e0co?' chez '+e0co:'')+'.';
-      if(win) b += ' Parmi mes réalisations : '+dcLowerFirst(win)+'.';
-    } else if(degree){
-      b = 'Ma formation '+degree+(school?' à '+school:'')+' m\'a permis d\'acquérir des bases solides que je suis prêt'+(dcGender()==='F'?'e':dcGender()==='M'?'':'(e)')+' à mettre en pratique.';
-    }
-    if(skillTxt) b += (b?' ':'')+'Mes compétences ('+skillTxt+') me permettent de répondre efficacement aux exigences du poste.';
-    if(b) out.push(b);
-    // 3. Motivation
-    let m = why ? why+' ' : (co ? 'Rejoindre '+co+' représente pour moi une réelle opportunité de contribuer à vos objectifs. ' : '');
-    m += qualities;
-    out.push(m);
-    // 4. Conclusion
-    out.push('Disponible '+(avail||'rapidement')+', je reste à votre entière disposition pour un entretien, afin de vous exposer plus en détail ma motivation et la valeur que je peux apporter à votre structure.');
-  }
-
-  else if(d.type==='emploi'){
-    out.push('J\'ai l\'honneur de solliciter auprès de vous un emploi '+(poste?'en qualité de '+posteL:'correspondant à mon profil')+atCo+'.');
-    let b = degree ? 'Titulaire de la formation '+degree+(school?' ('+school+')':'')+', ' : '';
-    b += yearsTxt ? (b?'je justifie':'Je justifie')+' de '+yearsTxt : (b?'je dispose':'Je dispose')+' d\'une solide formation';
-    b += e0t ? ', notamment en tant que '+e0t+(e0co?' chez '+e0co:'')+'.' : '.';
-    if(skillTxt) b += ' Mes compétences clés : '+skillTxt+'.';
-    out.push(b);
-    out.push((why?why+' ':'')+qualities);
-    out.push('Je suis disposé'+(dcGender()==='F'?'e':dcGender()==='M'?'':'(e)')+' à occuper ce poste '+(avail||'dans les meilleurs délais')+' et à me soumettre à tout test ou entretien que vous jugerez utile.');
-  }
-
-  else if(d.type==='stage'){
-    const who = degree ? 'Actuellement en formation '+degree+(school?' ('+school+')':'')+', j' : dcAg('Étudiant')+', j';
-    out.push(who+'\'ai l\'honneur de solliciter un stage'+(poste?' en lien avec « '+poste+' »':'')+(d.job.duration?' d\'une durée de '+d.job.duration:'')+(d.job.start?', à compter de '+d.job.start:'')+atCo+'.');
-    let b = 'Ce stage me permettrait de mettre en pratique mes acquis théoriques, de découvrir le monde professionnel et de renforcer mes compétences'+(skillTxt?' ('+skillTxt+')':'')+'.';
-    if(e0t) b += ' Mon expérience en tant que '+e0t+(e0co?' chez '+e0co:'')+' m\'a déjà permis de me familiariser avec les exigences du terrain.';
-    out.push(b);
-    out.push((why?why+' ':'')+(dyn ? 'Curiosité, énergie et envie d\'apprendre sont les atouts que je mettrai au service de votre équipe.' : 'Curiosité, rigueur et envie d\'apprendre sont les atouts que je mettrai au service de votre équipe.'));
-    out.push('Je me tiens à votre disposition pour un entretien'+(avail?' et suis disponible '+avail:'')+'.');
-  }
-  return out;
-}
-// Régénère l'objet et le texte tant que l'utilisateur ne les a pas modifiés à la main
-function dcRegen(d, force){
-  if(force || d.auto.object) d.object = dcObject(d);
-  if(force || d.auto.body)   d.body = dcCompose(d);
-}
-function dcClosingText(d){
-  const base = (d.recipient.salutation||'Madame, Monsieur,').replace(/[,\s]+$/,'');
-  const cl = DOC_CLOSINGS[d.closingId] || DOC_CLOSINGS.distinguees;
-  const lead = d.type==='lettre' || d.type==='spontanee' ? 'Dans l\'attente de votre réponse, ' : 'Dans l\'attente d\'une suite favorable à ma demande, ';
-  return dcUpperFirst(lead + cl.f(base));
-}
-
-/* ---------------- Rendu HTML (écran, impression, Word) ---------------- */
-function dcFontStack(d, tpl){
-  if(d.font && d.font!=='auto' && DOC_FONTS[d.font]) return DOC_FONTS[d.font];
-  return tpl==='classic' ? DOC_FONTS.georgia : DOC_FONTS.inter;
-}
-function dcLines(arr){ return arr.filter(function(x){ return x && String(x).trim(); }).map(function(x){ return esc(String(x).trim()); }).join('<br>'); }
-function dcContactLine(s, sep){ return [s.phone, s.email, s.address].filter(function(x){ return x && String(x).trim(); }).map(esc).join(sep||' &nbsp;·&nbsp; '); }
-
-function dcRecipientBlock(d, align){
-  const r = d.recipient;
-  const lines = [r.name, r.title, r.org, r.address];
-  const html = dcLines(lines);
-  return html ? '<div style="text-align:'+align+';line-height:1.5">'+html+'</div>' : '';
-}
-function dcHeader(d, ac){
-  const s = d.sender, tpl = d.template;
-  const contact = dcContactLine(s);
-  if(tpl==='band'){
-    return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:-56px -64px 26px -64px;width:calc(100% + 128px)"><tr><td bgcolor="'+ac+'" style="background:'+ac+';color:#fff;padding:34px 64px 26px 64px">'
-      + '<div style="font-size:26px;font-weight:700;letter-spacing:.2px;line-height:1.2;color:#fff">'+esc(s.name)+'</div>'
-      + (s.role ? '<div style="font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;margin-top:5px;color:#fff;opacity:.92">'+esc(s.role)+'</div>' : '')
-      + (contact ? '<div style="font-size:12.5px;margin-top:12px;color:#fff;opacity:.95">'+contact+'</div>' : '')
-      + '</td></tr></table>';
-  }
-  if(tpl==='modern'){
-    return '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:26px"><tr>'
-      + '<td width="5" bgcolor="'+ac+'" style="background:'+ac+';width:5px"></td><td style="padding:2px 0 2px 16px">'
-      + '<div style="font-size:25px;font-weight:700;color:'+ac+';line-height:1.2">'+esc(s.name)+'</div>'
-      + (s.role ? '<div style="font-size:13px;color:#4B5563;margin-top:3px;letter-spacing:.4px">'+esc(s.role)+'</div>' : '')
-      + (contact ? '<div style="font-size:12.5px;color:#4B5563;margin-top:9px">'+contact+'</div>' : '')
-      + '</td></tr></table>';
-  }
-  if(tpl==='minimal'){
-    return '<div style="margin-bottom:26px;padding-bottom:14px;border-bottom:1px solid #D1D5DB">'
-      + '<div style="font-size:14px;letter-spacing:3.5px;text-transform:uppercase;font-weight:600;color:#111827">'+esc(s.name)+'</div>'
-      + (s.role ? '<div style="font-size:12.5px;color:#6B7280;margin-top:4px">'+esc(s.role)+'</div>' : '')
-      + (contact ? '<div style="font-size:12px;color:#6B7280;margin-top:8px">'+contact+'</div>' : '')
-      + '</div>';
-  }
-  // classic : bloc expéditeur simple en haut à gauche
-  return '<div style="margin-bottom:22px;line-height:1.5"><b style="font-size:1.05em">'+esc(s.name)+'</b>'
-    + (dcLines([s.role, s.address, s.phone, s.email]) ? '<br>'+dcLines([s.role, s.address, s.phone, s.email]) : '')
-    + '</div>';
-}
-
-// mode : 'screen' | 'print' | 'word'
-function dcRender(d, mode){
-  mode = mode || 'screen';
-  const tpl = d.template || 'classic', ac = d.accent || '#2563EB';
-  const fs = DOC_SIZES[d.size] || 15, ff = dcFontStack(d, tpl);
-  const dateStr = esc(dcDateFR(d.date, d.place));
-  const rec = dcRecipientBlock(d, tpl==='minimal' ? 'left' : 'right');
-  const recipientAndDate =
-      '<div style="text-align:'+(tpl==='minimal'?'left':'right')+';margin-bottom:'+(rec?'6':'22')+'px;color:#374151">'+dateStr+'</div>'
-    + (rec ? '<div style="margin-bottom:22px">'+rec+'</div>' : '');
-  const objectHtml = d.object ? '<div style="margin:0 0 18px 0"><b>Objet'+NB+':</b> <b>'+esc(d.object)+'</b></div>' : '';
-  const salut = '<div style="margin-bottom:14px">'+esc(d.recipient.salutation||'')+'</div>';
-  const paras = (d.body||[]).filter(function(x){ return x && x.trim(); }).map(function(p){
-    return '<p style="margin:0 0 12px 0;text-align:justify">'+esc(p.trim()).replace(/\n/g,'<br>')+'</p>';
-  }).join('');
-  const closing = '<p style="margin:16px 0 0 0;text-align:justify">'+esc(dcClosingText(d))+'</p>';
-  const sign = d.signature && d.signature.trim()
-    ? '<div style="margin-top:30px;text-align:right"><b style="color:'+((tpl==='minimal'||tpl==='classic')?'#111827':ac)+'">'+esc(d.signature.trim())+'</b></div>' : '';
-  const pj = d.attach ? '<div style="margin-top:28px;font-size:'+(fs-2)+'px;color:#4B5563"><b>P.'+NB+'J.'+NB+':</b> Curriculum vitae</div>' : '';
-  const content = dcHeader(d, ac) + recipientAndDate + objectHtml + salut + paras
-    + (mode==='word' ? closing + sign + pj : '<div style="break-inside:avoid;page-break-inside:avoid">' + closing + sign + pj + '</div>');
-  const base = 'font-family:'+ff+';font-size:'+fs+'px;line-height:1.55;color:#1F2937;';
-
-  if(mode==='word'){
-    return '<div class="Section1" style="'+base+'">'+content.replace(/margin:-56px -64px 26px -64px;width:calc\(100% \+ 128px\)/,'margin:0 0 22px 0;width:100%')+'</div>';
-  }
-  // écran et impression : même structure (en-tête/pied répétés = marges propres sur chaque page)
-  const spacer = '<div style="height:56px"></div>';
-  return '<table style="'+base+'width:794px;border-collapse:collapse;background:#fff;'+(mode==='screen'?'min-height:1123px;height:1123px;':'')+'" cellpadding="0" cellspacing="0">'
-    + '<thead><tr><td style="padding:0">'+spacer+'</td></tr></thead>'
-    + '<tbody><tr><td style="padding:0 64px;vertical-align:top">'+content+'</td></tr></tbody>'
-    + '<tfoot><tr><td style="padding:0">'+spacer+'</td></tr></tfoot></table>';
-}
-function dcPlainText(d){
-  const lines = [];
-  lines.push(dcDateFR(d.date, d.place));
-  const r = d.recipient; [r.name, r.title, r.org, r.address].forEach(function(x){ if(x && x.trim()) lines.push(x.trim()); });
-  lines.push('');
-  if(d.object) lines.push('Objet : '+d.object, '');
-  lines.push(d.recipient.salutation||'', '');
-  (d.body||[]).forEach(function(p){ if(p && p.trim()) lines.push(p.trim(), ''); });
-  lines.push(dcClosingText(d), '');
-  if(d.signature) lines.push(d.signature.trim());
-  const s = d.sender; const contact = [s.phone, s.email].filter(Boolean).join(' · ');
-  if(contact) lines.push(contact);
-  return lines.join('\n');
-}
-function dcWordCount(d){ return (d.body||[]).join(' ').trim().split(/\s+/).filter(Boolean).length; }
-
-/* ---------------- Enregistrement (local + compte) ---------------- */
-function dcLoadLocal(){
-  try{ const a = JSON.parse(localStorage.getItem(DOC_KEY)||'[]'); DOCS = Array.isArray(a) ? a.filter(function(x){ return x && x.id && x.type && DOC_TYPES[x.type]; }) : []; }
-  catch(e){ DOCS = []; }
-}
-function dcWriteLocal(){ try{ localStorage.setItem(DOC_KEY, JSON.stringify(DOCS)); }catch(e){} }
-function dcDocTitle(d){
-  if(d.name && d.name.trim()) return d.name.trim();
-  const who = (d.recipient.org||'').trim() || (d.job.title||'').trim();
-  return DOC_TYPES[d.type].label + (who ? ' — '+who : '');
-}
-function dcQueueSave(){
-  if(!DOC) return;
-  if(DOCS.indexOf(DOC)<0) DOCS.unshift(DOC);
-  const ind = document.getElementById('dcSaved'); if(ind) ind.textContent = 'Enregistrement…';
-  clearTimeout(docSaveTimer);
-  docSaveTimer = setTimeout(function(){
-    DOC.savedAt = new Date().toISOString(); dcWriteLocal();
-    const i = document.getElementById('dcSaved'); if(i) i.textContent = '✓ Enregistré';
-    clearTimeout(docCloudTimer); const snap = DOC; docCloudTimer = setTimeout(function(){ dcCloudSave(snap); }, 2500);
-  }, 500);
-}
-async function dcCloudSave(d){
-  if(typeof sb==='undefined' || !sb || !currentUser || !d) return;
-  const payload = { kind:d.type, title:dcDocTitle(d).slice(0,200), data:d };
-  try{
-    if(d.cloudId){ await sb.from('documents').update(payload).eq('id',d.cloudId).eq('user_id',currentUser.id); }
-    else {
-      const r = await sb.from('documents').insert(Object.assign({ user_id:currentUser.id }, payload)).select('id').single();
-      if(!r.error && r.data){ d.cloudId = r.data.id; dcWriteLocal(); }
-    }
-  }catch(e){}
-}
-async function dcCloudPull(){
-  if(typeof sb==='undefined' || !sb || !currentUser) return;
-  try{
-    const r = await sb.from('documents').select('id,data,updated_at').eq('user_id',currentUser.id).eq('is_deleted',false).order('updated_at',{ascending:false}).limit(100);
-    if(r.error || !r.data) return;
-    r.data.forEach(function(row){
-      if(!row.data || !row.data.type || !DOC_TYPES[row.data.type]) return;
-      const remote = Object.assign({}, row.data, { cloudId:row.id, savedAt:row.updated_at });
-      const local = DOCS.filter(function(x){ return x.cloudId===row.id; })[0];
-      if(!local) DOCS.push(remote);
-      else if(local!==DOC && new Date(row.updated_at) > new Date(local.savedAt||0)) Object.assign(local, remote);
-    });
-    dcWriteLocal(); if(docView==='home') dcRenderHome();
-  }catch(e){}
-}
-function dcDelete(id){
-  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
-  DOCS = DOCS.filter(function(x){ return x.id!==id; }); dcWriteLocal();
-  if(d.cloudId && typeof sb!=='undefined' && sb && currentUser){ try{ sb.from('documents').update({ is_deleted:true }).eq('id',d.cloudId).eq('user_id',currentUser.id).then(function(){}); }catch(e){} }
-  dcRenderHome();
-}
-function dcDuplicate(id){
-  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
-  const c = JSON.parse(JSON.stringify(d)); c.id = dcNewId(); c.cloudId = null; c.name = (dcDocTitle(d)+' (copie)').slice(0,120); c.savedAt = new Date().toISOString();
-  DOCS.unshift(c); dcWriteLocal(); dcRenderHome();
-}
-
-/* ---------------- Ouverture / navigation ---------------- */
-function openDocs(type){
-  if(!document.getElementById('docOverlay')) return;
-  if(!DOCS.length) dcLoadLocal();
-  document.getElementById('docOverlay').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  if(type && DOC_TYPES[type]) dcOpenNew(type); else { dcShow('home'); dcRenderHome(); }
-  dcCloudPull();
-}
-function closeDocs(){
-  clearTimeout(docSaveTimer);
-  if(DOC && DOCS.indexOf(DOC)>=0){ DOC.savedAt = new Date().toISOString(); dcWriteLocal(); dcCloudSave(DOC); }
-  document.getElementById('docOverlay').style.display = 'none';
-  document.body.style.overflow = '';
-  DOC = null;
-}
-function dcShow(view){
-  docView = view;
-  document.getElementById('dcHome').style.display = view==='home' ? 'block' : 'none';
-  document.getElementById('dcEdit').style.display = view==='edit' ? 'flex' : 'none';
-  document.getElementById('dcBack').textContent = view==='edit' ? '←' : '✕';
-  document.getElementById('dcTitle').textContent = view==='edit' ? (DOC ? DOC_TYPES[DOC.type].label : '') : 'Lettres & demandes';
-  document.getElementById('dcSaved').textContent = '';
-}
-function dcBack(){
-  if(docView==='edit'){
-    clearTimeout(docSaveTimer);
-    if(DOC && DOCS.indexOf(DOC)>=0){ DOC.savedAt = new Date().toISOString(); dcWriteLocal(); dcCloudSave(DOC); }
-    DOC = null; dcShow('home'); dcRenderHome();
-  } else closeDocs();
-}
-function dcOpenNew(type){
-  DOC = dcBlank(type); docTab = 'edit';
-  dcShow('edit'); dcBuildForm(); dcPreview();
-  document.getElementById('dcForm').scrollTop = 0;
-}
-function dcOpenDoc(id){
-  const d = DOCS.filter(function(x){ return x.id===id; })[0]; if(!d) return;
-  DOC = d; docTab = 'edit';
-  if(!DOC.auto) DOC.auto = { body:false, object:false };
-  dcShow('edit'); dcBuildForm(); dcPreview();
-}
-
-/* ---------------- Accueil : types + documents enregistrés ---------------- */
-function dcRenderHome(){
-  const el = document.getElementById('dcHome');
-  const hasCV = !!(cv.p.name || cv.exp.length || cv.edu.length);
-  const cards = Object.keys(DOC_TYPES).map(function(k){
-    const t = DOC_TYPES[k];
-    return '<button class="dc-type" onclick="dcOpenNew(\''+k+'\')"><span class="dc-type-ic">'+t.ic+'</span><span><b>'+t.label+'</b><small>'+t.hint+'</small></span></button>';
-  }).join('');
-  const list = DOCS.slice().sort(function(a,b){ return new Date(b.savedAt||0)-new Date(a.savedAt||0); }).map(function(d){
-    const when = new Date(d.savedAt||Date.now()).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
-    return '<div class="dc-item"><div class="dc-item-ic">'+DOC_TYPES[d.type].ic+'</div>'
-      + '<div class="dc-item-body"><b>'+esc(dcDocTitle(d))+'</b><span>'+when+'</span></div>'
-      + '<div class="dc-item-act"><button class="dc-btn pri" onclick="dcOpenDoc(\''+d.id+'\')">Ouvrir</button>'
-      + '<button class="dc-btn" onclick="dcDuplicate(\''+d.id+'\')">Dupliquer</button>'
-      + '<button class="dc-btn del" onclick="appConfirm(\'Supprimer ce document ?\',function(){dcDelete(\''+d.id+'\')})">Suppr.</button></div></div>';
-  }).join('');
-  el.innerHTML = '<div class="dc-wrap">'
-    + '<h2 class="display dc-h">Que souhaitez-vous rédiger ?</h2>'
-    + '<p class="dc-sub">'+(hasCV ? 'Le texte est composé automatiquement à partir de votre CV ; vous gardez la main sur chaque phrase.' : 'Astuce : remplissez d\'abord votre CV, le texte sera alors pré-rempli à partir de vos informations.')+'</p>'
-    + '<div class="dc-types">'+cards+'</div>'
-    + '<h3 class="dc-h2">Mes documents</h3>'
-    + (list || '<div class="dc-empty">Aucun document pour l\'instant.</div>')
-    + '</div>';
-}
-
-/* ---------------- Formulaire ---------------- */
-function dcGet(path){ return path.split('.').reduce(function(o,k){ return o==null ? '' : o[k]; }, DOC); }
-function dcSetPath(path, val){
-  const ks = path.split('.'); let o = DOC;
-  for(let i=0;i<ks.length-1;i++) o = o[ks[i]];
-  o[ks[ks.length-1]] = val;
-}
-function dcInp(label, path, o){
-  o = o || {};
-  const val = dcGet(path)||'';
-  return '<div class="dc-f"><label>'+label+'</label>'
-    + (o.area ? '<textarea rows="'+(o.rows||2)+'" maxlength="'+(o.max||300)+'" placeholder="'+esc(o.ph||'')+'" oninput="dcOnInput(\''+path+'\',this.value)">'+esc(val)+'</textarea>'
-              : '<input type="'+(o.type||'text')+'" maxlength="'+(o.max||120)+'" value="'+esc(val)+'" placeholder="'+esc(o.ph||'')+'" oninput="dcOnInput(\''+path+'\',this.value)"'+(o.ac?' autocomplete="'+o.ac+'"':'')+'>')
-    + (o.note ? '<small>'+o.note+'</small>' : '') + '</div>';
-}
-function dcSel(label, path, opts, o){
-  const val = dcGet(path)||'';
-  let items = opts.slice(); if(val && !items.some(function(x){ return (x.v||x)===val; })) items.push(val);
-  return '<div class="dc-f"><label>'+label+'</label><select onchange="dcOnInput(\''+path+'\',this.value)">'
-    + items.map(function(x){ const v = x.v!=null ? x.v : x, t = x.t!=null ? x.t : x; return '<option value="'+esc(v)+'"'+(v===val?' selected':'')+'>'+esc(t)+'</option>'; }).join('')
-    + '</select></div>';
-}
-function dcSection(id, title, inner, open){
-  return '<details class="dc-sec" '+(open?'open':'')+'><summary>'+title+'</summary><div class="dc-sec-body" id="'+id+'">'+inner+'</div></details>';
-}
-function dcBuildForm(){
-  const d = DOC, t = d.type;
-  const typeChips = Object.keys(DOC_TYPES).map(function(k){
-    return '<button class="dc-chip'+(k===t?' on':'')+'" onclick="dcSetType(\''+k+'\')">'+DOC_TYPES[k].ic+' '+DOC_TYPES[k].label+'</button>';
-  }).join('');
-  const jobFields =
-      dcInp(t==='stage' ? 'Domaine ou poste visé' : 'Poste visé', 'job.title', { ph:'Ex. Chargé de projet' })
-    + dcInp('Entreprise / organisme', 'recipient.org', { ph:'Ex. Orange Digital Center', ac:'organization' })
-    + (t==='lettre' ? dcInp('Référence de l\'offre (facultatif)', 'job.ref', { ph:'Ex. RH-2026-14' }) + dcInp('Où avez-vous vu l\'offre ? (facultatif)', 'job.source', { ph:'Ex. sur LinkedIn, sur Emploi.tg' }) : '')
-    + (t==='stage' ? '<div class="dc-row">'+dcInp('Durée du stage', 'job.duration', { ph:'Ex. 3 mois' })+dcInp('À compter de', 'job.start', { ph:'Ex. janvier 2027' })+'</div>' : '')
-    + dcInp('Pourquoi eux ? (1 phrase, facultatif)', 'job.why', { area:true, rows:2, max:260, ph:'Ex. Votre engagement pour l\'inclusion numérique correspond à mes valeurs.', note:'Une phrase personnelle rend la lettre bien plus convaincante.' })
-    + '<div class="dc-row">'+dcInp('Disponibilité (facultatif)', 'job.availability', { ph:'Ex. immédiatement' })
-    + dcSel('Ton', 'tone', [{v:'formel',t:'Formel et sobre'},{v:'dynamique',t:'Dynamique'}])+'</div>';
-  const recFields =
-      dcSel('Formule d\'appel', 'recipient.salutation', DOC_SALUTATIONS)
-    + dcInp('Nom du destinataire (facultatif)', 'recipient.name', { ph:'Ex. Madame Kossi Ama' })
-    + dcInp('Fonction (facultatif)', 'recipient.title', { ph:'Ex. Directrice des Ressources Humaines' })
-    + dcInp('Adresse (facultatif)', 'recipient.address', { ph:'Ex. BP 1234, Lomé' });
-  const sendFields =
-      dcInp('Nom et prénom', 'sender.name', { ac:'name' }) + dcInp('Titre / fonction', 'sender.role', {})
-    + '<div class="dc-row">'+dcInp('Téléphone', 'sender.phone', { type:'tel', ac:'tel' })+dcInp('Email', 'sender.email', { type:'email', ac:'email' })+'</div>'
-    + dcInp('Adresse', 'sender.address', { ac:'street-address' })
-    + '<div class="dc-row">'+dcInp('Lieu (en-tête de date)', 'place', { ph:'Ex. Lomé' })+dcInp('Date', 'date', { type:'date' })+'</div>'
-    + '<button class="dc-link" onclick="dcResyncSender()">↻ Reprendre les infos de mon CV</button>';
-  const styleBox =
-      '<div class="dc-f"><label>Mise en page</label><div class="dc-chips" id="dcTplChips"></div></div>'
-    + '<div class="dc-f"><label>Couleur</label><div class="dc-dots" id="dcAccents"></div></div>'
-    + '<div class="dc-row">'+dcSel('Police', 'font', [{v:'auto',t:'Automatique'},{v:'inter',t:'Inter'},{v:'merriweather',t:'Merriweather'},{v:'poppins',t:'Poppins'},{v:'georgia',t:'Georgia'}])
-    + dcSel('Taille', 'size', [{v:'small',t:'Petite'},{v:'normal',t:'Normale'},{v:'large',t:'Grande'}])+'</div>'
-    + '<label class="dc-check"><input type="checkbox" '+(d.attach?'checked':'')+' onchange="dcOnInput(\'attach\',this.checked)"> Mentionner « P. J. : Curriculum vitae »</label>';
-  document.getElementById('dcForm').innerHTML =
-      '<div class="dc-chips dc-typebar" id="dcTypeChips">'+typeChips+'</div>'
-    + '<div id="dcChecks" class="dc-checks"></div>'
-    + dcSection('dcSecJob', '1 · '+(t==='stage'?'Le stage':'Le poste')+' visé', jobFields, true)
-    + dcSection('dcSecRec', '2 · Destinataire', recFields, true)
-    + dcSection('dcSecText', '3 · Texte', '<div id="dcBodyBox"></div>', true)
-    + dcSection('dcSecSend', '4 · Vos coordonnées', sendFields, false)
-    + dcSection('dcSecStyle', '5 · Style', styleBox, false)
-    + '<div class="dc-f dc-namef">'+'<label>Nom du document (pour le retrouver)</label><input maxlength="120" value="'+esc(d.name||'')+'" placeholder="'+esc(dcDocTitle(d))+'" oninput="dcOnInput(\'name\',this.value)"></div>';
-  dcRenderStyleBits(); dcRenderBody();
-}
-function dcRenderStyleBits(){
-  const d = DOC;
-  const tp = document.getElementById('dcTplChips');
-  if(tp) tp.innerHTML = DOC_TEMPLATES.map(function(t){ return '<button class="dc-chip'+(d.template===t.id?' on':'')+'" onclick="dcOnInput(\'template\',\''+t.id+'\');dcRenderStyleBits()">'+t.name+'</button>'; }).join('');
-  const ac = document.getElementById('dcAccents');
-  if(ac) ac.innerHTML = DOC_ACCENTS.map(function(c){ return '<span class="dc-dot'+(d.accent===c?' on':'')+'" style="background:'+c+'" onclick="dcOnInput(\'accent\',\''+c+'\');dcRenderStyleBits()"></span>'; }).join('');
-  const tc = document.getElementById('dcTypeChips');
-  if(tc) tc.innerHTML = Object.keys(DOC_TYPES).map(function(k){ return '<button class="dc-chip'+(k===d.type?' on':'')+'" onclick="dcSetType(\''+k+'\')">'+DOC_TYPES[k].ic+' '+DOC_TYPES[k].label+'</button>'; }).join('');
-}
-function dcRenderBody(){
-  const d = DOC, box = document.getElementById('dcBodyBox'); if(!box) return;
-  const note = d.auto.body
-    ? '<div class="dc-auto ok">✨ Texte composé depuis votre CV — il se met à jour quand vous changez le poste ou l\'entreprise. <button class="dc-link" onclick="dcNextVariant()">Autre formulation</button></div>'
-    : '<div class="dc-auto">✏️ Texte modifié par vous. <button class="dc-link" onclick="dcRegenConfirm()">↻ Recomposer depuis mon CV</button></div>';
-  const paras = d.body.map(function(p,i){
-    return '<div class="dc-para"><textarea rows="'+Math.max(3, Math.ceil(p.length/54))+'" maxlength="900" oninput="dcOnPara('+i+',this)">'+esc(p)+'</textarea>'
-      + '<div class="dc-para-act"><button title="Monter" onclick="dcMovePara('+i+',-1)"'+(i===0?' disabled':'')+'>▲</button><button title="Descendre" onclick="dcMovePara('+i+',1)"'+(i===d.body.length-1?' disabled':'')+'>▼</button><button title="Supprimer" class="del" onclick="dcDelPara('+i+')">✕</button></div></div>';
-  }).join('');
-  const objectF = '<div class="dc-f"><label>Objet</label><input maxlength="160" value="'+esc(d.object)+'" oninput="dcOnInput(\'object\',this.value)"></div>';
-  const closeF = dcSel('Formule de politesse', 'closingId', Object.keys(DOC_CLOSINGS).map(function(k){ return { v:k, t:DOC_CLOSINGS[k].label }; }));
-  box.innerHTML = note + objectF + paras
-    + '<button class="btn-add" onclick="dcAddPara()">+ Ajouter un paragraphe</button>'
-    + closeF + dcInp('Signature', 'signature', {});
-}
-
-/* ---------------- Événements du formulaire ---------------- */
-function dcOnInput(path, val){
-  dcSetPath(path, val);
-  if(path==='object') DOC.auto.object = false;
-  const genKeys = ['job.title','job.ref','job.source','job.why','job.duration','job.start','job.availability','recipient.org','tone'];
-  if(genKeys.indexOf(path)>=0){
-    const hadAutoBody = DOC.auto.body;
-    dcRegen(DOC);
-    if(hadAutoBody || DOC.auto.object) dcRenderBodyFieldsOnly();
-  }
-  if(path==='sender.name' && (!DOC.signature || DOC.signature===DOC._lastSenderName)) { DOC.signature = val; }
-  if(path==='sender.name') DOC._lastSenderName = val;
-  dcPreview(); dcQueueSave();
-}
-// Met à jour les champs de texte et l'objet sans reconstruire tout le formulaire (garde le focus)
-function dcRenderBodyFieldsOnly(){
-  const box = document.getElementById('dcBodyBox'); if(!box) return;
-  const active = document.activeElement; const keep = active && box.contains(active);
-  if(keep) return dcRenderBodyValuesOnly();
-  dcRenderBody();
-}
-function dcRenderBodyValuesOnly(){
-  const box = document.getElementById('dcBodyBox'); if(!box) return;
-  const tas = box.querySelectorAll('.dc-para textarea');
-  if(tas.length!==DOC.body.length){ dcRenderBody(); return; }
-  tas.forEach(function(t,i){ t.value = DOC.body[i]; });
-  const obj = box.querySelector('.dc-f input'); if(obj && DOC.auto.object) obj.value = DOC.object;
-}
-function dcOnPara(i, el){
-  DOC.body[i] = el.value; DOC.auto.body = false;
-  const note = document.querySelector('#dcBodyBox .dc-auto');
-  if(note && note.classList.contains('ok')){ dcRenderNoteOnly(); }
-  dcPreview(); dcQueueSave();
-}
-function dcRenderNoteOnly(){
-  const note = document.querySelector('#dcBodyBox .dc-auto'); if(!note) return;
-  note.className = 'dc-auto';
-  note.innerHTML = '✏️ Texte modifié par vous. <button class="dc-link" onclick="dcRegenConfirm()">↻ Recomposer depuis mon CV</button>';
-}
-function dcAddPara(){ DOC.body.push(''); DOC.auto.body = false; dcRenderBody(); dcPreview(); dcQueueSave(); }
-function dcDelPara(i){ DOC.body.splice(i,1); DOC.auto.body = false; dcRenderBody(); dcPreview(); dcQueueSave(); }
-function dcMovePara(i, dir){
-  const j = i+dir; if(j<0 || j>=DOC.body.length) return;
-  const t = DOC.body[i]; DOC.body[i] = DOC.body[j]; DOC.body[j] = t; DOC.auto.body = false;
-  dcRenderBody(); dcPreview(); dcQueueSave();
-}
-function dcRegenConfirm(){
-  appConfirm('Remplacer votre texte par une nouvelle version composée depuis votre CV ?', function(){
-    DOC.auto = { body:true, object:true }; dcRegen(DOC, true); dcRenderBody(); dcPreview(); dcQueueSave();
-  });
-}
-function dcNextVariant(){ DOC.variant = ((DOC.variant||0)+1)%3; dcRegen(DOC); dcRenderBody(); dcPreview(); dcQueueSave(); }
-function dcSetType(t){
-  if(t===DOC.type) return;
-  const apply = function(){
-    const prevType = DOC.type; DOC.type = t; DOC.variant = 0;
-    if(t==='stage' && DOC.job.title===(cv.p.role||'')) DOC.job.title = '';
-    else if(prevType==='stage' && !DOC.job.title.trim()) DOC.job.title = cv.p.role||'';
-    if(DOC.auto.body || DOC.auto.object){ /* textes automatiques : suivent le nouveau type */ }
-    DOC.auto = { body:true, object:true }; dcRegen(DOC, true);
-    dcBuildForm(); dcPreview(); dcQueueSave();
-    document.getElementById('dcTitle').textContent = DOC_TYPES[t].label;
-  };
-  if(!DOC.auto.body) appConfirm('Changer le type remplace votre texte modifié par une nouvelle version. Continuer ?', apply); else apply();
-}
-function dcResyncSender(){
-  const p = cv.p || {};
-  DOC.sender = { name:p.name||'', role:p.role||'', address:p.address||'', phone:p.phone||'', email:p.email||'' };
-  DOC.signature = p.name||''; DOC._lastSenderName = p.name||'';
-  dcBuildForm(); dcPreview(); dcQueueSave(); toast('Coordonnées reprises depuis votre CV.');
-  const sec = document.getElementById('dcSecSend'); if(sec && sec.parentElement) sec.parentElement.open = true;
-}
-
-/* ---------------- Aperçu + contrôle qualité ---------------- */
-function dcPreview(){
-  const page = document.getElementById('dcPage'); if(!page || !DOC) return;
-  page.innerHTML = dcRender(DOC, 'screen');
-  dcFitPreview(); dcRenderChecks();
-}
-function dcFitPreview(){
-  const pane = document.getElementById('dcPrev'), wrap = document.getElementById('dcPageWrap'), page = document.getElementById('dcPage');
-  if(!pane || !wrap || !page || pane.clientWidth===0) return;
-  const k = Math.max(0.3, Math.min(1.15, (pane.clientWidth-28)/794));
-  page.style.transformOrigin = 'top left'; page.style.transform = 'scale('+k+')';
-  wrap.style.width = Math.round(794*k)+'px'; wrap.style.height = Math.round(page.offsetHeight*k)+'px';
-}
-window.addEventListener('resize', function(){ if(DOC) dcFitPreview(); });
-function dcPages(){ const t = document.querySelector('#dcPage table'); return t ? Math.max(1, Math.ceil((t.offsetHeight-2)/1123)) : 1; }
-function dcRenderChecks(){
-  const el = document.getElementById('dcChecks'); if(!el) return;
-  const d = DOC, words = dcWordCount(d), pages = dcPages(), items = [];
-  const add = function(l, m){ items.push({ l:l, m:m }); };
-  if(!d.sender.name.trim()) add('w','Indiquez votre nom (coordonnées).');
-  if(!d.sender.phone.trim() && !d.sender.email.trim()) add('w','Ajoutez un téléphone ou un email pour être joignable.');
-  if(!d.job.title.trim() && d.type!=='spontanee') add('w','Précisez le poste visé : le texte sera bien plus pertinent.');
-  if(!d.recipient.org.trim()) add('t','Indiquez l\'entreprise : une lettre nominative marque davantage.');
-  if(!d.recipient.name.trim() && d.recipient.salutation==='Madame, Monsieur,') add('t','Si possible, adressez-la à une personne nommée (« Madame Koffi, »).');
-  const minW = (d.type==='lettre'||d.type==='spontanee') ? 120 : 90;
-  if(words<minW) add('w','Texte court ('+words+' mots) : visez '+(minW<100?'100':'150')+' à 300 mots.');
-  else if(words>330) add('w','Texte long ('+words+' mots) : visez 150 à 300 mots pour tenir sur une page.');
-  if(pages>1) add('w','Le document dépasse une page ('+pages+' pages) : raccourcissez ou réduisez la taille.');
-  if(!d.signature.trim()) add('w','Ajoutez votre signature (nom).');
-  const warn = items.filter(function(x){ return x.l==='w'; }).length;
-  const head = warn ? '<b class="warn">⚠ '+warn+' point'+(warn>1?'s':'')+' à revoir</b>' : '<b class="ok">✓ Prêt à envoyer</b>';
-  el.innerHTML = '<div class="dc-checks-h">'+head+'<span>'+words+' mots · '+pages+' page'+(pages>1?'s':'')+'</span></div>'
-    + (items.length ? '<ul>'+items.map(function(x){ return '<li class="'+x.l+'">'+esc(x.m)+'</li>'; }).join('')+'</ul>' : '');
-  const pg = document.getElementById('dcPageInfo'); if(pg) pg.textContent = pages+' page'+(pages>1?'s':'')+' · '+words+' mots';
-}
-function dcTab(tab){
-  docTab = tab;
-  const e = document.getElementById('dcEdit'); e.setAttribute('data-tab', tab);
-  document.querySelectorAll('.dc-tab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-t')===tab); });
-  if(tab==='preview') setTimeout(dcFitPreview, 30);
-}
-
-/* ---------------- Exports ---------------- */
-let dcPrintRestore = null;
-function dcFileBase(){ return (DOC_TYPES[DOC.type].label.split(' ')[0]+'_'+(DOC.sender.name||'CV').trim()).replace(/[^\w\-]+/g,'_'); }
-function dcExportPDF(){
-  if(!DOC) return;
-  const area = document.getElementById('printArea'); if(!area) return;
-  area.innerHTML = '<div id="cvPprint" style="width:794px">'+dcRender(DOC, 'print')+'</div>';
-  window.__docPrintActive = true;
-  const oldTitle = document.title; document.title = dcFileBase();
-  const restore = function(){
-    window.removeEventListener('afterprint', restore); document.title = oldTitle;
-    if(window.__docPrintActive){ window.__docPrintActive = false; try{ renderCV(); }catch(e){} }
-  };
-  window.addEventListener('afterprint', restore);
-  window.print();
-}
-function dcExportWord(){
-  if(!DOC) return;
-  const body = dcRender(DOC, 'word');
-  const doc = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>'+esc(dcFileBase())+'</title>'
-    + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
-    + '<style>@page Section1{size:595.3pt 841.9pt;margin:56pt 54pt 56pt 54pt}div.Section1{page:Section1}body{margin:0}p{margin:0 0 9pt 0}</style></head><body>'+body+'</body></html>';
-  const blob = new Blob(['﻿', doc], { type:'application/msword;charset=utf-8' });
-  const url = URL.createObjectURL(blob), a = document.createElement('a');
-  a.href = url; a.download = dcFileBase()+'.doc';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-}
-function dcCopy(){
-  if(!DOC) return;
-  const txt = dcPlainText(DOC);
-  const done = function(){ toast('Texte copié : collez-le dans votre email.'); };
-  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){ dcCopyFallback(txt); done(); }); }
-  else { dcCopyFallback(txt); done(); }
-}
-function dcCopyFallback(txt){
-  const ta = document.createElement('textarea'); ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
-  document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(ta);
-}
-
-dcLoadLocal();
+__lazyStub("/docs-letters.js",["openDocs","dcTab","dcBack","dcExportWord","dcExportPDF","dcCopy"]);
 </script>
 <script type="module">
-/* =========================================================================
-   VRAI MODÈLE IA LOCAL (dans le navigateur, via WebGPU/WASM)
-   - Aucune clé, aucun serveur : les poids du modèle sont téléchargés une
-     fois depuis le CDN du modèle puis mis en cache par le navigateur.
-   - Modèle: Qwen2.5-0.5B-Instruct (petit mais correct en français),
-     quantifié en int4 pour rester téléchargeable sur mobile.
-   - Si le navigateur ne supporte pas WebGPU, ou si le téléchargement est
-     bloqué par la politique réseau de l'environnement où cette page est
-     hébergée, le système bascule automatiquement sur le moteur à règles
-     déjà en place (aucune fonctionnalité ne casse, juste moins "smart").
-   ==========================================================================*/
-let localGenerator = null;
-window.localModelReady = false;
-
-window.loadLocalModel = async function(){
-  const btn = document.getElementById('loadModelBtn');
-  const box = document.getElementById('modelProgress');
-  const bar = document.getElementById('modelProgressBar');
-  const txt = document.getElementById('modelProgressText');
-  btn.disabled = true; btn.textContent = 'Chargement…';
-  box.style.display = 'block';
-  try{
-    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
-    localGenerator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
-      dtype: 'q4',
-      progress_callback: (p)=>{
-        if(p.status==='progress' && p.total){
-          const pct = Math.round((p.loaded/p.total)*100);
-          bar.style.width = pct+'%';
-          txt.textContent = 'Téléchargement du modèle… '+pct+'%';
-        } else if(p.status==='ready' || p.status==='done'){
-          txt.textContent = 'Prêt !';
-        }
-      }
-    });
-    window.localModelReady = true;
-    btn.textContent = '✓ Modèle IA actif';
-    txt.textContent = 'Modèle chargé — les réponses utilisent maintenant l\'IA générative locale.';
-  }catch(e){
-    btn.disabled = false;
-    btn.textContent = '🧠 Charger le modèle IA (~400 Mo, une fois)';
-    txt.textContent = '⚠️ Échec du chargement (WebGPU indisponible ou réseau bloqué). Le moteur à règles reste utilisé.';
-    console.warn('Local model load failed', e);
-  }
-};
-
-window.generateWithLocalModel = async function(userPrompt){
-  const chatPrompt = '<|im_start|>system\nTu es un assistant francophone spécialisé CV, concis et professionnel.<|im_end|>\n<|im_start|>user\n'+userPrompt+'<|im_end|>\n<|im_start|>assistant\n';
-  const out = await localGenerator(chatPrompt, { max_new_tokens: 220, temperature: 0.7, do_sample: true, return_full_text: false });
-  let text = (out && out[0] && out[0].generated_text) ? out[0].generated_text : '';
-  return text.split('<|im_end|>')[0].trim();
-};
-
 /* ── Annonces + présence (connecté uniquement) ── */
 function adsCanShow(){
   if(!currentUser && !(window.AdsEngine && AdsEngine.opts && AdsEngine.opts.guest)) return false;

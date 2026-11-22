@@ -42,7 +42,10 @@ Deno.serve(async (req: Request) => {
       return new Response("amount mismatch", { status: 200 });
     }
 
-    await sb.from("payments").update({ status: "success", paid_at: new Date().toISOString(), payment_method: r.data?.payment_method ?? null }).eq("transaction_id", txId);
+    // Verrou atomique : seule UNE exécution passe de « non-success » à « success » (deux webhooks simultanés n'activent pas deux fois le plan).
+    const { data: won } = await sb.from("payments").update({ status: "success", paid_at: new Date().toISOString(), payment_method: r.data?.payment_method ?? null })
+      .eq("transaction_id", txId).neq("status", "success").select("transaction_id");
+    if (!won || !won.length) return new Response("already processed", { status: 200 });
 
     // Activation du plan (prolongation si le même plan est déjà actif)
     const months = pay.metadata?.period === "y" ? 12 : 1;

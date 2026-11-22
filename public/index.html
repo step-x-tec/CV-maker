@@ -421,7 +421,7 @@ async function submitInterest(){
 /* Supabase est chargé après l'affichage de la page (ne bloque plus le premier rendu). */
 (function(){
   function boot(){ initSb(); cvxTrack('landing_view',{},false); siteNotice(); loadApprovedTestimonials(); }
-  function load(){ var t=document.createElement('script'); t.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4'; t.async=true; t.onload=boot; t.onerror=boot; document.head.appendChild(t); }
+  function load(){ var t=document.createElement('script'); t.src='/vendor/supabase.js'; t.async=true; t.onload=boot; t.onerror=boot; document.head.appendChild(t); }
   if(document.readyState==='complete') setTimeout(load,0); else window.addEventListener('load',function(){ setTimeout(load,0); });
 })();
 </script>

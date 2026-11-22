@@ -3,13 +3,17 @@
 // pour l'éditeur déjà visité. Ne met jamais en cache les appels Supabase
 // (API externe, toujours en réseau) ni les requêtes non-GET.
 
-const SW_VERSION = 'cvxmaker-v26';
+const SW_VERSION = 'cvxmaker-v34';
 const SHELL_CACHE = SW_VERSION + '-shell';
 
 const SHELL_FILES = [
   '/app/',
   '/app.html',
   '/ads-render.js',
+  '/career-kit.js',
+  '/vendor/supabase.js',
+  '/docs-letters.js?v=29',
+  '/import-cv.js?v=29',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

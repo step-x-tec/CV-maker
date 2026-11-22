@@ -48,11 +48,16 @@ Deno.serve(async (req: Request) => {
 
   // 3. Ligne "pending" (source de vérité du montant, lue plus tard par le webhook)
   const sbAdmin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"));
+  // Anti-abus : pas plus de 5 paiements « en attente » par utilisateur sur 10 minutes
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count: pendingCount } = await sbAdmin.from("payments").select("transaction_id", { count: "exact", head: true })
+    .eq("user_id", user.id).eq("status", "pending").gte("created_at", since);
+  if ((pendingCount ?? 0) >= 5) return json(req, { error: "Trop de tentatives. Réessayez dans quelques minutes." }, 429);
   const { error: insErr } = await sbAdmin.from("payments").insert({
     transaction_id: transactionId, user_id: user.id, plan, amount, currency: "XOF",
     status: "pending", provider: "cinetpay", metadata: { period },
   });
-  if (insErr) return json(req, { error: "Enregistrement du paiement impossible", detail: insErr.message }, 500);
+  if (insErr) console.error("create-payment insert", insErr.message); return json(req, { error: "Enregistrement du paiement impossible" }, 500);
 
   // 4. Création de la page de paiement CinetPay
   const payload: Record<string, unknown> = {
@@ -71,7 +76,7 @@ Deno.serve(async (req: Request) => {
   const data = await res.json().catch(() => ({}));
   if (data.code !== "201" || !data.data?.payment_url) {
     await sbAdmin.from("payments").update({ status: "failed", metadata: { period, error: data } }).eq("transaction_id", transactionId);
-    return json(req, { error: "CinetPay a refusé la création du paiement", detail: data.message ?? data.description ?? null }, 502);
+    return json(req, { error: "CinetPay a refusé la création du paiement" }, 502);
   }
   await sbAdmin.from("payments").update({ provider_ref: data.data.payment_token ?? null }).eq("transaction_id", transactionId);
   return json(req, { payment_url: data.data.payment_url, transaction_id: transactionId });

@@ -222,3 +222,47 @@ Modèles français prêts à coller dans `supabase/templates/` (guide : `supabas
 - Texte adapté à la quantité de contenu : réduit si le CV est long (jusqu'à 55 %), agrandi si le CV est court (jusqu'à 145 %) pour remplir la page. Réglage « Taille » → « Auto » (par défaut) ; Petit / Grand restent disponibles.
 - Les modèles occupent toute la hauteur de la page : colonnes latérales et fonds colorés jusqu'en bas (aperçu, PDF, lien public).
 - PDF : le zoom s'applique au contenu et non plus à la feuille entière (le CV ne se rétrécit plus dans un coin de la page).
+
+## v27 — Assistant de contenu (100 % local)
+- `public/career-kit.js` : profils (3 styles), compétences et idées de missions selon le poste visé (22 familles de métiers).
+- Étape 3 : bouton « 💡 Proposer un profil » ; étape 5 : « Idées de missions » ; étape 6 : compétences « Pour votre métier ».
+- Service worker v27. Aucune migration SQL.
+
+## v28 — Nettoyage automatique du texte
+- À la sortie d'un champ Résumé / Missions : espaces doubles, majuscules, ponctuation, tout-en-majuscules et listes collées (« - a - b ») sont corrigés. Missions → puces « • », résumé → phrases. Aucune migration SQL.
+
+## v29 — Indicateur de complétude
+- Carte « Votre CV est complet à X % » (étapes 2 à 7) avec les 3 ajouts les plus utiles, cliquables, mise à jour en direct. Aucune migration SQL.
+
+## v30 — Chargement allégé
+- « Lettres & demandes » (`docs-letters.js`) et « Import de CV » (`import-cv.js`) ne se chargent qu'au premier clic (−80 Ko au démarrage, surtout sur mobile). Les deux sont pré-chargés hors ligne par le service worker (cache v30). Aucune migration SQL.
+
+## v31 — Erreurs claires + « Réessayer »
+- Bandeau d'erreur avec bouton « Réessayer » si l'export PDF/Word, l'enregistrement local (espace plein, navigation privée) ou la sauvegarde en ligne échoue. Aucune migration SQL.
+
+## v32 — Audit de sécurité complet
+**À faire côté Supabase : exécuter `supabase/migrations/20261101000000_security_audit.sql` (SQL Editor), puis redéployer les fonctions `cinetpay-webhook`, `create-payment`, `ai-chat`.**
+- Faille critique : le déclencheur `protect_profile_columns` ne protégeait rien (SECURITY DEFINER) → un utilisateur pouvait se donner un plan payant / is_admin. Corrigé et testé sur une vraie base Postgres.
+- API : fonctions internes retirées aux visiteurs et utilisateurs (seules 11 fonctions restent publiques) ; `_safe_count` durcie.
+- CV publics : lecture uniquement par jeton (`get_public_cv`), plus de listing de tous les CV ; jetons de 128 bits.
+- XSS stockée dans 10 modèles de CV (champs entreprise, école, réseaux…) : filtre `cvxSanitize` + couleurs validées.
+- En-têtes : CSP, HSTS, COOP, CORP (netlify.toml + vercel.json) ; supabase-js hébergé en local (`/vendor`), plus de dépendance CDN.
+- Paiements : webhook atomique (pas de double activation), limite de tentatives, erreurs internes masquées ; IA : rôles filtrés ; licences : 8 essais / 10 min.
+
+## v33 — Durcissement n°2
+**À exécuter dans Supabase, après la migration v32 : `supabase/migrations/20261102000000_security_hardening_2.sql`.**
+- Anti-flood sur toutes les écritures (tickets 10/h, messages 60/h, avis, témoignages, intérêts, notifications…), limites de taille (CV 2 Mo, textes), 300 CV max par compte.
+- Jetons de CV public ≥ 16 caractères (les plus courts sont régénérés : ces liens-là devront être repartagés).
+- pdf.js et mammoth hébergés localement (`/vendor`) : le CDN cdnjs est retiré de la CSP. Fichiers importés limités à 8 Mo.
+- `public/.well-known/security.txt` (pensez à mettre une vraie adresse de contact) ; tests d'attaque rejouables dans `tools/security/`.
+
+## v34 — IA hébergée : plus aucun téléchargement pour l'utilisateur
+Avant : le navigateur téléchargeait un modèle (110 Mo pour la traduction, ~400 Mo pour la rédaction). Maintenant : tout passe par la fonction `ai-chat` (Groq, Llama 3.3 70B), invisible pour l'utilisateur.
+**À faire (5 minutes) :**
+1. Créer une clé gratuite sur https://console.groq.com → API Keys.
+2. `supabase secrets set GROQ_API_KEY=gsk_xxx SITE_URL=https://votre-site` (SITE_URL est probablement déjà défini).
+3. `supabase functions deploy ai-chat`
+- Tâches : résumé, missions, lettre, orthographe, traduction FR→EN de tout le CV (un seul appel), chat. Prompts fixés côté serveur, contenu utilisateur isolé (anti-injection), quota par plan via `consume_ai_request`, 25 s de délai maximum.
+- Sans connexion, quota épuisé ou panne : bascule automatique sur le moteur intégré à règles (aucune fonction ne casse).
+- CSP durcie : plus aucun CDN autorisé (ni jsdelivr, ni Hugging Face, ni WebAssembly). Service worker v34.
+- Aucune migration SQL. Le quota IA gratuit reste celui de votre table (3/jour en plan gratuit).
