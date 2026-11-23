@@ -523,6 +523,53 @@ h2.display{font-size:21px;margin:0 0 14px}
 .pl-btn.off{background:#FDECEC;color:var(--bad)}
 .pl-btn.ghost{background:#F1EEE7;color:var(--ink)}
 .pl-btn:disabled{opacity:.6}
+
+@media (max-width:560px){ .step-pill{display:none} #authBtn{max-width:none} }
+/* ===== Design v36 : barre du haut, étapes, boutons flottants, panneaux ===== */
+.topbar{gap:12px}
+.topbar > div{flex-wrap:nowrap;min-width:0}
+.topbar .btn-export{white-space:nowrap}
+#authBtn{max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.tb-more{display:none;position:relative}
+.tb-menu{display:none;position:absolute;right:0;top:calc(100% + 10px);min-width:230px;background:#fff;color:#1B1640;border-radius:14px;padding:6px;box-shadow:0 18px 44px rgba(15,10,40,.28);border:1px solid rgba(27,22,64,.08);z-index:80}
+.tb-menu.open{display:block}
+.tb-menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:11px 12px;border-radius:9px;font:600 13.5px Inter,system-ui,sans-serif;color:#1B1640;cursor:pointer}
+.tb-menu button:hover,.tb-menu button:focus-visible{background:#F4EFE7;outline:none}
+@media (min-width:861px) and (max-width:1320px){
+  .tb-sec{display:none !important}
+  .tb-more{display:block}
+  .topbar .btn-export{padding:8px 14px}
+}
+.form-pane{padding:20px 26px 0}
+.steps-wrap{container:steps/inline-size}
+.steps-nav{flex:0 0 auto;flex-wrap:nowrap;gap:5px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.steps-nav::-webkit-scrollbar{display:none}
+.steps-nav button{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;white-space:nowrap}
+.steps-nav button i{font-style:normal;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#EEE9E0;color:var(--ink2);font-size:10.5px;font-weight:700;flex:none}
+.steps-nav button.active i{background:var(--accent);color:#fff}
+.steps-nav button.done i{background:#DCEFE3;color:#136C3D}
+.steps-nav button span{overflow:hidden;text-overflow:ellipsis}
+@container steps (max-width:560px){ .steps-nav button:not(.active) span{display:none} .steps-nav button.active{flex:2.6 1 0} }
+@media (max-width:560px){ .steps-nav button:not(.active) span{display:none} .steps-nav button.active{flex:2.6 1 0} .steps-nav button{padding:9px 4px} }
+/* Boutons flottants : une seule colonne à droite, sous les fenêtres, sans masquer la barre de zoom */
+@media (min-width:861px){
+  #supportFab{bottom:24px !important;right:18px !important}
+  #layoutFab{bottom:88px !important;right:18px !important}
+  body #cxFab{right:18px !important;bottom:152px !important;z-index:44 !important;padding:11px 16px !important;font-size:13px !important}
+}
+@media (max-width:860px){
+  body[data-mob="edit"] #layoutFab,body[data-mob="edit"] #cxFab{display:none !important}
+  #supportFab{bottom:calc(140px + env(safe-area-inset-bottom,0px)) !important;opacity:.95}
+  body[data-mob="preview"] #supportFab{bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important}
+  #layoutFab{bottom:calc(130px + env(safe-area-inset-bottom,0px)) !important}
+  body #cxFab{z-index:44 !important}
+}
+#supportFab,#layoutFab{z-index:44 !important}
+/* Fenêtres : jamais plus larges que l'écran */
+#tarifsOverlay > div,#aiOverlay > div,#myCvsOverlay > div{max-width:100%}
+#tarifsOverlay > div{width:min(960px,calc(100vw - 24px));box-sizing:border-box;margin:24px auto !important}
+@media (max-width:560px){ #tarifsOverlay > div{padding:20px 16px !important;margin:12px auto !important;border-radius:16px !important} }
+.nav-btns{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
 </style>
 <style id="deskCss">
 /* ── Poste de travail ordinateur : aperçu A4 entier d'un coup d'œil + barre d'outils ── */
@@ -554,12 +601,22 @@ body.cx-on #pvBar{display:none !important}
   <div style="display:flex;gap:8px;align-items:center">
     <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="toggleAI(true)">✨ IA</button>
     <button class="btn-export mob-hide" onclick="exportPDF()">PDF</button>
-    <button class="btn-export mob-hide" onclick="exportWord()">Word</button>
-    <button class="btn-export mob-hide" onclick="togglePublicLink(true)">🔗 Lien</button>
+    <button class="btn-export mob-hide tb-sec" onclick="exportWord()">Word</button>
+    <button class="btn-export mob-hide tb-sec" onclick="togglePublicLink(true)">🔗 Lien</button>
     <span id="planBadge" class="plan-badge plan-free">Gratuit</span>
-    <button class="btn-export mob-hide" onclick="toggleTarifs(true)">Tarifs</button>
-    <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="toggleMyCVs(true)">📄 Mes CVs</button>
-    <button class="btn-export mob-hide" style="background:rgba(255,255,255,.12);color:#fff" onclick="openDocs()">✉️ Lettres</button>
+    <button class="btn-export mob-hide tb-sec" onclick="toggleTarifs(true)">Tarifs</button>
+    <button class="btn-export mob-hide tb-sec" style="background:rgba(255,255,255,.12);color:#fff" onclick="toggleMyCVs(true)">📄 Mes CVs</button>
+    <button class="btn-export mob-hide tb-sec" style="background:rgba(255,255,255,.12);color:#fff" onclick="openDocs()">✉️ Lettres</button>
+    <div class="tb-more" id="tbMore">
+      <button class="btn-export" style="background:rgba(255,255,255,.12);color:#fff" onclick="tbToggleMore(event)" aria-haspopup="true" aria-expanded="false" id="tbMoreBtn">⋯ Plus</button>
+      <div class="tb-menu" id="tbMenu" role="menu">
+        <button role="menuitem" onclick="tbMenuGo(exportWord)">📝 Exporter en Word</button>
+        <button role="menuitem" onclick="tbMenuGo(function(){togglePublicLink(true)})">🔗 Lien de partage</button>
+        <button role="menuitem" onclick="tbMenuGo(function(){toggleMyCVs(true)})">📄 Mes CVs</button>
+        <button role="menuitem" onclick="tbMenuGo(openDocs)">✉️ Lettres et demandes</button>
+        <button role="menuitem" onclick="tbMenuGo(function(){toggleTarifs(true)})">💎 Tarifs et plans</button>
+      </div>
+    </div>
     <button id="installBtn" class="btn-export" style="display:none;background:rgba(255,255,255,.12);color:#fff" onclick="triggerInstall()" aria-label="Installer l'application">⬇️<span class="ins-lbl"> Installer</span></button>
     <button id="authBtn" class="btn-export" style="background:rgba(255,255,255,.12);color:#fff" onclick="openAuth()">Se connecter</button>
   </div>
@@ -3210,8 +3267,37 @@ function enxSync(){
   var busy=document.getElementById('enBusy'); if(busy) busy.style.display=ENX_BUSY?'inline':'none';
 }
 
+/* Prépare les données avant l'affichage : retire les lignes vides (puces fantômes « ✦ », « ○ ») et écrit la date de naissance en toutes lettres. */
+const __MOIS_FR=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const __MOIS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function cvxBirth(v, en){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v||'').trim()); if(!m) return v;
+  const mo=+m[2]-1, d=+m[3]; if(mo<0||mo>11||d<1||d>31) return v;
+  return en ? (d+' '+__MOIS_EN[mo]+' '+m[1]) : ((d===1?'1er':d)+' '+__MOIS_FR[mo]+' '+m[1]);
+}
+function cvxPrep(d){
+  if(!d || typeof d!=='object') return d;
+  const has=function(x){ return String(x==null?'':x).trim().length>0; };
+  const keep=function(a,f){ return Array.isArray(a)?a.filter(function(x){ return x && f(x); }):a; };
+  const c=Object.assign({}, d);
+  c.sk=keep(d.sk,function(x){return has(x.name);});
+  c.lang=keep(d.lang,function(x){return has(x.lang||x.name);});
+  c.cert=keep(d.cert,function(x){return has(x.title)||has(x.org);});
+  c.hobby=keep(d.hobby,function(x){return has(x.name);});
+  c.ref=keep(d.ref,function(x){return has(x.name);});
+  c.award=keep(d.award,function(x){return has(x.title);});
+  c.logiciel=keep(d.logiciel,function(x){return has(x.name);});
+  c.quality=keep(d.quality,function(x){return has(x.name);});
+  c.projects=keep(d.projects,function(x){return has(x.title)||has(x.desc);});
+  c.exp=keep(d.exp,function(x){return has(x.title)||has(x.company)||has(x.desc);});
+  c.edu=keep(d.edu,function(x){return has(x.degree)||has(x.school);});
+  if(d.ec && has(d.ec.birthDate)){ c.ec=Object.assign({}, d.ec, { birthDate: cvxBirth(d.ec.birthDate, d.vl==='en') }); }
+  return c;
+}
 function renderTpl(tpl, data, over){
+  const __orig = data;
   if(!tpl) return '<div style="min-height:1123px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-family:Inter,sans-serif;font-size:13px;text-align:center;padding:40px">Modèles en cours de mise à jour.<br>Revenez dans un instant.</div>';
+  if(data && typeof data==='object') data = cvxPrep(data);
   const S2 = Object.assign({}, S, { bg: (data && data.theme && /^#[0-9a-f]{6}$/i.test(data.theme[tpl.id]||'') ? data.theme[tpl.id] : tpl.bg) }, over||{});
   // Couleurs : uniquement un code hexadécimal valide (une valeur piégée venant du cloud ne doit jamais atteindre le HTML).
   if(!/^#[0-9a-f]{3,8}$/i.test(String(S2.accent||''))) S2.accent='#2563EB';
@@ -3221,7 +3307,7 @@ function renderTpl(tpl, data, over){
     try{ html = ENX.labels(tpl.render(ENX.view(data), S2)); }catch(e){ try{ console.warn('[CVxMaker] vue anglaise ignorée', e); }catch(_){} }
   }
   if(html==null) html = tpl.render(data, S2);
-  return data===SAMPLE_CV ? html : cvxSanitize(html);   // le CV d'exemple est notre contenu ; tout le reste est filtré
+  return __orig===SAMPLE_CV ? html : cvxSanitize(html);   // le CV d'exemple est notre contenu ; tout le reste est filtré
 }
 /* Filtre de sécurité : retire tout ce qui pourrait exécuter du code (scripts, gestionnaires on*, liens javascript:, etc.)
    dans le HTML d'un CV, quelle que soit son origine (compte, lien public, import, base de données). */
@@ -4301,7 +4387,7 @@ function addHobbyQuick(i){ cv.hobby.push({name:HOBBIES[i]}); openState['hobby'+(
 
 function renderForm(){
   document.getElementById('stepPill').textContent = 'Étape '+step+'/7';
-  let nav = '<div class="steps-nav">'+STEP_NAMES.map((n,i)=>'<button class="'+(i+1===step?'active':'')+'" onclick="goStep('+(i+1)+')">'+(i+1)+'. '+n+'</button>').join('')+'</div>';
+  let nav = '<div class="steps-wrap"><div class="steps-nav">'+STEP_NAMES.map((n,i)=>'<button class="'+(i+1===step?'active':'')+(i+1<step?' done':'')+'" onclick="goStep('+(i+1)+')" aria-label="Étape '+(i+1)+' : '+n+'"'+(i+1===step?' aria-current="step"':'')+'><i>'+(i+1<step?'✓':(i+1))+'</i><span>'+n+'</span></button>').join('')+'</div></div>';
   let prog = '<div class="progress"><i style="width:'+(step/TOTAL_STEPS*100)+'%"></i></div>';
   let body = '';
   const H=function(t){ return '<h2 class="display" style="margin:0 0 14px">'+t+'</h2>'; };
@@ -4789,7 +4875,14 @@ async function refreshPlanBadge(){
 }
 
 /* ---------------- Mobile view toggle ---------------- */
+/* Menu « Plus » de la barre du haut (écrans moyens) */
+function tbToggleMore(e){ if(e) e.stopPropagation(); var m=document.getElementById('tbMenu'), b=document.getElementById('tbMoreBtn'); var open=!m.classList.contains('open'); m.classList.toggle('open',open); b.setAttribute('aria-expanded',open?'true':'false'); }
+function tbMenuGo(fn){ var m=document.getElementById('tbMenu'); if(m) m.classList.remove('open'); try{ fn(); }catch(e){ console.warn(e); } }
+document.addEventListener('click',function(e){ var m=document.getElementById('tbMenu'); if(m && m.classList.contains('open') && !e.target.closest('#tbMore')) m.classList.remove('open'); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var m=document.getElementById('tbMenu'); if(m) m.classList.remove('open'); } });
+
 function setMobView(view){
+  document.body.setAttribute('data-mob',view);
   document.getElementById('formPane').classList.toggle('mob-hide', view!=='edit');
   document.querySelector('.preview-pane').classList.toggle('mob-hide', view!=='preview');
   document.getElementById('navEdit').classList.toggle('active', view==='edit');
@@ -4896,7 +4989,7 @@ function toggleAI(open){
   const el = document.getElementById('aiOverlay');
   el.style.display = open ? 'block' : 'none';
   if(open){
-    if(!document.getElementById('aiMessages').childElementCount) aiBubble('bot', 'Bonjour ! Je suis un assistant intégré, 100% local (aucune donnée envoyée à l\'extérieur). Je peux améliorer votre résumé, reformuler vos expériences, générer une lettre de motivation, faire une traduction de base ou analyser votre score ATS.');
+    if(!document.getElementById('aiMessages').childElementCount) aiBubble('bot', 'Bonjour ! Je suis votre assistant IA. Je peux réécrire votre résumé, reformuler vos expériences, rédiger une lettre de motivation, corriger l\'orthographe, traduire votre CV en anglais ou analyser votre score ATS. Seul le texte concerné est envoyé, de façon chiffrée, et il n\'est pas conservé.');
   }
 }
 function aiBubble(role, text){

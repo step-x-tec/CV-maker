@@ -257,7 +257,7 @@ Modèles français prêts à coller dans `supabase/templates/` (guide : `supabas
 - `public/.well-known/security.txt` (pensez à mettre une vraie adresse de contact) ; tests d'attaque rejouables dans `tools/security/`.
 
 ## v34 — IA hébergée : plus aucun téléchargement pour l'utilisateur
-Avant : le navigateur téléchargeait un modèle (110 Mo pour la traduction, ~400 Mo pour la rédaction). Maintenant : tout passe par la fonction `ai-chat` (Groq, Llama 3.3 70B), invisible pour l'utilisateur.
+Avant : le navigateur téléchargeait un modèle (110 Mo pour la traduction, ~400 Mo pour la rédaction). Maintenant : tout passe par la fonction `ai-chat` (Groq, openai/gpt-oss-120b), invisible pour l'utilisateur.
 **À faire (5 minutes) :**
 1. Créer une clé gratuite sur https://console.groq.com → API Keys.
 2. `supabase secrets set GROQ_API_KEY=gsk_xxx SITE_URL=https://votre-site` (SITE_URL est probablement déjà défini).
@@ -269,3 +269,17 @@ Avant : le navigateur téléchargeait un modèle (110 Mo pour la traduction, ~40
 
 ## v35 — Diagnostic de l'IA
 Ouvrez l'application avec `?aidebug` (ex. https://cvxmaker.netlify.app/app.html?aidebug) : quand l'IA hébergée échoue, le code d'erreur exact (HTTP 404 / 503 / 502…) s'affiche dans l'assistant.
+
+## v35b — ai-chat : diagnostic Groq + modèle de secours
+La fonction renvoie « IA indisponible (Groq 401) » (code HTTP seul) et essaie `llama-3.1-8b-instant` si le modèle principal est refusé. **Redéployer : `supabase functions deploy ai-chat`.**
+
+## v35c — ai-chat : modèles Groq mis à jour
+`llama-3.3-70b-versatile` et `llama-3.1-8b-instant` sont retirés depuis le 16/08/2026 (erreur Groq 404). Remplacés par `openai/gpt-oss-120b` (secours : `openai/gpt-oss-20b`). Pour changer de modèle sans modifier le code : `supabase secrets set AI_MODEL=<id>`. **Redéployer `ai-chat`.**
+
+## v37 — Design et dispositions
+- En-tête épuré : actions secondaires dans un menu « ⋯ Plus », plus de débordement de la barre d'outils.
+- Stepper adaptatif (container query) : seule l'étape active affiche son libellé quand la place manque.
+- Boutons flottants empilés en colonne (plus de chevauchement avec la barre de zoom / champ IA).
+- Modale Tarifs adaptée à l'écran ; règles mobiles revues.
+- CV : plus de puces vides, date de naissance lisible (« 12 avril 1992 »).
+- Aucune migration Supabase requise. Redéployer le site (cache SW passé à v37).
